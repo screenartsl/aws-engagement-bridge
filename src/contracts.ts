@@ -21,6 +21,7 @@ export interface InboundEvent {
   eventId: string;
   bindingId: string;
   channelRef: string;
+  resource: { accountId: string; region: string; wabaId: string; metaPhoneNumberId: string; awsPhoneNumberArn: string };
   kind: 'message' | 'status';
   providerMessageId: string;
   timestamp: number;

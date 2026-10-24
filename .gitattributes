@@ -1,0 +1,2 @@
+# Integration patch context preserves the unchanged legacy source whitespace.
+*.patch -whitespace

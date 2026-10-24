@@ -1,0 +1,82 @@
+diff --git a/app/AI/AgentExecutor.php b/app/AI/AgentExecutor.php
+index 3db8d244..61a6de77 100644
+--- a/app/AI/AgentExecutor.php
++++ b/app/AI/AgentExecutor.php
+@@ -2515,7 +2515,19 @@ private function executeToolCall(array $tc, AIAgent $agent, array $context, stri
+                     return $this->providers->dispatch($toolName, $args, $context, $agent);
+                 });
+             } else {
+-                $result = $this->providers->dispatch($toolName, $args, $context, $agent);
++                $bridgeChannel = ($context['channel'] ?? '') === 'whatsapp' && !empty($context['channel_id'])
++                    ? \App\Models\Channel::find((int) $context['channel_id']) : null;
++                if ($bridgeChannel?->managed_provider === 'aws_social') {
++                    if (!class_exists(\MuseRelay\AwsEngagementBridge\Core\ToolGuard::class)) {
++                        throw new \RuntimeException('aws_bridge_not_installed');
++                    }
++                    $result = app(\MuseRelay\AwsEngagementBridge\Core\ToolGuard::class)->execute(
++                        $toolName, $context,
++                        fn (array $guardedContext) => $this->providers->dispatch($toolName, $args, $guardedContext, $agent),
++                    );
++                } else {
++                    $result = $this->providers->dispatch($toolName, $args, $context, $agent);
++                }
+             }
+             // Las URLs que devuelven las herramientas (reservas, seguimiento de tickets…) son legítimas; las de la búsqueda en la
+             // base de conocimiento no: esas siguen la opción de enlaces de documentación.
+diff --git a/app/Services/AutomationService.php b/app/Services/AutomationService.php
+index c8f21f45..fa1c7463 100644
+--- a/app/Services/AutomationService.php
++++ b/app/Services/AutomationService.php
+@@ -349,13 +349,23 @@ public function sendToAIAgent(Message $message, Conversation $conversation, Chan
+             // Despachar envío al canal externo de forma asíncrona.
+             // El worker queda libre inmediatamente; el job SendAIChannelResponse
+             // llama a Meta API y emite aiTypingDone al panel cuando termina.
+-            \App\Jobs\SendAIChannelResponse::dispatch(
++            if ($channel->type === 'whatsapp' && $channel->managed_provider === 'aws_social') {
++                if (!class_exists(\MuseRelay\AwsEngagementBridge\Core\Egress::class)) {
++                    throw new \RuntimeException('aws_bridge_not_installed');
++                }
++                $bridgeReply = app(\MuseRelay\AwsEngagementBridge\Core\Egress::class)->sendText(
++                    $channel, $conversation->contact, $channelText, null, (int) $message->id,
++                );
++                if (!$bridgeReply['success']) throw new \RuntimeException('aws_bridge_reply_not_queued');
++            } else {
++                \App\Jobs\SendAIChannelResponse::dispatch(
+                 $conversation->id,
+                 $channel->id,
+                 $channelText,
+                 $streamStarted ? $streamId : null,
+                 $streamStarted ? $workspaceId : null,
+-            )->onQueue('chat-high');
++                )->onQueue('chat-high');
++            }
+ 
+             // Auto-marcar mensajes como leídos por IA (igual que N8N)
+             $this->autoMarkAsReadByAI($conversation);
+diff --git a/app/Services/WhatsAppSenderService.php b/app/Services/WhatsAppSenderService.php
+index 39b89d66..96cd69b2 100644
+--- a/app/Services/WhatsAppSenderService.php
++++ b/app/Services/WhatsAppSenderService.php
+@@ -31,6 +31,13 @@ public function sendTextMessage(
+         string $message, 
+         ?int $userId = null
+     ): array {
++        // Explicit AWS channel only. Missing/disabled bridge must never fall back to Graph/Telnyx.
++        if ($channel->managed_provider === 'aws_social') {
++            if (!class_exists(\MuseRelay\AwsEngagementBridge\Core\Egress::class)) {
++                return ['success' => false, 'error' => 'aws_bridge_not_installed'];
++            }
++            return app(\MuseRelay\AwsEngagementBridge\Core\Egress::class)->sendText($channel, $contact, $message, $userId);
++        }
+         $config = $this->getChannelConfig($channel);
+         
+         if (!$config) {
+@@ -663,6 +670,8 @@ private function createFailedMessageRecord(
+      */
+     private function getChannelConfig(Channel $channel): ?array
+     {
++        // Non-text AWS operations are outside this MVP; do not reuse Meta credentials.
++        if ($channel->managed_provider === 'aws_social') return null;
+         if ($channel->type !== 'whatsapp' || $channel->status !== 'active') {
+             Log::error("Channel not valid for WhatsApp", [
+                 'channel_id' => $channel->id,

@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" cacheResult="false">
+  <testsuites><testsuite name="AWS Bridge isolated SQLite"><directory>tests</directory></testsuite></testsuites>
+</phpunit>

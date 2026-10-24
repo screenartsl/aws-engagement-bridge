@@ -21,6 +21,8 @@ export function normalize(envelope: unknown, bindings: Binding[]): InboundEvent[
     const phone = string(record(value.metadata).phone_number_id, 40);
     const binding = candidates.find(b => b.wabaId === wabaId && b.metaPhoneNumberId === phone);
     if (!binding) throw new BridgeError('unmapped_identity');
+    const resource = { accountId: binding.topicArn.split(':')[4]!, region: binding.region, wabaId: binding.wabaId,
+      metaPhoneNumberId: binding.metaPhoneNumberId, awsPhoneNumberArn: binding.awsPhoneNumberId };
     for (const msgValue of list(value.messages)) {
       const msg = record(msgValue);
       if (msg.type !== 'text') continue; // MVP: no media downloads or automatic media replies.
@@ -30,7 +32,7 @@ export function normalize(envelope: unknown, bindings: Binding[]): InboundEvent[
       const id = string(msg.id);
       const text = string(record(msg.text).body, 4096);
       events.push({ version: 1, eventId: stableId(binding.id, 'message', id), bindingId: binding.id,
-        channelRef: binding.channelRef, kind: 'message', providerMessageId: id,
+        channelRef: binding.channelRef, resource, kind: 'message', providerMessageId: id,
         timestamp: timestamp(msg.timestamp), sender: `+${from}`, text });
     }
     for (const statusValue of list(value.statuses)) {
@@ -40,7 +42,7 @@ export function normalize(envelope: unknown, bindings: Binding[]): InboundEvent[
       const at = timestamp(status.timestamp);
       const state = status.status as NonNullable<InboundEvent['status']>;
       events.push({ version: 1, eventId: stableId(binding.id, 'status', id, state, String(at)), bindingId: binding.id,
-        channelRef: binding.channelRef, kind: 'status', providerMessageId: id, timestamp: at, status: state });
+        channelRef: binding.channelRef, resource, kind: 'status', providerMessageId: id, timestamp: at, status: state });
     }
   }
   return events;

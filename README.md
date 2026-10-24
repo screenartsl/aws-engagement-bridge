@@ -5,11 +5,13 @@ Created on 2026-10-24. This repository contains new bridge code, not a copy of t
 
 Local development location: `/var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge` (moved from `.codex/projects/` on 2026-10-24 at the user's request). See the parent `modules-develop/README.md` and `AGENTS.md` for discovery and working rules. This is not an installed extension loader: MuseRelay does not automatically load code from this directory. The existing lsyncd scope includes this location; file replication is not deployment or activation.
 
-## Current status — transport phase, not a completed MVP
+## Current status — transport and opt-in Core connector prepared, not deployed
 
 Implemented locally: official AWS Social Messaging SDK adapter, text/status event normalization, explicitly scoped channel bindings, HMAC transport, DynamoDB idempotency/leases/nonces/demo budgets, SQS handlers, isolated infrastructure template and PHP/Node signature interoperability.
 
-**Not deployed, no real WhatsApp sends, no AWS resource creation, no real Bedrock calls or ticket creation performed by this module yet.** The MuseRelay ingestion/receipt controllers, durable Core inbox/outbox and agent/bandeja connector are the next development phase. Until those are implemented and tested, this is not an end-to-end working demo. No existing reseller, Meta, Telegram or other channel is changed.
+Phase 2 adds the Laravel package under `integration/muserelay/`: authenticated controllers, opt-in organization/channel binding, encrypted durable inbox/outbox, worker, native agent/inbox adapter and transactional ticket-action checkpoint. Three narrowly scoped Core changes are prepared in `core-hooks.patch` and an independent Core worktree. These changes are **not installed in the live application**. See `docs/PHASE-2.md` and `docs/STAGING.md` for exact scope and test limitations.
+
+**Not deployed, no real WhatsApp sends, no AWS resource creation, no real Bedrock calls or native ticket creation performed through this module yet.** Local tests exercise the connector with SQLite in memory and simulated native business actions; the complete real MuseRelay/Bedrock/tool workflow still needs isolated staging acceptance. No existing reseller or production channel has been changed.
 
 ## Architecture
 
@@ -19,7 +21,7 @@ flowchart LR
   Social --> SNS[SNS standard topic]
   SNS --> IQ[SQS inbound + DLQ]
   IQ --> Inbound[Inbound Lambda]
-  Inbound -->|signed event| Core[MuseRelay Bridge API - NEXT PHASE]
+  Inbound -->|signed event| Core[MuseRelay Bridge API - PREPARED / NOT ACTIVATED]
   Core --> Agent[Existing MuseRelay agent / Bedrock / tools]
   Agent --> Ticket[Existing ticket system]
   Core -->|signed command| API[API Gateway + Enqueue Lambda]
@@ -44,13 +46,15 @@ npm run bundle
 
 Tests use synthetic identities and an in-process SDK HTTP transport. They do not contact AWS or Meta and do not run MuseRelay's artisan/phpunit bootstrap. DynamoDB tests mock the document transport; persistence behavior in real DynamoDB still requires an authorized staging test.
 
+For the additional PHP connector tests, use `integration/muserelay/phpunit.xml` with the explicit dependency/source variables documented in `docs/STAGING.md`. They build **only SQLite in-memory fixture tables**, never load production `.env` or `bootstrap/app.php`, and include live-class regression checks for the existing Meta/Telnyx configuration branches.
+
 `package-lock.json` pins the resolved dependencies. Runtime artifacts are produced in `build/`; they are not committed. The SAM template deploys Node 22 arm64 functions with one reserved execution each.
 
 ## Configuration and secrets
 
 See `examples/bindings.example.json` and `.env.example`. The module does not automatically load any `.env` file. Each binding maps an exact SNS topic, WABA, Meta phone id and AWS phone ARN to one opaque MuseRelay channel reference. Organization/workspace/agent ownership is resolved and enforced by Core, never chosen by the incoming body. Use one dedicated demo identity and synthetic organization.
 
-Two independent HMAC keys of at least 32 bytes per binding are required in an **existing Secrets Manager secret**. Its JSON structure is `{ "binding-id": { "core": "...", "outbound": "..." } }`. Generate keys outside source control. Never reuse the production `APP_KEY`, Meta tokens or reseller SMTP credentials. The keys are cached for at most 60 seconds by each warm function. IAM limits access to the provided secret ARN. Customer-managed KMS encryption for this secret additionally needs a scoped `kms:Decrypt` grant; the current template assumes the default Secrets Manager key.
+Two independent HMAC keys of at least 32 bytes per binding are required in an **existing Secrets Manager secret**. Its JSON structure is `{ "binding-id": { "core": "...", "outbound": "..." } }`. Generate keys outside source control. Never reuse the production `APP_KEY`, Meta tokens or reseller SMTP credentials. On the Core host, the package reads corresponding keys only from a permission-protected file under `/run/secrets/` or `/etc/muserelay/aws-bridge/`, outside replicated vhosts. Config cache stores only its path. No such live file has been created. The Lambda keys are cached for at most 60 seconds by each warm function. IAM limits access to the provided secret ARN. Customer-managed KMS encryption for this secret additionally needs a scoped `kms:Decrypt` grant; the current template assumes the default Secrets Manager key.
 
 The first deployment must use `enabled:false` and `LiveSend=false`. Allowed recipients default to an empty array. The live-send flag alone cannot bypass a disabled binding or the recipient allowlist.
 
@@ -58,7 +62,7 @@ The first deployment must use `enabled:false` and `LiveSend=false`. Allowed reci
 
 Do not deploy to the production hosting server. Use a reviewed AWS account and region `eu-west-1`, after confirming current Social/Meta version and number eligibility.
 
-1. Implement the Core contract in `docs/CORE-INTEGRATION.md` in a separate MuseRelay worktree, with its feature flag off. Test in an isolated application/database first.
+1. Review the prepared Core connector and `docs/CORE-INTEGRATION.md`, with its feature flag off. Follow `docs/STAGING.md` and test in an isolated application/database first. Installation, migrations and activation need separate authorization.
 2. Resolve WABA linkage separately using a new non-production number. Obtain the WABA id, Meta phone id and **AWS phone ARN**; they are different identifiers.
 3. Prepare the signing secret. Build with `npm ci --ignore-scripts && npm run bundle`.
 4. Review `template.yaml`. Plan the topic ARN as `arn:aws:sns:eu-west-1:ACCOUNT:STACK-inbound`, matching `BindingsJson`. Use a dedicated stack name.
@@ -92,7 +96,7 @@ Also test invalid HMAC, replay, cross-binding requests, duplicate SNS events, re
 
 ## Originality, judging and repository access
 
-See `docs/PROVENANCE.md`. Keep repository private. No remote, invitation, publishing or judge access has been configured by this development phase. Provide authorized judges the bridge source and a working isolated MuseRelay evaluation instance; do not publish the entire legacy SaaS to make this repository look standalone. A simulator cannot replace the final real workflow.
+See `docs/PROVENANCE.md`. The requested GitHub destination is **private `screenartsl/aws-engagement-bridge`**. Creation/push is authorized, but remains pending authenticated access (no credential or `gh` is available to this execution user). No remote, publishing or judge invitation has been configured by this session. `docs/REPOSITORY-UPLOAD.md` gives root-shell instructions that preserve original commits. Provide authorized judges the bridge source and a working isolated MuseRelay evaluation instance; do not publish the entire legacy SaaS to make this repository look standalone. A simulator cannot replace the final real workflow.
 
 README, diagram, setup, limits, source versions, test instructions, video script and required APN/ACE submission details should accompany the final submission. See `docs/DEMO.md`. BYO AWS/STS, SES, UI onboarding and Marketplace are not implemented or claimed by this phase.
 
