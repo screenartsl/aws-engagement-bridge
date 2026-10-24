@@ -1,0 +1,376 @@
+diff --git a/app/Http/Controllers/SuperAdmin/ExtensionsController.php b/app/Http/Controllers/SuperAdmin/ExtensionsController.php
+new file mode 100644
+index 00000000..fcdb6e29
+--- /dev/null
++++ b/app/Http/Controllers/SuperAdmin/ExtensionsController.php
+@@ -0,0 +1,33 @@
++<?php
++declare(strict_types=1);
++namespace App\Http\Controllers\SuperAdmin;
++
++use App\Http\Controllers\Controller;
++use App\Models\Organization;
++use App\Services\Extensions\ExtensionManager;
++use Illuminate\Http\Request;
++use Illuminate\Validation\Rule;
++use Illuminate\Validation\ValidationException;
++
++final class ExtensionsController extends Controller
++{
++    public function index(ExtensionManager $manager)
++    {
++        $extensions=[];
++        foreach ($manager->definitions() as $id=>$definition) {
++            try { $version=$manager->manifest($id)['version']; } catch (\Throwable) { $version=null; }
++            $extensions[$id]=['name'=>$definition['name']??$id,'version'=>$version,'state'=>$manager->state($id),
++                'effective'=>$manager->enabled($id),'problems'=>$manager->problems($id)];
++        }
++        return view('superadmin.extensions.index',['extensions'=>$extensions,'organizations'=>Organization::orderBy('name')->get(['id','name'])]);
++    }
++    public function update(Request $request,string $extension,ExtensionManager $manager)
++    {
++        abort_unless($manager->has($extension),404);
++        $data=$request->validate(['enabled'=>['required','boolean'],'organization_ids'=>['nullable','array','max:1000'],
++            'organization_ids.*'=>['required','integer','distinct',Rule::exists('organizations','id')],'password'=>['required','current_password']]);
++        try { $manager->update($extension,$request->boolean('enabled'),array_map('intval',$data['organization_ids']??[]),(int)$request->user()->id); }
++        catch (\DomainException) { throw ValidationException::withMessages(['enabled'=>__('megadmin_extensions.not_ready')]); }
++        return back()->with('success',__('megadmin_extensions.saved'));
++    }
++}
+diff --git a/app/Providers/ExtensionServiceProvider.php b/app/Providers/ExtensionServiceProvider.php
+new file mode 100644
+index 00000000..d86ae560
+--- /dev/null
++++ b/app/Providers/ExtensionServiceProvider.php
+@@ -0,0 +1,51 @@
++<?php
++declare(strict_types=1);
++namespace App\Providers;
++
++use App\Services\Extensions\ExtensionManager;
++use Illuminate\Support\ServiceProvider;
++
++/** A small trusted-package loader, not an upload/install marketplace. */
++final class ExtensionServiceProvider extends ServiceProvider
++{
++    private array $providers=[];
++    public function register(): void
++    {
++        $this->app->singleton(ExtensionManager::class,fn($app)=>new ExtensionManager($app));
++        if (!$this->app['config']->get('extensions.enabled',false)) return;
++        $manager=$this->app->make(ExtensionManager::class);
++        foreach ($manager->definitions() as $id=>$definition) {
++            try {
++                $m=$manager->manifest($id);
++                foreach ($m['autoload'] as $prefix=>$directory) {
++                    if (!is_string($prefix) || !str_starts_with($prefix,'MuseRelay\\') || !str_ends_with($prefix,'\\') || !is_string($directory)) throw new \DomainException('invalid_autoload');
++                    $path=realpath($m['path'].'/'.$directory);
++                    if (!$path || !str_starts_with($path,$m['path'].'/')) throw new \DomainException('invalid_autoload_path');
++                    spl_autoload_register(static function(string $class) use($prefix,$path): void {
++                        if (!str_starts_with($class,$prefix)) return;
++                        $relative=substr($class,strlen($prefix));
++                        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*(?:\\\\[A-Za-z_][A-Za-z0-9_]*)*$/D',$relative)) return;
++                        $file=$path.'/'.str_replace('\\','/',$relative).'.php';
++                        if (is_file($file)) require $file;
++                    },true,true);
++                }
++                foreach ((array)($m['classmap']??[]) as $class=>$file) {
++                    $path=realpath($m['path'].'/'.$file);
++                    if (!is_string($class) || !str_starts_with($class,'MuseRelay\\') || !$path || !str_starts_with($path,$m['path'].'/')) throw new \DomainException('invalid_file_path');
++                    spl_autoload_register(static function(string $requested) use($class,$path): void { if ($requested===$class) require $path; },true,true);
++                }
++                if (!is_subclass_of($m['provider'],ServiceProvider::class)) throw new \DomainException('invalid_provider');
++                $provider=new $m['provider']($this->app);
++                $provider->register();$this->providers[$id]=$provider;
++            } catch (\Throwable) { $manager->fail($id,'register'); }
++        }
++    }
++    public function boot(): void
++    {
++        $manager=$this->app->make(ExtensionManager::class);
++        foreach ($this->providers as $id=>$provider) {
++            try { $this->app->call([$provider,'boot']); }
++            catch (\Throwable) { $manager->fail($id,'boot'); }
++        }
++    }
++}
+diff --git a/app/Services/Extensions/ExtensionManager.php b/app/Services/Extensions/ExtensionManager.php
+new file mode 100644
+index 00000000..50141d7b
+--- /dev/null
++++ b/app/Services/Extensions/ExtensionManager.php
+@@ -0,0 +1,83 @@
++<?php
++declare(strict_types=1);
++namespace App\Services\Extensions;
++
++use Illuminate\Contracts\Foundation\Application;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Log;
++
++/** Explicitly installed code; enablement is read fresh, including in long-lived workers. */
++final class ExtensionManager
++{
++    private array $manifests=[];
++    private array $faults=[];
++    public function __construct(private Application $app) {}
++    public function definitions(): array { return (array)$this->app['config']->get('extensions.modules',[]); }
++    public function has(string $id): bool { return array_key_exists($id,$this->definitions()); }
++    public function manifest(string $id): array
++    {
++        if (isset($this->manifests[$id])) return $this->manifests[$id];
++        if (!$this->has($id) || !preg_match('/^[a-z][a-z0-9-]{0,79}$/D',$id)) throw new \DomainException('unknown_extension');
++        $root=realpath($this->app->basePath('modules'));
++        $path=realpath((string)$this->definitions()[$id]['path']);
++        if (!$root || !$path || !str_starts_with($path,$root.DIRECTORY_SEPARATOR) || !is_file($path.'/module.php') || filesize($path.'/module.php')>16000) throw new \DomainException('extension_not_installed');
++        $manifest=require $path.'/module.php';
++        if (!is_array($manifest) || ($manifest['id']??null)!==$id || ($manifest['core_api']??null)!==1
++            || !is_string($manifest['provider']??null) || !is_array($manifest['autoload']??null) || !is_string($manifest['version']??null)) throw new \DomainException('invalid_extension_manifest');
++        $manifest['path']=$path;
++        return $this->manifests[$id]=$manifest;
++    }
++    public function fail(string $id,string $phase): void
++    {
++        $this->faults[$id]='extension_'.$phase.'_failed';
++        try { Log::error('extension_unavailable',['extension'=>$id,'phase'=>$phase]); } catch (\Throwable) {}
++    }
++    public function state(string $id): array
++    {
++        if (!$this->has($id)) return ['enabled'=>false,'organization_ids'=>[]];
++        try {
++            $raw=DB::table('platform_settings')->where('setting_group','extensions')->where('setting_key',$id)->value('setting_value');
++            $state=json_decode((string)$raw,true,16,JSON_THROW_ON_ERROR);
++            if (!is_array($state)) return ['enabled'=>false,'organization_ids'=>[]];
++            $ids=$state['organization_ids']??[];
++            $ids=is_array($ids)?array_values(array_unique(array_filter($ids,fn($id)=>is_int($id)&&$id>0))):[];
++            return ['enabled'=>($state['enabled']??false)===true,'organization_ids'=>$ids];
++        } catch (\Throwable) { return ['enabled'=>false,'organization_ids'=>[]]; }
++    }
++    public function enabled(string $id): bool
++    {
++        if (!$this->app['config']->get('extensions.enabled',false) || !$this->has($id) || isset($this->faults[$id])) return false;
++        try { $this->manifest($id); } catch (\Throwable) { return false; }
++        $state=$this->state($id);
++        return $state['enabled'] && $state['organization_ids']!==[];
++    }
++    public function organizationIds(string $id): array { return $this->state($id)['organization_ids']; }
++    public function problems(string $id): array
++    {
++        if (!$this->app['config']->get('extensions.enabled',false)) return ['extensions_emergency_off'];
++        if (isset($this->faults[$id])) return [$this->faults[$id]];
++        try {
++            $m=$this->manifest($id);
++            if (isset($m['health'])) {
++                $problems=$this->app->make($m['health'])->problems();
++                if (!is_array($problems) || array_filter($problems,fn($code)=>!is_string($code)||!preg_match('/^[a-z_]{1,80}$/D',$code))) throw new \RuntimeException('invalid_health_result');
++                return array_values(array_unique($problems));
++            }
++            return [];
++        } catch (\Throwable) { return ['extension_unavailable']; }
++    }
++    public function update(string $id,bool $enabled,array $ids,int $actor): void
++    {
++        if (!$this->has($id)) throw new \DomainException('unknown_extension');
++        if (count($ids)>1000 || array_filter($ids,fn($i)=>!is_int($i)||$i<1)) throw new \DomainException('invalid_organizations');
++        $ids=array_values(array_unique($ids));
++        if ($enabled && ($ids===[] || $this->problems($id)!==[])) throw new \DomainException('extension_not_ready');
++        if ($ids!==[] && DB::table('organizations')->whereIn('id',$ids)->count()!==count($ids)) throw new \DomainException('invalid_organizations');
++        $before=$this->state($id);
++        $now=now();
++        $value=json_encode(['enabled'=>$enabled,'organization_ids'=>$ids],JSON_THROW_ON_ERROR);
++        DB::table('platform_settings')->updateOrInsert(['setting_group'=>'extensions','setting_key'=>$id],
++            ['setting_value'=>$value,'is_encrypted'=>false,'description'=>'Extension runtime state','updated_at'=>$now]);
++        Log::info('extension_state_changed',['extension'=>$id,'actor_id'=>$actor,'was_enabled'=>$before['enabled'],'enabled'=>$enabled,'organization_count'=>count($ids)]);
++    }
++}
+diff --git a/config/app.php b/config/app.php
+index 0cb970d6..106a3ffa 100644
+--- a/config/app.php
++++ b/config/app.php
+@@ -168,6 +168,7 @@
+          */
+         App\Providers\CMSServiceProvider::class,
+         App\Providers\AppServiceProvider::class,
++        App\Providers\ExtensionServiceProvider::class,
+         App\Providers\AIToolsServiceProvider::class,
+         App\Providers\CaptchaServiceProvider::class,
+         App\Providers\AuthServiceProvider::class,
+@@ -263,4 +264,4 @@
+         'cookie_lifetime' => 525600, // 1 year in minutes
+     ],
+ 
+-];
+\ No newline at end of file
++];
+diff --git a/config/extensions.php b/config/extensions.php
+new file mode 100644
+index 00000000..9bfa5eeb
+--- /dev/null
++++ b/config/extensions.php
+@@ -0,0 +1,8 @@
++<?php
++// Only reviewed, explicitly installed packages. Never discover code in uploads or customer directories.
++return [
++    'enabled'=>(bool)env('MUSERELAY_EXTENSIONS_ENABLED',true),
++    'modules'=>[
++        'aws-engagement-bridge'=>['name'=>'AWS Engagement Bridge','path'=>base_path('modules/aws-engagement-bridge')],
++    ],
++];
+diff --git a/resources/docs/superadmin/funcionamiento-interno/extensiones-modulares.md b/resources/docs/superadmin/funcionamiento-interno/extensiones-modulares.md
+new file mode 100644
+index 00000000..4d530e2b
+--- /dev/null
++++ b/resources/docs/superadmin/funcionamiento-interno/extensiones-modulares.md
+@@ -0,0 +1,24 @@
++---
++title: Extensiones instaladas
++description: Conexión y desconexión de extensiones desde megadmin, conservando paneles y datos
++icon: bi-plug
++order: 61
++updated: 2026-10-25
++tags: [modulos, extensiones, megadmin, aws]
++---
++
++# Extensiones instaladas
++
++`/megadmin/extensions` permite al superadmin consultar extensiones revisadas y controlar su conexión y organizaciones autorizadas. Los clientes y resellers conservan sus paneles y dominios habituales. Módulos del panel (`/megadmin/modules`) sigue controlando la disponibilidad de las secciones existentes.
++
++AWS Engagement Bridge es el primer paquete instalado con este mecanismo. Su código reside en `modules/aws-engagement-bridge`, dentro del mismo despliegue. Comparte el Core, PostgreSQL, Redis y herramientas nativas; no es otra instalación comercial.
++
++Conectar requiere configurar el módulo, seleccionar organizaciones y confirmar la contraseña de administrador. Una vinculación explícita decide qué canal y agente se usan. El panel no crea recursos AWS, no muestra claves y no realiza una prueba de envío al cargar.
++
++Desconectar detiene nuevas operaciones del conector y conserva los datos. Los procesos consultan el estado actualizado sin una recarga ordinaria. No se pueden retirar mensajes ya aceptados por el proveedor ni apagar sus colas externas con este control del Core.
++
++El Bridge se instala desconectado. El envío real, la infraestructura AWS y su autorización se gestionan aparte. Los tickets y calendarios históricos no se han trasladado ni convertido en extensiones en este cambio.
++
++Solo se cargan paquetes explícitamente registrados en `config/extensions.php`, con manifiesto y API compatibles. No se permite cargar código desde uploads ni instalar PHP desde el navegador. El código se versiona y prueba antes de instalarlo; para actualizarlo puede ser necesaria una recarga gradual del proceso MuseRelay, sin reiniciar servicios compartidos.
++
++Antes de instalar se realiza backup privado y se prueban los cambios fuera de producción. La desactivación no borra datos ni requiere restaurar la base. No ejecutar restauraciones, borrados de tablas o migraciones generales para desconectar una extensión.
+diff --git a/resources/lang/en/megadmin_extensions.php b/resources/lang/en/megadmin_extensions.php
+new file mode 100644
+index 00000000..765a129c
+--- /dev/null
++++ b/resources/lang/en/megadmin_extensions.php
+@@ -0,0 +1,13 @@
++<?php
++return [
++ 'title'=>'Installed extensions','intro'=>'Control MuseRelay extensions while keeping existing panels and channels. Connecting does not create external resources or run a live test.',
++ 'connected'=>'Connected','disconnected'=>'Disconnected','version'=>'Version','not_installed'=>'Not installed','pending'=>'Configuration pending',
++ 'organizations'=>'Authorized organizations','organization_help'=>'Only these organizations may use the extension; each channel also requires an explicit binding.',
++ 'password'=>'Confirm your administrator password','connect'=>'Connect','disconnect_save'=>'Disconnect and save',
++ 'disconnect_help'=>'Disconnecting stops new connector input and work, preserving data. It cannot recall messages already accepted by the provider or stop AWS queues and resources by itself.',
++ 'not_ready'=>'Complete configuration and select at least one organization before connecting.','saved'=>'Extension settings saved.','empty'=>'No registered extensions.',
++ 'problems'=>['extensions_emergency_off'=>'Extensions are blocked by server configuration.','extension_unavailable'=>'The extension is not installed or could not be loaded.',
++ 'extension_register_failed'=>'The extension could not be registered.','extension_boot_failed'=>'The extension could not be started.','bridge_schema_missing'=>'Connector tables are missing.',
++ 'aws_endpoint_missing'=>'The connector AWS endpoint is not configured.','demo_binding_missing'=>'An enabled demonstration channel binding is required.',
++ 'signing_keys_missing'=>'Protected connector signing keys are missing.','aws_identity_mismatch'=>'The binding does not match the authorized AWS account and region.'],
++];
+diff --git a/resources/lang/es/megadmin_extensions.php b/resources/lang/es/megadmin_extensions.php
+new file mode 100644
+index 00000000..d4228ee6
+--- /dev/null
++++ b/resources/lang/es/megadmin_extensions.php
+@@ -0,0 +1,13 @@
++<?php
++return [
++ 'title'=>'Extensiones instaladas','intro'=>'Controla las extensiones de MuseRelay sin cambiar los paneles ni los canales existentes. Conectar no crea recursos externos ni ejecuta una prueba real.',
++ 'connected'=>'Conectada','disconnected'=>'Desconectada','version'=>'Versión','not_installed'=>'Sin instalar','pending'=>'Configuración pendiente',
++ 'organizations'=>'Organizaciones autorizadas','organization_help'=>'Solo estas organizaciones podrán utilizar la extensión; cada canal también necesita su vinculación explícita.',
++ 'password'=>'Confirma tu contraseña de administrador','connect'=>'Conectar','disconnect_save'=>'Desconectar y guardar',
++ 'disconnect_help'=>'La desconexión detiene nuevas entradas y trabajo del conector y conserva los datos. No retira mensajes ya aceptados por el proveedor ni detiene por sí sola las colas o recursos de AWS.',
++ 'not_ready'=>'Completa la configuración y selecciona al menos una organización antes de conectar.','saved'=>'Configuración de la extensión guardada.','empty'=>'No hay extensiones registradas.',
++ 'problems'=>['extensions_emergency_off'=>'Las extensiones están bloqueadas por la configuración del servidor.','extension_unavailable'=>'La extensión no está instalada o no se ha podido cargar.',
++ 'extension_register_failed'=>'No se ha podido registrar la extensión.','extension_boot_failed'=>'No se ha podido iniciar la extensión.','bridge_schema_missing'=>'Faltan las tablas del conector.',
++ 'aws_endpoint_missing'=>'Falta configurar el endpoint AWS del conector.','demo_binding_missing'=>'Falta una vinculación de canal habilitada para la demostración.',
++ 'signing_keys_missing'=>'Faltan las claves de firma protegidas del conector.','aws_identity_mismatch'=>'La vinculación no corresponde a la cuenta y región AWS autorizadas.'],
++];
+diff --git a/resources/views/superadmin/extensions/index.blade.php b/resources/views/superadmin/extensions/index.blade.php
+new file mode 100644
+index 00000000..d00c023f
+--- /dev/null
++++ b/resources/views/superadmin/extensions/index.blade.php
+@@ -0,0 +1,39 @@
++@extends('superadmin.layouts.layout')
++@section('title', __('megadmin_extensions.title'))
++@section('content')
++<h1 class="h3 mb-3"><i class="bi bi-plug me-2" aria-hidden="true"></i>{{ __('megadmin_extensions.title') }}</h1>
++<p class="text-muted">{{ __('megadmin_extensions.intro') }}</p>
++@if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
++@if($errors->any())<div class="alert alert-danger" role="alert">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
++@forelse($extensions as $id=>$extension)
++<section class="card mb-3">
++    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
++        <strong>{{ $extension['name'] }}</strong>
++        <span class="badge {{ $extension['effective'] ? 'bg-success' : 'bg-secondary' }}">{{ __('megadmin_extensions.'.($extension['effective'] ? 'connected':'disconnected')) }}</span>
++    </div>
++    <div class="card-body">
++        <p>{{ __('megadmin_extensions.version') }}: {{ $extension['version'] ?? __('megadmin_extensions.not_installed') }}</p>
++        @if($extension['problems'])
++        <div class="alert alert-warning"><strong>{{ __('megadmin_extensions.pending') }}</strong><ul class="mb-0">
++            @foreach($extension['problems'] as $problem)<li>{{ __('megadmin_extensions.problems.'.$problem) !== 'megadmin_extensions.problems.'.$problem ? __('megadmin_extensions.problems.'.$problem) : __('megadmin_extensions.not_ready') }}</li>@endforeach
++        </ul></div>
++        @endif
++        <form method="POST" action="{{ route('superadmin.extensions.update',$id) }}">
++            @csrf @method('PUT')
++            <label class="form-label" for="orgs-{{ $id }}">{{ __('megadmin_extensions.organizations') }}</label>
++            <select class="form-select mb-2" name="organization_ids[]" id="orgs-{{ $id }}" multiple size="5">
++                @foreach($organizations as $org)<option value="{{ $org->id }}" @selected(in_array((int)$org->id,$extension['state']['organization_ids'],true))>{{ $org->name }}</option>@endforeach
++            </select>
++            <p class="small text-muted">{{ __('megadmin_extensions.organization_help') }}</p>
++            <label class="form-label" for="password-{{ $id }}">{{ __('megadmin_extensions.password') }}</label>
++            <input class="form-control mb-3" type="password" id="password-{{ $id }}" name="password" autocomplete="current-password" required>
++            <div class="d-flex flex-wrap gap-2">
++                <button class="btn btn-primary" name="enabled" value="1" type="submit" @disabled(count($extension['problems'])>0)>{{ __('megadmin_extensions.connect') }}</button>
++                <button class="btn btn-outline-secondary" name="enabled" value="0" type="submit">{{ __('megadmin_extensions.disconnect_save') }}</button>
++            </div>
++        </form>
++        <p class="small text-muted mt-3 mb-0">{{ __('megadmin_extensions.disconnect_help') }}</p>
++    </div>
++</section>
++@empty<p>{{ __('megadmin_extensions.empty') }}</p>@endforelse
++@endsection
+diff --git a/resources/views/superadmin/layouts/layout.blade.php b/resources/views/superadmin/layouts/layout.blade.php
+index 61d5457b..96182472 100644
+--- a/resources/views/superadmin/layouts/layout.blade.php
++++ b/resources/views/superadmin/layouts/layout.blade.php
+@@ -1513,6 +1513,13 @@ class="nav-link {{ request()->routeIs('superadmin.modules.*') ? 'active' : '' }}
+                               <span>Módulos del panel</span>
+                           </a>
+                       </li>
++                      @if(\Illuminate\Support\Facades\Route::has('superadmin.extensions.index'))
++                      <li class="nav-item">
++                          <a href="{{ route('superadmin.extensions.index') }}" class="nav-link {{ request()->routeIs('superadmin.extensions.*') ? 'active' : '' }}">
++                              <i class="bi bi-plug"></i><span>{{ __('megadmin_extensions.title') }}</span>
++                          </a>
++                      </li>
++                      @endif
+                       <li class="nav-item">
+                           <a href="{{ route('superadmin.custom-tools.index') }}"
+                              class="nav-link {{ request()->routeIs('superadmin.custom-tools.*') ? 'active' : '' }}">
+diff --git a/resources/views/superadmin/modules/index.blade.php b/resources/views/superadmin/modules/index.blade.php
+index 094401dd..2b95f19d 100644
+--- a/resources/views/superadmin/modules/index.blade.php
++++ b/resources/views/superadmin/modules/index.blade.php
+@@ -78,6 +78,9 @@
+ <div class="module-page">
+     <header class="module-heading">
+         <h1><i class="bi bi-toggles me-2" aria-hidden="true"></i>{{ __('megadmin_modules.title') }}</h1>
++        @if(\Illuminate\Support\Facades\Route::has('superadmin.extensions.index'))
++        <a class="module-link" href="{{ route('superadmin.extensions.index') }}"><i class="bi bi-plug" aria-hidden="true"></i>{{ __('megadmin_extensions.title') }}</a>
++        @endif
+         <a class="module-link" href="{{ route('superadmin.channels-modes.index') }}"><i class="bi bi-plug" aria-hidden="true"></i>{{ __('megadmin_modules.channel_modes') }}</a>
+     </header>
+ 
+diff --git a/routes/central.php b/routes/central.php
+index e6c8464d..75cdce68 100644
+--- a/routes/central.php
++++ b/routes/central.php
+@@ -409,6 +409,8 @@
+ 
+         // Control de acceso por módulos (2026-09-29): qué secciones ve cada cliente.
+         Route::get('modules', [\App\Http\Controllers\SuperAdmin\ModuleAccessController::class, 'index'])->name('modules.index');
++        Route::get('extensions', [\App\Http\Controllers\SuperAdmin\ExtensionsController::class, 'index'])->name('extensions.index');
++        Route::put('extensions/{extension}', [\App\Http\Controllers\SuperAdmin\ExtensionsController::class, 'update'])->name('extensions.update');
+         Route::put('modules/statuses', [\App\Http\Controllers\SuperAdmin\ModuleAccessController::class, 'updateStatuses'])->name('modules.statuses.update');
+         Route::get('modules/organizations/{organization}', [\App\Http\Controllers\SuperAdmin\ModuleAccessController::class, 'editOrganization'])->name('modules.organizations.edit');
+         Route::put('modules/organizations/{organization}', [\App\Http\Controllers\SuperAdmin\ModuleAccessController::class, 'updateOrganization'])->name('modules.organizations.update');

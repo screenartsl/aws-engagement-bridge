@@ -16,10 +16,12 @@ import time
 MODULE = Path(__file__).resolve().parents[2]
 BASE = 'b8e9bf8c74789689a7cebddd1856a094e380c9d9'
 HOOKS = {'app/Services/WhatsAppSenderService.php', 'app/Services/AutomationService.php', 'app/AI/AgentExecutor.php'}
+EXTENSION_EDITS={'config/app.php','routes/central.php','resources/views/superadmin/layouts/layout.blade.php','resources/views/superadmin/modules/index.blade.php'}
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--core-source', type=Path, required=True, help='Read-only Git source; no .env or customer files are copied')
 parser.add_argument('--core-ref', default=BASE, help='Reviewed baseline compatible with core-hooks.patch')
 parser.add_argument('--pg-bin', type=Path, default=Path('/usr/lib/postgresql/16/bin'))
+parser.add_argument('--dependencies-from',type=Path,help='Optional disposable phase 3 vendor directory; never production vendor')
 args = parser.parse_args()
 if os.geteuid() == 0:
     raise SystemExit('Run as an unprivileged development user, not root')
@@ -70,14 +72,24 @@ try:
     hashes = {str(p.relative_to(core)): hashlib.sha256(p.read_bytes()).hexdigest() for p in core.rglob('*') if p.is_file()}
     run(['git','apply','--check',str(MODULE/'integration/muserelay/core-hooks.patch')], 'hooks-check', cwd=core)
     run(['git','apply',str(MODULE/'integration/muserelay/core-hooks.patch')], 'hooks-apply', cwd=core)
+    run(['git','apply','--check',str(MODULE/'integration/muserelay/core-extension-support.patch')], 'extensions-check', cwd=core)
+    run(['git','apply',str(MODULE/'integration/muserelay/core-extension-support.patch')], 'extensions-apply', cwd=core)
     changed = {name for name, digest in hashes.items() if hashlib.sha256((core/name).read_bytes()).hexdigest() != digest}
-    if changed != HOOKS: raise RuntimeError('Unexpected Core overlay: '+repr(changed))
+    if changed != HOOKS|EXTENSION_EDITS: raise RuntimeError('Unexpected Core overlay: '+repr(changed))
     (root/'core-overlay.json').write_text(json.dumps({'base':args.core_ref,'changed':sorted(changed),'unchangedFiles':len(hashes)-len(changed)},indent=2))
     for directory in ['bootstrap/cache','storage/framework/cache/data','storage/framework/sessions','storage/framework/views','storage/logs']:
         (core/directory).mkdir(parents=True,exist_ok=True)
     for directory in ['pgsock','storage/framework/views','storage/framework/cache/data','storage/framework/sessions','storage/logs','storage/app','no-dotenv']:
         (root/directory).mkdir(parents=True,exist_ok=True)
+    target=core/'modules/aws-engagement-bridge';target.mkdir(parents=True)
+    for name in ['src','config','database'] : shutil.copytree(MODULE/'integration/muserelay'/name,target/name)
+    for name in ['BridgeSignature.php','module.php','composer.json']:shutil.copy2(MODULE/'integration/muserelay'/name,target/name)
+    if args.dependencies_from:
+        dependency_path=args.dependencies_from.resolve()
+        if not str(dependency_path).startswith('/tmp/muserelay-bridge-phase3-') or dependency_path.name!='vendor':raise RuntimeError('Only disposable phase 3 dependencies may be reused')
+        shutil.copytree(dependency_path,core/'vendor')
     run(['composer','install','--no-scripts','--no-plugins','--prefer-dist','--no-interaction'], 'core-dependencies', cwd=core, timeout=600)
+    run(network+['php','integration/staging/folder-autoload.php'],'folder-autoload',env=stage_env)
     manifest_path = core/'composer.json'; manifest=json.loads(manifest_path.read_text())
     package=json.loads((MODULE/'integration/muserelay/composer.json').read_text())
     manifest['repositories']=[{'type':'path','url':str(MODULE/'integration/muserelay'),'options':{'symlink':False}}]
@@ -106,6 +118,7 @@ try:
     for turn in ['1','2']:
         run(network+['node','integration/staging/flow.mjs',turn], 'native-turn-'+turn,env=stage_env)
     run(network+['node','integration/staging/concurrency.mjs'],'postgres-concurrency',env=stage_env)
+    run(network+['php','integration/staging/console.php','extensions'],'extension-controls',env=stage_env)
     run(network+['php','integration/staging/console.php','assertions'],'native-assertions',env=stage_env)
     run(network+['php','integration/staging/console.php','regression'],'legacy-regression',env=stage_env)
     run(network+['php','integration/staging/console.php','disabled'],'disabled-connector',env=dict(stage_env,BRIDGE_STAGE_DISABLED='1'))

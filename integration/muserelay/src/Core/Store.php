@@ -7,23 +7,24 @@ use Illuminate\Database\ConnectionInterface;
 
 final class Store
 {
-    public function __construct(public readonly ConnectionInterface $db, private Encrypter $crypto, private bool $enabled,
-        private array $organizations, private ?\Closure $clock = null) {}
+    public function __construct(public readonly ConnectionInterface $db, private Encrypter $crypto, private bool|\Closure $enabled,
+        private array|\Closure $organizations, private ?\Closure $clock = null) {}
 
     public function now(): int { return $this->clock ? ($this->clock)() : time(); }
-    public function isEnabled(): bool { return $this->enabled && $this->organizations !== []; }
+    public function organizationIds(): array { return $this->organizations instanceof \Closure ? ($this->organizations)() : $this->organizations; }
+    public function isEnabled(): bool { return ($this->enabled instanceof \Closure ? ($this->enabled)() : $this->enabled) && $this->organizationIds() !== []; }
     public function bindingIds(): array
     {
-        return $this->isEnabled() ? $this->db->table('aws_bridge_bindings')->where('enabled', true)->whereIn('organization_id', $this->organizations)->orderBy('id')->pluck('id')->all() : [];
+        return $this->isEnabled() ? $this->db->table('aws_bridge_bindings')->where('enabled', true)->whereIn('organization_id', $this->organizationIds())->orderBy('id')->pluck('id')->all() : [];
     }
     public function encode(array $data): string { return $this->crypto->encrypt(json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), false); }
     public function decode(string $data): array { return json_decode($this->crypto->decrypt($data, false), true, 32, JSON_THROW_ON_ERROR); }
 
     public function binding(string $id, ?string $channelRef = null): object
     {
-        if (!$this->enabled || !$this->organizations) throw new BridgeException('bridge_disabled', 503);
+        if (!$this->isEnabled()) throw new BridgeException('bridge_disabled', 503);
         $b = $this->db->table('aws_bridge_bindings')->where('id', $id)->first();
-        if (!$b || !$b->enabled || !in_array((int) $b->organization_id, $this->organizations, true)) throw new BridgeException('binding_disabled', 403);
+        if (!$b || !$b->enabled || !in_array((int) $b->organization_id, $this->organizationIds(), true)) throw new BridgeException('binding_disabled', 403);
         if ($channelRef !== null && !hash_equals($b->channel_ref, $channelRef)) throw new BridgeException('binding_mismatch', 403);
         $channel = $this->db->table('channels')->where('id', $b->channel_id)->first();
         $workspace = $this->db->table('workspaces')->where('id', $b->workspace_id)->first();
@@ -53,7 +54,7 @@ final class Store
 
     public function bindingForChannel(int $channelId): object
     {
-        if (!$this->enabled || !$this->organizations) throw new BridgeException('bridge_disabled', 503);
+        if (!$this->isEnabled()) throw new BridgeException('bridge_disabled', 503);
         $id = $this->db->table('aws_bridge_bindings')->where('channel_id', $channelId)->value('id');
         if (!$id) throw new BridgeException('binding_missing', 403);
         return $this->binding((string) $id);
@@ -90,7 +91,7 @@ final class Store
 
     public function claim(): ?object
     {
-        if (!$this->enabled || !$this->organizations) return null;
+        if (!$this->isEnabled()) return null;
         $bindings = $this->bindingIds();
         foreach ($bindings as $id) {
             $b = $this->binding((string) $id);

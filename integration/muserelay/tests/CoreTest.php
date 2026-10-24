@@ -183,6 +183,25 @@ final class CoreTest extends TestCase
         $disabled = new Store($this->store->db, Container::getInstance()['encrypter'], true, [2]);
         $this->expectExceptionMessage('binding_disabled'); $disabled->binding('demo');
     }
+    public function testExistingStoreSeesDisconnectWithoutRestartAndStopsBeforeModuleQueries(): void
+    {
+        $enabled=true;$organizations=[1];
+        $dynamic=new Store($this->store->db,Container::getInstance()['encrypter'],function() use (&$enabled){return $enabled;},function() use (&$organizations){return $organizations;});
+        self::assertTrue($dynamic->isEnabled());
+        $enabled=false;
+        Schema::drop($this->store->db->getSchemaBuilder());
+        self::assertNull($dynamic->claim());
+        self::assertFalse((new Outbox($dynamic,$this->core))->publishOne(fn()=>self::fail('must not publish')));
+        $this->expectExceptionMessage('bridge_disabled');$dynamic->accept('demo',$this->event());
+    }
+    public function testExistingStoreSeesOrganizationRevocationImmediately(): void
+    {
+        $organizations=[1];
+        $dynamic=new Store($this->store->db,Container::getInstance()['encrypter'],true,function() use (&$organizations){return $organizations;});
+        self::assertSame('demo',$dynamic->binding('demo')->id);
+        $organizations=[2];
+        $this->expectExceptionMessage('binding_disabled');$dynamic->binding('demo');
+    }
     public function testHttpSignatureReplayAndFreshNonceDuplicate(): void
     {
         $r = $this->request($this->event()); $controller = $this->controller();

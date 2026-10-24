@@ -28,12 +28,18 @@ if ($mode === 'worker') {
         '--stop-when-empty'=>true,'--sleep'=>0,'--tries'=>1,'--timeout'=>45,'--max-time'=>50])));
 }
 if ($mode === 'regression') { require __DIR__.'/regression.php'; exit; }
+if ($mode === 'extensions') { require __DIR__.'/extensions.php'; exit; }
 if ($mode === 'assertions') { require __DIR__.'/assertions.php'; exit; }
 if ($mode === 'claim') { $row = $app->make(Store::class)->claim(); echo json_encode(['claimed' => $row !== null]), PHP_EOL; exit; }
 if ($mode === 'disabled') {
     if ($app->make(Store::class)->isEnabled() || $app->make(Store::class)->claim() !== null) throw new RuntimeException('Disabled worker performed work');
-    foreach ($app['router']->getRoutes() as $route) if (str_starts_with($route->uri(), 'api/aws-engagement-bridge/')) throw new RuntimeException('Disabled bridge exposed routes');
-    echo "Disabled connector has no routes and no worker claims\n"; exit;
+    $request=Illuminate\Http\Request::create('/api/aws-engagement-bridge/events','POST',[],[],[],['REMOTE_ADDR'=>'192.0.2.254'],'{}');
+    $request->headers->set('x-bridge-binding','demo');
+    $app->instance('request',$request);
+    $app['router']->aliasMiddleware('throttle',Illuminate\Routing\Middleware\ThrottleRequests::class);
+    $response=$app['router']->dispatch($request);
+    if ($response->getStatusCode()!==503 || (json_decode($response->getContent(),true)['error']??'')!=='bridge_disabled') throw new RuntimeException('Disabled endpoint did not reject through the runtime gate');
+    echo "Disabled connector rejects events and has no worker claims\n"; exit;
 }
 if ($mode === 'inspect') {
     $counts=[]; foreach(['aws_bridge_events','aws_bridge_actions','aws_bridge_outbox','contacts','conversations','messages','tickets','ticket_audit_logs'] as $t) $counts[$t]=DB::table($t)->count();

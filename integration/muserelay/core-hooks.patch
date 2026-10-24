@@ -1,8 +1,8 @@
 diff --git a/app/AI/AgentExecutor.php b/app/AI/AgentExecutor.php
-index 3db8d244..61a6de77 100644
+index 3db8d244..afedc89f 100644
 --- a/app/AI/AgentExecutor.php
 +++ b/app/AI/AgentExecutor.php
-@@ -2515,7 +2515,19 @@ private function executeToolCall(array $tc, AIAgent $agent, array $context, stri
+@@ -2515,7 +2515,23 @@ private function executeToolCall(array $tc, AIAgent $agent, array $context, stri
                      return $this->providers->dispatch($toolName, $args, $context, $agent);
                  });
              } else {
@@ -10,6 +10,10 @@ index 3db8d244..61a6de77 100644
 +                $bridgeChannel = ($context['channel'] ?? '') === 'whatsapp' && !empty($context['channel_id'])
 +                    ? \App\Models\Channel::find((int) $context['channel_id']) : null;
 +                if ($bridgeChannel?->managed_provider === 'aws_social') {
++                    if (app()->bound(\App\Services\Extensions\ExtensionManager::class)
++                        && !app(\App\Services\Extensions\ExtensionManager::class)->enabled('aws-engagement-bridge')) {
++                        throw new \RuntimeException('aws_bridge_disconnected');
++                    }
 +                    if (!class_exists(\MuseRelay\AwsEngagementBridge\Core\ToolGuard::class)) {
 +                        throw new \RuntimeException('aws_bridge_not_installed');
 +                    }
@@ -24,15 +28,19 @@ index 3db8d244..61a6de77 100644
              // Las URLs que devuelven las herramientas (reservas, seguimiento de tickets…) son legítimas; las de la búsqueda en la
              // base de conocimiento no: esas siguen la opción de enlaces de documentación.
 diff --git a/app/Services/AutomationService.php b/app/Services/AutomationService.php
-index c8f21f45..fa1c7463 100644
+index c8f21f45..4a88abf3 100644
 --- a/app/Services/AutomationService.php
 +++ b/app/Services/AutomationService.php
-@@ -349,13 +349,23 @@ public function sendToAIAgent(Message $message, Conversation $conversation, Chan
+@@ -349,13 +349,27 @@ public function sendToAIAgent(Message $message, Conversation $conversation, Chan
              // Despachar envío al canal externo de forma asíncrona.
              // El worker queda libre inmediatamente; el job SendAIChannelResponse
              // llama a Meta API y emite aiTypingDone al panel cuando termina.
 -            \App\Jobs\SendAIChannelResponse::dispatch(
 +            if ($channel->type === 'whatsapp' && $channel->managed_provider === 'aws_social') {
++                if (app()->bound(\App\Services\Extensions\ExtensionManager::class)
++                    && !app(\App\Services\Extensions\ExtensionManager::class)->enabled('aws-engagement-bridge')) {
++                    throw new \RuntimeException('aws_bridge_disconnected');
++                }
 +                if (!class_exists(\MuseRelay\AwsEngagementBridge\Core\Egress::class)) {
 +                    throw new \RuntimeException('aws_bridge_not_installed');
 +                }
@@ -54,15 +62,19 @@ index c8f21f45..fa1c7463 100644
              // Auto-marcar mensajes como leídos por IA (igual que N8N)
              $this->autoMarkAsReadByAI($conversation);
 diff --git a/app/Services/WhatsAppSenderService.php b/app/Services/WhatsAppSenderService.php
-index 39b89d66..96cd69b2 100644
+index 39b89d66..dbd0cc69 100644
 --- a/app/Services/WhatsAppSenderService.php
 +++ b/app/Services/WhatsAppSenderService.php
-@@ -31,6 +31,13 @@ public function sendTextMessage(
+@@ -31,6 +31,17 @@ public function sendTextMessage(
          string $message, 
          ?int $userId = null
      ): array {
 +        // Explicit AWS channel only. Missing/disabled bridge must never fall back to Graph/Telnyx.
 +        if ($channel->managed_provider === 'aws_social') {
++            if (app()->bound(\App\Services\Extensions\ExtensionManager::class)
++                && !app(\App\Services\Extensions\ExtensionManager::class)->enabled('aws-engagement-bridge')) {
++                return ['success'=>false,'error'=>'aws_bridge_disconnected'];
++            }
 +            if (!class_exists(\MuseRelay\AwsEngagementBridge\Core\Egress::class)) {
 +                return ['success' => false, 'error' => 'aws_bridge_not_installed'];
 +            }
@@ -71,7 +83,7 @@ index 39b89d66..96cd69b2 100644
          $config = $this->getChannelConfig($channel);
          
          if (!$config) {
-@@ -663,6 +670,8 @@ private function createFailedMessageRecord(
+@@ -663,6 +674,8 @@ private function createFailedMessageRecord(
       */
      private function getChannelConfig(Channel $channel): ?array
      {

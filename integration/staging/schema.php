@@ -57,7 +57,7 @@ Schema::create('teams', function (Blueprint $t) { $t->id(); $t->bigInteger('work
 Schema::create('plans', function (Blueprint $t) { $t->id(); $t->string('name'); $t->json('features'); $t->bigInteger('max_active_contacts_month')->nullable(); $t->timestamps(); });
 Schema::create('organization_trials', function (Blueprint $t) { $t->id(); $t->bigInteger('organization_id'); $t->string('status'); $t->timestamp('ends_at'); });
 Schema::create('workspace_users', function (Blueprint $t) { $t->bigInteger('user_id'); $t->bigInteger('workspace_id'); $t->string('status'); $t->string('role'); });
-Schema::create('platform_settings', function (Blueprint $t) { $t->id(); $t->string('setting_group'); $t->string('setting_key'); $t->text('setting_value')->nullable(); $t->boolean('is_encrypted')->default(false); $t->timestamps(); });
+Schema::create('platform_settings', function (Blueprint $t) { $t->id(); $t->string('setting_group'); $t->string('setting_key'); $t->text('setting_value')->nullable(); $t->text('description')->nullable(); $t->boolean('is_encrypted')->default(false); $t->timestamps(); });
 Schema::create('ai_models_config', function (Blueprint $t) { $t->id(); $t->string('provider')->nullable(); $t->string('model_name')->nullable(); $t->boolean('is_active')->default(true); $t->timestamps(); });
 Schema::create('custom_tool_assignments', function (Blueprint $t) { $t->id(); $t->bigInteger('organization_id'); $t->string('tool_group'); });
 Schema::create('ai_provider_costs', function (Blueprint $t) { $t->id(); $t->bigInteger('ai_provider_id'); $t->string('model_name'); $t->boolean('is_active'); });
