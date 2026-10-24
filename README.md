@@ -17,7 +17,9 @@ Phase 4 prepares the first live run for Screen Art account `365470560685`, Irela
 
 The permanent architecture is an opt-in extension inside the existing MuseRelay application, sharing its panels/domains, organizations, agents, native inbox/tools and database/Redis services. The separate phase 4 copy and technical hostname are temporary test infrastructure; they do not impose a second commercial installation or separate infrastructure per future module. Production integration and any shared-service reload still require explicit authorization.
 
-**No production installation, real WhatsApp sends, AWS resource creation or live Bedrock invocation.** Real native tickets are created only in a disposable synthetic database. Billing and AWS services are simulated; the full historical Core schema and panel/browser flows are outside this fixture suite. No existing reseller or production channel has been changed. GitHub publication is on hold pending specific authorization.
+**No production installation, real WhatsApp sends, AWS resource creation or live Bedrock invocation.** Real native tickets are created only in a disposable synthetic database. Billing and AWS services are simulated; the full historical Core schema and panel/browser flows are outside this fixture suite. No existing reseller or production channel has been changed.
+
+On 2026-10-25 (Europe/Paris), the user explicitly authorized creating and uploading [screenartsl/aws-engagement-bridge](https://github.com/screenartsl/aws-engagement-bridge) as a **private** repository. GitHub authenticated the `screenartsl` identity and confirmed private ownership/visibility. The complete phase 4 branch is the source for `main`; original phase branches and commit history are preserved. Repository publication does not install the connector, deploy AWS, activate staging, send messages or authorize public/judge access. See [repository publication](docs/REPOSITORY-UPLOAD.md).
 
 ## Architecture
 

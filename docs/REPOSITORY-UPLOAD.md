@@ -1,8 +1,10 @@
-# Private repository preparation — publication on hold
+# Private repository — publication authorized
 
-Destination: **`screenartsl/aws-engagement-bridge`**, **PRIVATE**. The latest phase 3 instruction explicitly says **not to publish without specific authorization**. This supersedes the earlier permission to upload. No create/push/merge/invitation/publication operation was performed during phase 3.
+Destination: **[`screenartsl/aws-engagement-bridge`](https://github.com/screenartsl/aws-engagement-bridge)**, **PRIVATE**. On **2026-10-25 (Europe/Paris)** the user explicitly authorized creating this private repository and uploading the module with its original history. This supersedes the publication hold from phases 3/4. No public visibility, judge invitations, Core installation or infrastructure activation is authorized by that instruction.
 
-The local repository has an `origin` pointing to `https://github.com/screenartsl/aws-engagement-bridge.git`. This alone does not prove that the remote exists, is private or has received commits. Those properties have not been authenticated in this development session. Do not request or paste tokens into chat or embed them in remote URLs. Root's credentials, if available, are separate from this session.
+GitHub authenticated the server's existing Git credential as `screenartsl`. The repository was created through the official REST API with `private:true`, `auto_init:false`, then verified as owner `screenartsl`, visibility `private`, default branch `main`. The remote was empty before upload. The credentials were supplied by Git's existing protected credential helper; no key was printed, copied to another file or embedded in a URL. GitHub CLI installation was not necessary.
+
+The latest development branch is `codex/aws-engagement-bridge-phase4`; this complete branch, rather than the earlier phase 1 branch, supplies `main`. Preserve all local phase branches as remote branches without force-push, squash or rewritten dates. Verify remote refs against local commit IDs after the push. The first phases' original dates/ancestry remain part of that history.
 
 ## Read-only review
 
@@ -21,8 +23,8 @@ A human review should check `git ls-files`, the three-file `core-hooks.patch`, d
 
 In an authenticated operator shell, `gh auth status` and `gh repo view screenartsl/aws-engagement-bridge --json nameWithOwner,visibility,defaultBranchRef` can verify identity/visibility read-only. Do not assume that permission to push MuseRelay's other repository grants creation or access here.
 
-## After a future specific publication authorization
+## Publication and later updates
 
-Verify the exact owner and PRIVATE visibility, inspect any existing remote refs/content and repeat the history/working-tree review after final commits. If absent, create an empty private repository through the authorized GitHub identity. If present, reconcile its contents without overwriting history. Push the reviewed local development branch through the authenticated credential helper; preserve all original commits and do not upload the external Core checkout, runtime, secrets or `.env` files. Judge access and making the repository public remain separate actions.
+Before each upload verify the exact owner and PRIVATE visibility, inspect remote refs/content and repeat the history/working-tree review after final commits. Reconcile any existing remote content without overwriting history. Push reviewed module branches through the authenticated credential helper; preserve all original commits and do not upload the external Core checkout, runtime, secrets or `.env` files. Judge access and making the repository public remain separate actions. Do not run the old phase 1-to-main command as a way to publish the complete phase 4 implementation.
 
 A local `git bundle` can preserve all local refs/history without publishing to any service. Phase 3's report records its path and verification when created. Keep that artifact private and repeat the secret scan before any later upload. A prepared local branch/bundle is not a GitHub backup until an authorized push is actually verified.
