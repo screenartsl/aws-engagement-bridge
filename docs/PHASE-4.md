@@ -4,6 +4,22 @@
 
 La cuenta autorizada es **Screen Art S.L., `365470560685`, `eu-west-1`**. El preparador rechaza cualquier otra cuenta y el preflight detiene las consultas si STS devuelve root. No se utilizará la cuenta de Muse Layer. El usuario ha confirmado `aws-bridge-staging.muserelay.com` como entrada técnica, sin panel de clientes/resellers. El rol/perfil IAM y la WABA/número exclusivos siguen pendientes.
 
+## Decisión arquitectónica confirmada por el usuario
+
+La solución definitiva es **una extensión del MuseRelay existente**. No requiere una segunda instalación comercial, contratar una máquina adicional ni imponer servidor/dominio/base/Redis propios a cada módulo. La disponibilidad y capacidad del anfitrión temporal todavía deben confirmarse; esto no autoriza usar el nodo de producción ni contratar infraestructura.
+
+El staging aislado de fase 4 es **temporal y desechable**. `aws-bridge-staging.muserelay.com` es exclusivamente técnico y temporal: no será un panel ni una URL para clientes o resellers. Sus fixtures, bootstrap, factoría de demo y contabilidad sintética no se instalarán como sustitutos del bootstrap, agentes o facturación de producción.
+
+La integración definitiva instalaría el paquete Laravel `screenartsl/muserelay-aws-engagement-bridge-core` dentro del despliegue actual, con los tres hooks preparados y cinco tablas `aws_bridge_*` en su conexión de base de datos. NativeCore reutiliza contactos, conversaciones, mensajes, agentes, tickets y eventos de la bandeja existentes. Los mensajes y tickets nativos deben compartir la misma conexión transaccional con el conector; no se trasladan a una base comercial paralela.
+
+Redis puede ser el servicio actual, con claves y trabajo del módulo delimitados; el procesamiento Bridge tendrá su propio control de concurrencia y ejecución, sin exigir otro servidor Redis. Los clientes conservan sus organizaciones, permisos, paneles reseller/marca blanca y dominios habituales. Las rutas técnicas firmadas `/api/aws-engagement-bridge/events` y `/receipts` pueden publicarse en un origen HTTPS del Core ya existente: no se exige subdominio nuevo por módulo, organización o reseller. Los recursos AWS de transporte/estado siguen siendo necesarios; compartir el Core no elimina SNS/SQS/Lambda/DynamoDB/API Gateway ni sus controles.
+
+La modularidad significa paquete, configuración, activación explícita por organización/canal y estado acotado. No significa que exista ya un cargador general de extensiones ni que cada módulo deba tener infraestructura propia. Los futuros módulos pueden compartir PostgreSQL/Redis y usar tablas, claves, colas y permisos propios; el aislamiento físico será una decisión específica cuando lo requieran sus cargas o requisitos.
+
+Se puede retirar íntegramente el entorno temporal conservando código e historial del Bridge. Si posteriormente existe un Bridge activo definitivo, **primero** hay que verificar su instalación en el Core habitual, sus bindings/secretos propios y el destino HTTPS correcto en AWS. Borrar el staging mientras un despliegue siga apuntando a su URL interrumpiría ese despliegue. No se copiarán datos/credenciales de demo a clientes ni se borrarán recursos definitivos como parte de la retirada del staging.
+
+La instalación definitiva sigue pendiente de revisión contra el esquema y recorridos completos del Core actual; las pruebas con fixtures no certifican todos los paneles. Requiere autorización expresa para instalación Composer/hooks, migraciones, configuración, cachés, workers y cualquier recarga compartida necesaria. No se realiza nada de ello en esta fase. La prueba del hackathon se mantiene aislada de los clientes beta.
+
 ## Qué está preparado y dónde
 
 Código independiente: `/var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge`, rama `codex/aws-engagement-bridge-phase4`. Sigue sin instalarse en producción. Esta carpeta se replica mediante lsyncd: nunca debe contener secretos ni datos operativos de la demo.

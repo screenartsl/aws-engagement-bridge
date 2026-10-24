@@ -15,6 +15,8 @@ Phase 3 adds a reproducible Linux staging harness with its own PostgreSQL/Redis 
 
 Phase 4 prepares the first live run for Screen Art account `365470560685`, Ireland: disabled parameters, targeted read-only preflight, a separate HTTPS staging harness, metadata-only AWS evidence, acceptance verifier and deployment/removal runbook. No live resources or services have been activated. The non-root IAM profile, independent demo WABA/number and final staging node remain pending. See [phase 4 decision and costs](docs/PHASE-4.md) and [activation/removal runbook](docs/PHASE-4-RUNBOOK.md). Calendars and throughput for thousands of users are not implemented/validated in this phase.
 
+The permanent architecture is an opt-in extension inside the existing MuseRelay application, sharing its panels/domains, organizations, agents, native inbox/tools and database/Redis services. The separate phase 4 copy and technical hostname are temporary test infrastructure; they do not impose a second commercial installation or separate infrastructure per future module. Production integration and any shared-service reload still require explicit authorization.
+
 **No production installation, real WhatsApp sends, AWS resource creation or live Bedrock invocation.** Real native tickets are created only in a disposable synthetic database. Billing and AWS services are simulated; the full historical Core schema and panel/browser flows are outside this fixture suite. No existing reseller or production channel has been changed. GitHub publication is on hold pending specific authorization.
 
 ## Architecture
