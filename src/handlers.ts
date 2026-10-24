@@ -1,4 +1,5 @@
-import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2, SQSEvent, SQSBatchResponse } from 'aws-lambda';
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2, SQSEvent, SQSBatchResponse, Context } from 'aws-lambda';
+import { evidence, evidenceHash } from './evidence.js';
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { Binding, BridgeError, parseBindings, record, string } from './contracts.js';
@@ -39,15 +40,15 @@ async function runtime(): Promise<Runtime> {
   cached = { until: Date.now() + 60_000, value }; return value;
 }
 
-export async function inbound(event: SQSEvent): Promise<SQSBatchResponse> {
+export async function inbound(event: SQSEvent, context?: Context): Promise<SQSBatchResponse> {
   const rt = await runtime();
-  return batch(event, async body => ingest(JSON.parse(body), rt.bindings, rt.store, rt.core, Number(env('BRIDGE_DAILY_INBOUND_LIMIT'))));
+  return batch(event, async body => ingest(JSON.parse(body), rt.bindings, rt.store, rt.core, Number(env('BRIDGE_DAILY_INBOUND_LIMIT'))), context);
 }
 
-export async function sender(event: SQSEvent): Promise<SQSBatchResponse> {
+export async function sender(event: SQSEvent, context?: Context): Promise<SQSBatchResponse> {
   const rt = await runtime();
   const adapter = SocialAdapter.aws(rt.region, env('META_API_VERSION'), process.env.BRIDGE_LIVE_SEND === 'true');
-  return batch(event, async body => deliver(JSON.parse(body), rt.bindings, rt.store, rt.core, adapter, Number(env('BRIDGE_DAILY_SEND_LIMIT'))));
+  return batch(event, async body => deliver(JSON.parse(body), rt.bindings, rt.store, rt.core, adapter, Number(env('BRIDGE_DAILY_SEND_LIMIT'))), context);
 }
 
 /** Only POST /outbound; no registration, permission changes, or management operations. */
@@ -67,12 +68,13 @@ export async function enqueue(event: APIGatewayProxyEventV2): Promise<APIGateway
   }
 }
 
-async function batch(event: SQSEvent, work: (body: string) => Promise<void>): Promise<SQSBatchResponse> {
+async function batch(event: SQSEvent, work: (body: string) => Promise<void>, context?: Context): Promise<SQSBatchResponse> {
   const batchItemFailures: { itemIdentifier: string }[] = [];
   for (const item of event.Records) {
     try {
       if (Buffer.byteLength(item.body) > 250_000) throw new BridgeError('payload_too_large');
       await work(item.body);
+      evidence('lambda_record_ok', { id: evidenceHash(item.messageId), awsRequestId: context?.awsRequestId });
     } catch (error) {
       console.warn(JSON.stringify({ event: 'bridge_record_failed', code: error instanceof BridgeError ? error.code : 'temporary_failure' }));
       batchItemFailures.push({ itemIdentifier: item.messageId });

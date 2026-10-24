@@ -23,6 +23,10 @@ Parameters:
     Type: String
     Default: 'false'
     AllowedValues: ['false', 'true']
+  RunId:
+    Type: String
+    Default: phase4_not_started
+    AllowedPattern: 'phase4_[A-Za-z0-9_-]{4,56}'
   DailySendLimit:
     Type: Number
     Default: 20
@@ -56,6 +60,7 @@ Globals:
         BRIDGE_DAILY_SEND_LIMIT: !Ref DailySendLimit
         BRIDGE_DAILY_INBOUND_LIMIT: !Ref DailyInboundLimit
         META_API_VERSION: !Ref MetaApiVersion
+        BRIDGE_RUN_ID: !Ref RunId
 Resources:
   InboundTopic:
     Type: AWS::SNS::Topic

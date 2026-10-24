@@ -1,0 +1,11 @@
+{
+  "kind": "PENDING_LIVE_AWS_RUN",
+  "accountId": "365470560685",
+  "region": "eu-west-1",
+  "runId": "phase4_demo_20261024",
+  "accountVerified": false,
+  "simulation": null,
+  "releaseCommit": "TO_SUPPLY_AFTER_LOCAL_COMMIT",
+  "testerObservedTwoReplies": false,
+  "cloudWatchSourceVerified": false
+}

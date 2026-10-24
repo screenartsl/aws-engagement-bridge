@@ -5,13 +5,15 @@ Created on 2026-10-24. This repository contains new bridge code, not a copy of t
 
 Local development location: `/var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge` (moved from `.codex/projects/` on 2026-10-24 at the user's request). See the parent `modules-develop/README.md` and `AGENTS.md` for discovery and working rules. This is not an installed extension loader: MuseRelay does not automatically load code from this directory. The existing lsyncd scope includes this location; file replication is not deployment or activation.
 
-## Current status — isolated phase 3 staging; not deployed to production or AWS
+## Current status — phase 4 prepared; not deployed to production or AWS
 
 Implemented locally: official AWS Social Messaging SDK adapter, text/status event normalization, explicitly scoped channel bindings, HMAC transport, DynamoDB idempotency/leases/nonces/demo budgets, SQS handlers, isolated infrastructure template and PHP/Node signature interoperability.
 
 Phase 2 adds the Laravel package under `integration/muserelay/`: authenticated controllers, opt-in organization/channel binding, encrypted durable inbox/outbox, worker, native agent/inbox adapter and transactional ticket-action checkpoint. Three narrowly scoped Core changes are prepared in `core-hooks.patch` and an independent Core worktree. These changes are **not installed in the live application**. See `docs/PHASE-2.md` and `docs/STAGING.md` for exact scope and test limitations.
 
 Phase 3 adds a reproducible Linux staging harness with its own PostgreSQL/Redis instances, Composer installation, real Laravel workers and native agent/ticket execution against controlled AWS SDK transports. The conformance suite also runs on PostgreSQL, including concurrent acceptance and leases. See [phase 3 evidence](docs/PHASE-3.md), [staging runbook](docs/STAGING.md) and [exact live AWS prerequisites](docs/AWS-LIVE-CHECKLIST.md).
+
+Phase 4 prepares the first live run for Screen Art account `365470560685`, Ireland: disabled parameters, targeted read-only preflight, a separate HTTPS staging harness, metadata-only AWS evidence, acceptance verifier and deployment/removal runbook. No live resources or services have been activated. The non-root IAM profile, independent demo WABA/number and final staging node remain pending. See [phase 4 decision and costs](docs/PHASE-4.md) and [activation/removal runbook](docs/PHASE-4-RUNBOOK.md). Calendars and throughput for thousands of users are not implemented/validated in this phase.
 
 **No production installation, real WhatsApp sends, AWS resource creation or live Bedrock invocation.** Real native tickets are created only in a disposable synthetic database. Billing and AWS services are simulated; the full historical Core schema and panel/browser flows are outside this fixture suite. No existing reseller or production channel has been changed. GitHub publication is on hold pending specific authorization.
 

@@ -1,0 +1,25 @@
+[Unit]
+Description=Private Bridge demo FPM pool (not installed)
+After=network-online.target
+After=bridge-stage-postgresql.service bridge-stage-redis.service
+Requires=bridge-stage-postgresql.service bridge-stage-redis.service
+[Service]
+User=muserelay-aws-stage
+# Confirm this group exists and belongs to the actual HTTPS proxy before activation.
+Group=caddy
+SupplementaryGroups=muserelay-aws-stage
+ExecStart=/usr/sbin/php-fpm8.4 --nodaemonize --fpm-config /srv/muserelay-aws-stage/bridge/deploy/phase4/php-fpm.conf
+Restart=on-failure
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+InaccessiblePaths=/var/www/vhosts
+ReadWritePaths=/var/lib/muserelay-aws-stage /run/muserelay-aws-stage
+MemoryMax=384M
+CPUQuota=50%
+TasksMax=32
+StandardOutput=null
+StandardError=null
+[Install]
+WantedBy=multi-user.target

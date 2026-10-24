@@ -1,0 +1,32 @@
+[Unit]
+Description=Dedicated AWS Bridge demo Redis worker (not installed)
+After=network-online.target
+After=bridge-stage-postgresql.service bridge-stage-redis.service
+Requires=bridge-stage-postgresql.service bridge-stage-redis.service
+[Service]
+Type=simple
+User=muserelay-aws-stage
+Group=muserelay-aws-stage
+Environment=APP_ENV=bridge-staging
+Environment=APP_CONFIG_CACHE=/var/lib/muserelay-aws-stage/cache/config.php
+Environment=APP_SERVICES_CACHE=/var/lib/muserelay-aws-stage/cache/services.php
+Environment=APP_PACKAGES_CACHE=/var/lib/muserelay-aws-stage/cache/packages.php
+Environment=APP_ROUTES_CACHE=/var/lib/muserelay-aws-stage/cache/routes.php
+WorkingDirectory=/srv/muserelay-aws-stage
+ExecStart=/usr/bin/php /srv/muserelay-aws-stage/bridge/integration/live-staging/console.php worker
+Restart=always
+RestartSec=3
+TimeoutStopSec=500
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+InaccessiblePaths=/var/www/vhosts
+ReadWritePaths=/var/lib/muserelay-aws-stage /run/muserelay-aws-stage
+MemoryMax=512M
+CPUQuota=50%
+TasksMax=32
+StandardOutput=null
+StandardError=null
+[Install]
+WantedBy=multi-user.target

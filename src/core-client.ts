@@ -1,3 +1,4 @@
+import { evidence } from './evidence.js';
 import { sign } from './auth.js';
 import { BridgeError, InboundEvent, SendResult } from './contracts.js';
 
@@ -28,5 +29,6 @@ export class CoreClient implements CorePort {
     if (![200, 202].includes(response.status)) throw new BridgeError('core_not_acknowledged');
     const ack = await response.json() as { id?: string; status?: string };
     if (ack.id !== id || !['accepted', 'duplicate'].includes(ack.status ?? '')) throw new BridgeError('invalid_core_ack');
+    evidence('core_ack', { id, status: ack.status, httpStatus: response.status });
   }
 }

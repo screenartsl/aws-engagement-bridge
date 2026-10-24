@@ -101,6 +101,9 @@ test('adapter invokes actual SDK command with AWS identity and UTF-8 payload', a
 });
 test('official SDK serialization executes against an in-process HTTP handler, no network', async () => {
   let requests = 0;
+  const beforeRun = process.env.BRIDGE_RUN_ID;
+  const beforeInfo = console.info;
+  const audit: string[] = [];
   const sdk = new SocialMessagingClient({ region: 'eu-west-1', maxAttempts: 1,
     credentials: { accessKeyId: 'TESTONLY', secretAccessKey: 'test-only-not-real' },
     requestHandler: { handle: async (request: { method: string; path: string; body?: unknown }) => {
@@ -108,11 +111,22 @@ test('official SDK serialization executes against an in-process HTTP handler, no
       const raw = typeof request.body === 'string' ? request.body : new TextDecoder().decode(request.body as Uint8Array);
       const body = JSON.parse(raw); assert.equal(body.originationPhoneNumberId, binding.awsPhoneNumberId);
       const message = JSON.parse(Buffer.from(body.message, 'base64').toString('utf8')); assert.equal(message.text.body, command.text);
-      return { response: { statusCode: 200, headers: { 'content-type': 'application/json' }, body: Buffer.from('{"messageId":"sdk.synthetic"}') } };
+      return { response: { statusCode: 200, headers: { 'content-type': 'application/json', 'x-amzn-requestid': 'synthetic-sdk-request' }, body: Buffer.from('{"messageId":"sdk.synthetic"}') } };
     } },
   });
-  const result = await new SocialAdapter(sdk, 'v23.0', true).send(command, binding);
-  assert.equal(result.providerMessageId, 'sdk.synthetic'); assert.equal(requests, 1); sdk.destroy();
+  try {
+    process.env.BRIDGE_RUN_ID = 'phase4_synthetic_sdk_test';
+    console.info = (line: string) => { audit.push(line); };
+    const result = await new SocialAdapter(sdk, 'v23.0', true).send(command, binding);
+    assert.equal(result.providerMessageId, 'sdk.synthetic'); assert.equal(requests, 1);
+    const entry = JSON.parse(audit[0]!);
+    assert.equal(entry.requestId, 'synthetic-sdk-request'); assert.equal(entry.httpStatus, 200);
+    assert.ok(!audit[0]!.includes(command.text)); assert.ok(!audit[0]!.includes(command.recipient));
+  } finally {
+    console.info = beforeInfo;
+    if (beforeRun === undefined) delete process.env.BRIDGE_RUN_ID; else process.env.BRIDGE_RUN_ID = beforeRun;
+    sdk.destroy();
+  }
 });
 test('timeouts and unknown failures are uncertain; explicit throttle is retryable', async () => {
   const timeout = new SocialAdapter({ send: async () => { throw new Error('contains private data'); } }, 'v23.0', true);

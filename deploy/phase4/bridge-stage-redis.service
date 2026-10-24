@@ -1,0 +1,20 @@
+[Unit]
+Description=Private Unix-socket demo Redis (not installed)
+[Service]
+User=muserelay-aws-stage
+Group=muserelay-aws-stage
+ExecStart=/usr/bin/redis-server /srv/muserelay-aws-stage/bridge/deploy/phase4/redis.conf
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+InaccessiblePaths=/var/www/vhosts
+ReadWritePaths=/var/lib/muserelay-aws-stage/redis /run/muserelay-aws-stage
+MemoryMax=128M
+CPUQuota=25%
+TasksMax=16
+StandardOutput=null
+StandardError=null
+[Install]
+WantedBy=multi-user.target

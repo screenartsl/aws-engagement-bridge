@@ -1,0 +1,78 @@
+{
+  "result": "PREPARED_NOT_LIVE",
+  "reviewDate": "2026-10-24",
+  "branch": "codex/aws-engagement-bridge-phase4",
+  "parentCommit": "bc571e75d143885c6ea782fa8125417681d85fb9",
+  "account": {
+    "id": "365470560685",
+    "region": "eu-west-1",
+    "declaredByUser": true,
+    "authenticated": false,
+    "rootForbidden": true
+  },
+  "endpoint": {
+    "hostname": "aws-bridge-staging.muserelay.com",
+    "activated": false,
+    "hostingNodeConfirmed": false
+  },
+  "checks": {
+    "nodeTests": 32,
+    "phpSqliteTests": 28,
+    "phpSqliteAssertions": 102,
+    "pythonPreparationTests": 10,
+    "phpSyntaxFiles": 4,
+    "liveRuntimeClassesLoad": true,
+    "uninstalledStageRejected": true,
+    "offlineSamExpandedResources": 23,
+    "explicitRuntimeIamRoles": 3,
+    "cfnLint": "PASS",
+    "caddyParseOnly": "PASS",
+    "coreOverlayFiles": 3,
+    "unchangedCoreSourceFiles": 3347,
+    "historyScannerBeforeCommit": "PASS"
+  },
+  "notExecuted": [
+    "AWS STS or account APIs",
+    "AWS deployment/resource creation",
+    "WABA registration/linking",
+    "DNS/TLS/proxy activation",
+    "phase 4 staging services/database setup",
+    "real WhatsApp/Bedrock conversation",
+    "GitHub publication"
+  ],
+  "limits": [
+    "New live harness has syntax/class-load checks, not an installed phase 4 integration run",
+    "Real PostgreSQL/Redis native acceptance remains phase 3 evidence, not rerun in phase 4",
+    "Heuristic secret scan does not cover ignored/external/remote-only files",
+    "No calendar tools or thousands-user load certification"
+  ],
+  "proposal": {
+    "budgetUsd": 5,
+    "maximumHours": 96,
+    "dailyInboundLimit": 6,
+    "dailySendLimit": 6,
+    "approved": false,
+    "hardSpendCap": false
+  },
+  "pending": [
+    "explicit authorized non-root AWS profile/role",
+    "independent demo WABA and number",
+    "AWS linked/Meta phone identifiers",
+    "allowlisted tester number",
+    "secret and artifact bucket ARNs",
+    "staging host and DNS/TLS",
+    "effective IAM/SCP/model/quota checks",
+    "authorization before deployment, sends or publication"
+  ],
+  "fileSha256": {
+    "template.yaml": "7ce9559b172b40348483fa9f2fd979bf258e11ecff8b943fbcd0305cdd49d562",
+    "integration/muserelay/core-hooks.patch": "2b64220ffc3805df547320f8becd8c719dd2a067796a16cd0ec9e7a50294c7d3",
+    "integration/live-staging/Runtime.php": "efec36d34d50d9751befb6a5f9dc253806fbb891ed81430815f8da5a6a2b85fa",
+    "integration/live-staging/bootstrap.php": "cc1ab9085a26a83b2384405ee804593040c76b8ef7a10503cf6535a555629971",
+    "scripts/phase4/plan.py": "fd2e2b0392aec76d79ba6c83e859eb63e6fe14476f99a05fa6238adde33b4d81",
+    "scripts/phase4/preflight.py": "c48b50abdbed7006d45dae5c3be670fe688ad165b9e71175f4fa5bb6f4b43629",
+    "scripts/phase4/verify-evidence.py": "42d85353d3c1be6a25b72ae6046ae4a20cc5a75dd0015a1d5b0f8e3bcf42e172"
+  },
+  "privateReviewArtifacts": "/tmp/muserelay-bridge-phase4-review-e9uflox0",
+  "sourceReviewArtifacts": "/tmp/muserelay-bridge-phase4-source-zxbjczv2"
+}

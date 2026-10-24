@@ -1,0 +1,21 @@
+[Unit]
+Description=New private demo PostgreSQL cluster (not installed)
+[Service]
+User=muserelay-aws-pg
+Group=muserelay-aws-stage
+ExecStart=/usr/lib/postgresql/16/bin/postgres -D /var/lib/muserelay-aws-stage/postgres -c config_file=/srv/muserelay-aws-stage/bridge/deploy/phase4/postgresql.conf -c hba_file=/srv/muserelay-aws-stage/bridge/deploy/phase4/pg_hba.conf
+KillSignal=SIGINT
+TimeoutStopSec=60
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+InaccessiblePaths=/var/www/vhosts
+ReadWritePaths=/var/lib/muserelay-aws-stage/postgres /run/muserelay-aws-stage/pgsock
+MemoryMax=256M
+CPUQuota=25%
+TasksMax=32
+StandardOutput=null
+StandardError=null
+[Install]
+WantedBy=multi-user.target

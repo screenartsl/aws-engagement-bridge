@@ -1,0 +1,23 @@
+{
+  "enabled": false,
+  "accountId": "365470560685",
+  "region": "eu-west-1",
+  "runId": "phase4_demo_20261024",
+  "coreHostname": "aws-bridge-staging.muserelay.com",
+  "organizationId": 97101,
+  "workspaceId": 10,
+  "channelId": 20,
+  "agentId": 30,
+  "ticketInboxId": 50,
+  "bindingId": "phase4-demo",
+  "channelRef": "phase4-demo-channel",
+  "outboundUrl": "https://TO_SUPPLY.execute-api.eu-west-1.amazonaws.com/outbound",
+  "metaWabaId": "TO_SUPPLY",
+  "metaPhoneNumberId": "TO_SUPPLY",
+  "socialPhoneArn": "TO_SUPPLY",
+  "recipient": "TO_SUPPLY",
+  "expiresAt": 0,
+  "appKey": "GENERATE_PRIVATE_32_BYTE_BASE64",
+  "messagesKey": "GENERATE_PRIVATE_32_BYTE_BASE64",
+  "indexKey": "GENERATE_PRIVATE_32_BYTE_BASE64"
+}

@@ -1,0 +1,8 @@
+[Unit]
+Description=Dedicated demo polling cadence (not installed)
+[Timer]
+OnBootSec=10
+OnUnitActiveSec=3
+Unit=bridge-stage-enqueue.service
+[Install]
+WantedBy=timers.target

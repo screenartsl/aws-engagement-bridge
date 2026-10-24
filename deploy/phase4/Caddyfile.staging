@@ -1,0 +1,23 @@
+# Proposal only. Do not import/reload before explicit DNS/TLS/proxy activation authorization.
+aws-bridge-staging.muserelay.com {
+	log {
+		output discard
+	}
+	request_body {
+		max_size 20KB
+	}
+	@bridge {
+		method POST
+		path /api/aws-engagement-bridge/events /api/aws-engagement-bridge/receipts
+	}
+	handle @bridge {
+		reverse_proxy unix//run/muserelay-aws-stage/fpm.sock {
+			transport fastcgi {
+				root /srv/muserelay-aws-stage/bridge/integration/live-staging/public
+				env SCRIPT_FILENAME /srv/muserelay-aws-stage/bridge/integration/live-staging/public/index.php
+			}
+		}
+	}
+	# Health stays local/private; no unauthenticated public endpoint.
+	respond 404
+}
