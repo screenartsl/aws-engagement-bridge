@@ -78,7 +78,7 @@ export function parseBindings(raw: string): Binding[] {
     if (!/^\d+$/.test(wabaId) || !/^\d+$/.test(metaPhoneNumberId)) throw new BridgeError('invalid_meta_identity');
     const awsPhoneNumberId = string(b.awsPhoneNumberId);
     const account = topicArn.split(':')[4];
-    if (!new RegExp(`^arn:aws:social-messaging:${region}:${account}:phone-number-id/[a-zA-Z0-9]+$`).test(awsPhoneNumberId)) {
+    if (!new RegExp(`^arn:aws:social-messaging:${region}:${account}:phone-number-id/[a-zA-Z0-9][a-zA-Z0-9-]*$`).test(awsPhoneNumberId)) {
       throw new BridgeError('invalid_aws_phone_arn');
     }
     const identity = `${topicArn}:${wabaId}:${metaPhoneNumberId}`;

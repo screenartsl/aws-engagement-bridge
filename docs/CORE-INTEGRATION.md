@@ -1,3 +1,5 @@
+> Current native staging evidence: [PHASE-3.md](PHASE-3.md). No production or AWS activation is included.
+
 # MuseRelay Core contract and next phase
 
 This contract now has a prepared implementation under `integration/muserelay/src/Core/`, plus `core-hooks.patch` for three existing Core files. It is **not installed or activated**. `BridgeSignature.php` remains the framework-independent signature primitive. The package provider registers routes only when explicitly enabled; it does not auto-register migrations. No production routes, migrations, workers or reseller screens have been changed.

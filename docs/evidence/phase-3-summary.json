@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-24",
+  "result": "PASS",
+  "runtime": {
+    "result": "PASS",
+    "elapsedSeconds": 102.1,
+    "coreBase": "b8e9bf8c74789689a7cebddd1856a094e380c9d9",
+    "hookFiles": [
+      "app/AI/AgentExecutor.php",
+      "app/Services/AutomationService.php",
+      "app/Services/WhatsAppSenderService.php"
+    ],
+    "network": "isolated Linux network namespace; no interface enabled",
+    "postgres": "16, private Unix socket, non-superuser role",
+    "redis": "private Unix socket, real Laravel queue workers",
+    "aws": "simulated SDK transports, SNS/SQS/DynamoDB; no deployment or real sends",
+    "billing": "synthetic usage tracker; not a charging acceptance test",
+    "artifacts": "/tmp/muserelay-bridge-phase3-wepxgeee",
+    "servicesStopped": true
+  },
+  "contractSuites": {
+    "node": {
+      "tests": 31
+    },
+    "sqlite": {
+      "tests": 28,
+      "assertions": 102
+    },
+    "postgresql": {
+      "tests": 28,
+      "assertions": 158
+    }
+  },
+  "nativeChecks": 18,
+  "regressionChecks": 15,
+  "concurrency": {
+    "simultaneousDeliveries": 8,
+    "accepted": 1,
+    "duplicates": 7,
+    "claimants": 6,
+    "leases": 1
+  },
+  "demoBeforeAdditionalChecks": {
+    "organizationsInScope": [
+      97101
+    ],
+    "contacts": 1,
+    "conversations": 1,
+    "messages": 5,
+    "tickets": 1,
+    "ticketAuditRows": 1,
+    "acceptedReplies": 2,
+    "readReplies": 2
+  },
+  "coreOverlay": {
+    "base": "b8e9bf8c74789689a7cebddd1856a094e380c9d9",
+    "changed": [
+      "app/AI/AgentExecutor.php",
+      "app/Services/AutomationService.php",
+      "app/Services/WhatsAppSenderService.php"
+    ],
+    "unchangedFiles": 3347
+  },
+  "sam": {
+    "resourceCount": 23,
+    "resourceTypes": {
+      "AWS::SNS::Topic": 1,
+      "AWS::SNS::TopicPolicy": 1,
+      "AWS::DynamoDB::Table": 1,
+      "AWS::SQS::Queue": 4,
+      "AWS::SQS::QueuePolicy": 1,
+      "AWS::SNS::Subscription": 1,
+      "AWS::IAM::Role": 3,
+      "AWS::Logs::LogGroup": 3,
+      "AWS::Lambda::Function": 3,
+      "AWS::Lambda::EventSourceMapping": 2,
+      "AWS::Lambda::Permission": 1,
+      "AWS::ApiGatewayV2::Api": 1,
+      "AWS::ApiGatewayV2::Stage": 1
+    },
+    "executionRoles": [
+      "InboundExecutionRole",
+      "EnqueueExecutionRole",
+      "SenderExecutionRole"
+    ],
+    "managedSqsPolicyAttached": false,
+    "review": "offline translation and cfn-lint",
+    "translatorVersion": "1.115.0",
+    "cfnLintVersion": "1.58.0"
+  },
+  "logSha256": {
+    "node-contract-tests": "3cfbac9104429655b7bc642431bbfdfcb4304a5997d5273f53ccf52226aff952",
+    "sqlite-contract-tests": "6d433448782a6226a5cf80df54ba9c5d62752ae35cdc3a191ae1bbe6cff12bc0",
+    "postgres-contract-tests": "64b651b6c4773c8d130405a3b0f2d897e4d0df671210beef2af13a0f02bc9ad3",
+    "native-turn-1": "2c720fccf27431fdf70708a1fe39b4208a3b540b1c577e82293c18322b3f17c2",
+    "native-turn-2": "7ffae9585d40028997e2773a667002b8afc746a2e88bdc75be24747b789a887d",
+    "postgres-concurrency": "c2e19b5cede350dd9fbfba2c61d12cc462973013b7f81c24e8b14e6ed44fde5f",
+    "native-assertions": "c3450cb6bbae4e96ed538178546fc87eb816beae2f7ea6d71ea12d351c8b5901",
+    "legacy-regression": "2f3c63b80b404c5754273e7512e94a5713820547ac368ffff4e89e6890271f37",
+    "disabled-connector": "a0ee98ae0a805e383c762ffb0a362125532733f746359b7587f8c1852ca3a70b",
+    "postgres-stop": "ca19178a35ab4153b75b494963b66ce8243e1b94c173107c87b44d09db23652d",
+    "redis-stop": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "limits": [
+    "No AWS deployment, IAM mutation, live Bedrock, live WhatsApp or production installation",
+    "Synthetic schema fixture; historical migrations and panel browser behavior not certified",
+    "AWS state/transport and billing simulated; SDK serialization and native Core logic executed",
+    "Secret review covers local objects and publishable files; remote-only history not authenticated"
+  ]
+}

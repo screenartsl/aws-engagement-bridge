@@ -58,10 +58,22 @@ final class CoreTest extends TestCase
         $app->instance('log', new Psr\Log\NullLogger());
         $app->instance('encrypter', new Encrypter(str_repeat('x', 32), 'AES-256-CBC'));
         $this->capsule = new Capsule($app);
-        $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]);
+        $pgSocket = getenv('BRIDGE_TEST_PG_SOCKET');
+        if ($pgSocket) {
+            $root = realpath(dirname($pgSocket));
+            if (!$root || !str_starts_with($root, '/tmp/muserelay-bridge-phase3-') || !is_file($root.'/.bridge-staging') || $pgSocket !== $root.'/pgsock') throw new RuntimeException('Disposable PostgreSQL socket required');
+            $this->capsule->addConnection(['driver' => 'pgsql', 'host' => $pgSocket, 'port' => 55432, 'database' => 'bridge_unit_test', 'username' => 'bridge_stage', 'password' => '', 'charset' => 'utf8', 'prefix' => '', 'sslmode' => 'disable']);
+        } else {
+            $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]);
+        }
         $this->capsule->setAsGlobal(); $this->capsule->bootEloquent();
         $db = $this->capsule->getConnection();
-        self::assertSame('sqlite', $db->getPdo()->getAttribute(PDO::ATTR_DRIVER_NAME));
+        self::assertSame($pgSocket ? 'pgsql' : 'sqlite', $db->getPdo()->getAttribute(PDO::ATTR_DRIVER_NAME));
+        if ($pgSocket) {
+            self::assertSame('bridge_unit_test', $db->selectOne('select current_database() db')->db);
+            self::assertSame('bridge_stage', $db->selectOne('select current_user u')->u);
+            $db->getSchemaBuilder()->dropAllTables(); // Only the fixed, private unit database above.
+        }
         $s = $db->getSchemaBuilder();
         $s->create('workspaces', function (Blueprint $t) { $t->integer('id')->primary(); $t->integer('organization_id'); });
         $s->create('channels', function (Blueprint $t) {
@@ -76,7 +88,7 @@ final class CoreTest extends TestCase
         $s->create('test_conversations', function (Blueprint $t) { $t->increments('id'); $t->integer('workspace_id'); });
         $s->create('test_messages', function (Blueprint $t) { $t->increments('id'); $t->integer('conversation_id'); $t->text('content'); });
         $s->create('test_tickets', function (Blueprint $t) { $t->increments('id'); $t->string('subject'); });
-        // These are temporary in-memory test tables, never an application migration command.
+        // Disposable synthetic tables, never an application migration command.
         Schema::create($s);
         $db->table('workspaces')->insert(['id' => 10, 'organization_id' => 1]);
         $db->table('channels')->insert(['id' => 20, 'organization_id' => 1, 'workspace_id' => 10, 'ai_agent_id' => 30, 'type' => 'whatsapp', 'status' => 'active', 'managed_provider' => 'aws_social']);
@@ -87,6 +99,12 @@ final class CoreTest extends TestCase
             'aws_phone_arn' => 'arn:aws:social-messaging:eu-west-1:111111111111:phone-number-id/abc123', 'allowed_recipients' => '["+12025550123"]', 'enabled' => true]);
         $this->store = new Store($db, $app['encrypter'], true, [1], fn () => $this->now);
         $this->core = new FixtureCore($this->store); $this->outbox = new Outbox($this->store, $this->core); $this->scope = new Scope();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->capsule->getConnection()->disconnect();
+        parent::tearDown();
     }
 
     private function event(string $id = 'wamid.synthetic1', string $kind = 'message'): array
@@ -132,6 +150,15 @@ final class CoreTest extends TestCase
     public function testCrossAccountAwsIdentityIsRejected(): void
     {
         $this->store->db->table('aws_bridge_bindings')->update(['aws_phone_arn' => 'arn:aws:social-messaging:eu-west-1:222222222222:phone-number-id/abc']);
+        $this->expectExceptionMessage('invalid_aws_identity'); $this->store->binding('demo');
+    }
+    public function testAwsPrefixedPhoneIdentifierIsAcceptedWithoutWeakeningAccountScope(): void
+    {
+        $arn = 'arn:aws:social-messaging:eu-west-1:111111111111:phone-number-id/phone-number-id-stageabc123';
+        $this->store->db->table('aws_bridge_bindings')->update(['aws_phone_arn' => $arn]);
+        $event = $this->event(); $event['resource']['awsPhoneNumberArn'] = $arn;
+        self::assertSame('accepted', $this->store->accept('demo', $event)['status']);
+        $this->store->db->table('aws_bridge_bindings')->update(['aws_phone_arn' => $arn.'/other']);
         $this->expectExceptionMessage('invalid_aws_identity'); $this->store->binding('demo');
     }
     public function testNonBedrockAgentCannotRunThisDemo(): void

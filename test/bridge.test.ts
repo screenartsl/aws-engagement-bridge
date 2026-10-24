@@ -170,3 +170,12 @@ test('Core transport signs exact body and rejects redirects, wrong acknowledgeme
   assert.throws(() => new CoreClient('http://127.0.0.1', () => secret), /invalid_core_url/);
   assert.throws(() => new CoreClient('https://demo.invalid/path', () => secret), /invalid_core_url/);
 });
+
+// IAM's phone-number ARN format includes the origination id; AWS examples include hyphens.
+test('phone ARNs accept AWS prefixed identifiers and reject path/wildcard injection', () => {
+  const arn = binding.awsPhoneNumberId.replace('/abc123', '/phone-number-id-abc123');
+  assert.equal(parseBindings(JSON.stringify([{ ...binding, awsPhoneNumberId: arn }]))[0]?.awsPhoneNumberId, arn);
+  for (const suffix of ['/other', ':other', '*']) {
+    assert.throws(() => parseBindings(JSON.stringify([{ ...binding, awsPhoneNumberId: arn + suffix }])), /invalid_aws_phone_arn/);
+  }
+});

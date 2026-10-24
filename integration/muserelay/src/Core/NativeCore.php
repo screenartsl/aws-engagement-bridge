@@ -35,7 +35,7 @@ final class NativeCore implements CorePort
         if (!$message) {
             $message = new Message();
             $message->forceFill(['conversation_id' => $conversation->id, 'channel_id' => $b->channel_id, 'external_message_id' => $event['providerMessageId'],
-            'direction' => 'inbound', 'message_type' => 'text', 'content' => $event['text'], 'status' => 'received', 'sender_type' => 'contact', 'is_from_bot' => false,
+            'direction' => 'inbound', 'message_type' => 'text', 'content' => $event['text'], 'status' => 'received', 'sender_type' => 'user', 'is_from_bot' => false,
             'created_at' => Carbon::createFromTimestampUTC($event['timestamp']), 'metadata' => ['aws_bridge' => ['event_id' => $event['eventId'], 'binding_id' => $b->id]]]);
             $message->save();
         }

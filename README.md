@@ -5,13 +5,15 @@ Created on 2026-10-24. This repository contains new bridge code, not a copy of t
 
 Local development location: `/var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge` (moved from `.codex/projects/` on 2026-10-24 at the user's request). See the parent `modules-develop/README.md` and `AGENTS.md` for discovery and working rules. This is not an installed extension loader: MuseRelay does not automatically load code from this directory. The existing lsyncd scope includes this location; file replication is not deployment or activation.
 
-## Current status — transport and opt-in Core connector prepared, not deployed
+## Current status — isolated phase 3 staging; not deployed to production or AWS
 
 Implemented locally: official AWS Social Messaging SDK adapter, text/status event normalization, explicitly scoped channel bindings, HMAC transport, DynamoDB idempotency/leases/nonces/demo budgets, SQS handlers, isolated infrastructure template and PHP/Node signature interoperability.
 
 Phase 2 adds the Laravel package under `integration/muserelay/`: authenticated controllers, opt-in organization/channel binding, encrypted durable inbox/outbox, worker, native agent/inbox adapter and transactional ticket-action checkpoint. Three narrowly scoped Core changes are prepared in `core-hooks.patch` and an independent Core worktree. These changes are **not installed in the live application**. See `docs/PHASE-2.md` and `docs/STAGING.md` for exact scope and test limitations.
 
-**Not deployed, no real WhatsApp sends, no AWS resource creation, no real Bedrock calls or native ticket creation performed through this module yet.** Local tests exercise the connector with SQLite in memory and simulated native business actions; the complete real MuseRelay/Bedrock/tool workflow still needs isolated staging acceptance. No existing reseller or production channel has been changed.
+Phase 3 adds a reproducible Linux staging harness with its own PostgreSQL/Redis instances, Composer installation, real Laravel workers and native agent/ticket execution against controlled AWS SDK transports. The conformance suite also runs on PostgreSQL, including concurrent acceptance and leases. See [phase 3 evidence](docs/PHASE-3.md), [staging runbook](docs/STAGING.md) and [exact live AWS prerequisites](docs/AWS-LIVE-CHECKLIST.md).
+
+**No production installation, real WhatsApp sends, AWS resource creation or live Bedrock invocation.** Real native tickets are created only in a disposable synthetic database. Billing and AWS services are simulated; the full historical Core schema and panel/browser flows are outside this fixture suite. No existing reseller or production channel has been changed. GitHub publication is on hold pending specific authorization.
 
 ## Architecture
 
@@ -46,7 +48,7 @@ npm run bundle
 
 Tests use synthetic identities and an in-process SDK HTTP transport. They do not contact AWS or Meta and do not run MuseRelay's artisan/phpunit bootstrap. DynamoDB tests mock the document transport; persistence behavior in real DynamoDB still requires an authorized staging test.
 
-For the additional PHP connector tests, use `integration/muserelay/phpunit.xml` with the explicit dependency/source variables documented in `docs/STAGING.md`. They build **only SQLite in-memory fixture tables**, never load production `.env` or `bootstrap/app.php`, and include live-class regression checks for the existing Meta/Telnyx configuration branches.
+For the additional PHP connector tests, use `integration/muserelay/phpunit.xml` with the explicit dependency/source variables documented in `docs/STAGING.md`. They build **SQLite in-memory fixtures by default**, or a guarded private PostgreSQL test database under the staging runner, never load production `.env` or `bootstrap/app.php`, and include live-class regression checks for the existing Meta/Telnyx configuration branches. The separate staging suite exercises native models, workers and agent/tool execution.
 
 `package-lock.json` pins the resolved dependencies. Runtime artifacts are produced in `build/`; they are not committed. The SAM template deploys Node 22 arm64 functions with one reserved execution each.
 
@@ -96,7 +98,7 @@ Also test invalid HMAC, replay, cross-binding requests, duplicate SNS events, re
 
 ## Originality, judging and repository access
 
-See `docs/PROVENANCE.md`. The requested GitHub destination is **private `screenartsl/aws-engagement-bridge`**. Creation/push is authorized, but remains pending authenticated access (no credential or `gh` is available to this execution user). No remote, publishing or judge invitation has been configured by this session. `docs/REPOSITORY-UPLOAD.md` gives root-shell instructions that preserve original commits. Provide authorized judges the bridge source and a working isolated MuseRelay evaluation instance; do not publish the entire legacy SaaS to make this repository look standalone. A simulator cannot replace the final real workflow.
+See `docs/PROVENANCE.md`. The requested destination is **private `screenartsl/aws-engagement-bridge`**. A local origin is configured, but its remote existence/privacy have not been authenticated here. The latest phase 3 instruction puts publication on hold pending specific authorization. No creation, push or judge invitation was performed in this phase. `docs/REPOSITORY-UPLOAD.md` describes review and later authorized upload while preserving original commits. Provide authorized judges the bridge source and a working isolated MuseRelay evaluation instance; do not publish the entire legacy SaaS. A simulator cannot replace final live acceptance.
 
 README, diagram, setup, limits, source versions, test instructions, video script and required APN/ACE submission details should accompany the final submission. See `docs/DEMO.md`. BYO AWS/STS, SES, UI onboarding and Marketplace are not implemented or claimed by this phase.
 

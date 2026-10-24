@@ -1,58 +1,55 @@
-# Core staging installation, activation and rollback
+# Isolated staging: reproduce, activate, deactivate and roll back
 
-**Prepared instructions only. No installation, application migration, live worker, DNS change, AWS deployment or real message has been executed. Obtain explicit authorization for those actions.**
+Phase 3 authorizes disposable staging only. Production, reseller panels, existing channels, DNS, service managers, AWS resources and real messaging remain outside this authorization. Publishing to GitHub requires a new specific authorization.
 
-## Files and prerequisites
+## Reproduce locally
 
-The integration package is `integration/muserelay/` (`screenartsl/muserelay-aws-engagement-bridge-core`, version 0.2.0). Its provider is discovered by Laravel only after an authorized Composer installation. The package alone does not install the three hooks in the existing application. `core-hooks.patch` applies to Core baseline `b8e9bf8c74789689a7cebddd1856a094e380c9d9` and was checked against that worktree's unmodified index.
-
-Core edits are limited to:
-
-1. `app/Services/WhatsAppSenderService.php`: explicit AWS-only text egress; non-text AWS operations fail closed.
-2. `app/Services/AutomationService.php`: explicit AWS AI replies enter the durable outbox, retaining the existing agent workflow.
-3. `app/AI/AgentExecutor.php`: AWS-only guarded/checkpointed native tool dispatch.
-
-No reseller UI, direct Meta configuration, Telegram/email implementation, global scheduler, MuseDock or failover file is edited. The independent Core branch is `codex/aws-engagement-bridge-core`; it has not been merged or pushed to the production repository.
-
-Use an isolated copy of MuseRelay with its own database, Redis namespace/instance, storage, mail sink, APP_KEY and synthetic users. Do not copy production `.env` or customer records. The native application and its dependencies are required; this repository is not a replacement SaaS.
-
-## Local isolated connector checks already runnable
-
-From the bridge repository, use an explicit Composer dependency autoloader and a Core worktree without `.env`:
+Run as the ordinary development user, never root:
 
 ```sh
-APP_ENV=testing \
-MUSERELAY_TEST_VENDOR=/var/www/vhosts/muserelay.com/httpdocs/vendor/autoload.php \
-MUSERELAY_CORE_TEST_SOURCE=/var/www/vhosts/muserelay.com/.codex/worktrees/aws-engagement-bridge-core \
-php /var/www/vhosts/muserelay.com/httpdocs/vendor/bin/phpunit -c integration/muserelay/phpunit.xml
+cd /var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge
+python3 integration/staging/run.py \
+  --core-source /var/www/vhosts/muserelay.com/.codex/worktrees/aws-engagement-bridge-core
 ```
 
-This reads installed dependencies only. The bootstrap does not load Laravel's production bootstrap, Dotenv or the application's PHPUnit configuration. It explicitly creates SQLite `:memory:` fixtures, not a PostgreSQL/MySQL connection. Tests mock the native conversation/agent/ticket ports and HTTP publication. Actual native model callbacks, Bedrock, mail, Redis and the full panel flow remain staging tests. Legacy Meta/Telnyx configuration resolution uses the actual Core classes from the worktree; no live sends occur.
+Prerequisites: Linux with unprivileged user/network namespaces, Python 3.10+ with the tar data filter security backport, PHP 8.1+ with pdo_pgsql/pdo_sqlite/redis, Composer, Node 20+ (22 recommended), npm, Redis server/CLI and PostgreSQL 16 binaries. `--pg-bin` overrides their directory. Composer/npm may download dependencies before application tests start. No host package installation is automated.
 
-## Authorized staging sequence
+The runner archives reviewed **committed source** at Core baseline `b8e9bf8c74789689a7cebddd1856a094e380c9d9`, excludes environments, runtime storage, caches, dependencies and symlinks, checks/applies the three hooks only to that archive, installs Core dependencies without scripts/plugins, and installs package version **0.3.0** through a Composer path repository. No production autoloader is used. The Core must be accessible privately; it is not distributed in this module.
 
-1. Review the hook patch against the exact staging baseline; apply and install the Composer package from a reviewed release/path. Do not modify the live checkout or publish the whole proprietary Core into the bridge repo.
-2. Keep `AWS_BRIDGE_ENABLED=false` and `AWS_BRIDGE_ORGANIZATION_IDS` empty during installation. No Bridge routes are registered when disabled. Migrations are not auto-discovered: review and explicitly run only the package migration path against the isolated DB when authorized.
-3. Configure the demo organization/workspace, active WhatsApp channel with `managed_provider=aws_social`, `processing_type=ai_agent`, automation/agent enabled, dedicated Bedrock agent, native ticket inbox and activity knowledge. Every configured primary/fallback provider must be Bedrock for this MVP. `features.agent_executor_mode` must be `full`.
-4. Create a **disabled** `aws_bridge_bindings` row with `id`, opaque unique `channel_ref`, correct organization/workspace/channel/agent ids, AWS account/region/WABA/Meta phone/AWS phone ARN, explicit approved recipient JSON and conservative daily limits. These values must match the Lambda binding exactly. There is intentionally no public binding-registration endpoint.
-5. Provision separate directional signing keys out of band. The Core reader accepts only owner-readable 0600/0400 files under `/run/secrets/` or `/etc/muserelay/aws-bridge/`, outside replicated vhosts. Grant access only to the actual staging process user. Do not place real keys in this repository, `.env.example`, replicated development directories or logs. Corresponding Lambda keys reside in Secrets Manager.
-6. After authorization, set only the isolated organization's opt-in id and enable the global flag, then the specific binding. Use the exact approved HTTP API `/outbound` URL in `AWS_BRIDGE_OUTBOUND_URL`. Refresh configuration/routes in staging as needed; no production cache-clearing command is part of this work.
-7. Run an explicit dedicated `aws-bridge:drain --limit=10` invocation/process in staging. It processes the durable inbox and publishes outbox commands. No cron/Supervisor configuration is installed automatically. Worker execution must be bounded below the ten-minute turn lease; do not run unbounded LLM/tool tasks through this MVP lease.
-8. Initially use fake AWS transport in the isolated setup. Only after authorization deploy AWS resources/associate the dedicated non-production WABA, enable live sends and exercise the real handset → Bedrock → ticket → handset workflow.
+Each run creates `/tmp/muserelay-bridge-phase3-<random>` with mode 0700, outside `/var/www/vhosts` replication. It has:
 
-## Disable and rollback
+- A new PostgreSQL cluster with TCP disabled, a private Unix socket, 32 MB shared buffers, 20 connections, ordinary `bridge_stage` SQL role and databases `bridge_phase3_test`/`bridge_unit_test`. No connection to host ports 5432/5433.
+- A separate Redis instance with TCP disabled, private 0700 Unix socket, 64 MB memory ceiling and persistence off. No connection to production Redis.
+- Its own storage, configuration, encryption/index keys, mail array sink, logs and Composer installation. Keys are deterministic synthetic fixtures, unsuitable for deployment.
+- A Laravel Foundation application using selected framework providers, actual Core AppServiceProvider/AIToolsServiceProvider and the installed Bridge provider. Production Dotenv, bootstrap/cache and public/panel routes are not loaded. Only a synthetic ticket URL and Bridge routes are registered.
+- Real Laravel Redis queue workers running test drain jobs that invoke the installed `aws-bridge:drain` command. Existing background chat/notification jobs may be enqueued into the private Redis; this suite does not consume their queues.
+- An empty Linux network namespace for **every application and test process**, inherited by child workers. Bootstrap rejects the host namespace. This denies AWS, Meta, email and host TCP connections even if a simulator is misconfigured. PostgreSQL/Redis remain reachable through private Unix sockets.
 
-Disable the specific binding first and stop only the dedicated Bridge drain process. Set `AWS_BRIDGE_ENABLED=false` and remove organization opt-ins; rebuild staging route/config caches if used. Pending events/outbox rows are retained for review; do not delete uncertain-send evidence or redrive it under new ids. Existing non-AWS channels retain their original transport path.
+The schema is an explicit **synthetic integration fixture**, partly derived from committed Core ticket tests and extended for native models, observers, encryption and tools. It is not a dump or certification of all historical Core migrations. The alias named `mysql` is also configured to the private PostgreSQL database because some legacy central models explicitly use that connection name.
 
-For source rollback, reverse the three-file hook patch on the reviewed staging baseline and remove the package through Composer. Keep the dedicated AWS channel disabled: it must never fall back to Graph. Do not run the migration's destructive `down()` merely to deactivate; it drops Bridge evidence. No automatic production rollback/failback operation is included.
+The runner executes Node contracts, SQLite contracts, PostgreSQL contracts, two customer turns, signed callbacks/read statuses, simultaneous duplicate acceptance/claims, native SQL rollback and legacy dispatch regressions. Failure returns nonzero. Its `finally` stops only its Redis/PostgreSQL instances; workers stop when the staging queue empties. Synthetic logs and `result.json` remain in the private temporary directory. Do not publish complete runtime directories.
 
-## Acceptance and remaining risks
+AWS boundaries are controlled simulations: SNS envelopes, SQS delivery and DynamoDB state; official Social Messaging and Bedrock SDK HTTP handlers; a signed Core HTTP bridge dispatched in-process. Actual NativeCore, AutomationService, AIAgentService, AgentExecutor, native ticket tool, Eloquent callbacks and encryption run locally. Model selection is a staging-only factory selecting the actual Bedrock adapter with a simulated SDK transport. Billing uses an explicit synthetic usage tracker, so charging and live model quality are not acceptance claims.
 
-- Validate actual Eloquent model observers, encryption/search indexing, inbox events, pause/draft flows, consent, plan limits and native ticket confirmation with a complete isolated Core application.
-- Validate SQL locking/uniqueness under concurrent PostgreSQL workers. SQLite in-memory tests prove local behavior, not PostgreSQL race behavior or cross-node failover safety.
-- Confirm the real AWS response id ↔ Meta delivery id correlation with sanitized live events. Unmatched statuses remain recorded as input events and do not update arbitrary messages.
-- Ticket SQL/checkpoint atomicity requires the same connection (checked for native Message, Conversation, Ticket and TicketAuditLog models). Mail/Redis/other external side effects are not atomic with SQL and may need reconciliation after a crash.
-- The worker caches one ticket-tool result per input event and permits only one creation outcome in that event. This may conservatively require a new customer turn after a validation failure instead of retrying altered arguments within the same turn.
-- Manual double clicks have independent command ids unless the existing UI supplies an idempotency key; automatic AI replies use the persisted source message id. Do not claim all manual actions are exactly once.
-- Existing Core logging, provider limits and infrastructure failover remain application dependencies. The new transport does not repair or certify them.
-- Disabled bindings retain queued work; already accepted AWS commands cannot be recalled by toggling the Core flag. Disable/review the AWS binding/sender too when stopping a live demo.
+## Installation and organization activation for a later authorized staging release
+
+1. Use a separate application checkout, DB/Redis/storage, mail sink, application/message/index keys and worker configuration. Review `core-hooks.patch` against the exact target revision; abort on drift. Install only the module package and those hooks. Keep `AWS_BRIDGE_ENABLED=false` and `AWS_BRIDGE_ORGANIZATION_IDS` empty initially.
+2. Review and explicitly apply `integration/muserelay/database/migrations/2026_10_24_180000_create_aws_bridge_tables.php` against the staging default connection. The provider does not auto-register migrations. Native Message, Conversation, Ticket and TicketAuditLog must share that connection for atomic checkpoints.
+3. Create a synthetic organization/workspace, an active channel with `type=whatsapp`, `managed_provider=aws_social`, `processing_type=ai_agent`, `ai_agent_enabled=true`, and enabled automation. Set `features.agent_executor_mode=full`. Use a Bedrock-only agent, including any configured fallback providers. Assign native ticket inboxes through **`ai_agents.ticket_inbox_ids`**, not a singular inbox field. Ensure the existing `public.ticket.show` named route is present in a full app.
+4. Insert a disabled `aws_bridge_bindings` row with exact organization/workspace/channel/agent ids, opaque unique `channel_ref`, account/region/WABA/Meta phone/AWS phone ARN, recipient allowlist and daily budgets. No public binding-registration endpoint exists. Tenant restrictions are application validation plus SQL uniqueness/locks; this module does not install PostgreSQL RLS.
+5. Provision two independent random directional HMAC keys per binding, minimum 32 bytes, through a protected path: `/run/secrets/muserelay-aws-bridge.json` or `/etc/muserelay/aws-bridge/…`, owner readable only (0600), never under the replicated vhost. Each binding maps to `{ "core": "<random>", "outbound": "<different random>" }`; the AWS secret must match. Do not use staging fixture keys. Configure `AWS_BRIDGE_SIGNING_KEYS_FILE` and `AWS_BRIDGE_OUTBOUND_URL` (exact HTTPS API Gateway `/outbound`, eu-west-1).
+6. Opt in **only** the demo organization using `AWS_BRIDGE_ORGANIZATION_IDS=<demo-id>`, enable its binding and set `AWS_BRIDGE_ENABLED=true`. Rebuild configuration/route caches in that staging installation. Start only the dedicated staging drain worker. Real AWS configuration and sends still require authorization; see [AWS checklist](AWS-LIVE-CHECKLIST.md).
+
+## Deactivation
+
+Disable the binding, then set `AWS_BRIDGE_ENABLED=false` and clear the organization allowlist. Stop the dedicated drain worker and rebuild staging config/routes caches. Disable/review the AWS sender and AWS binding too if a later live test has already queued commands: disabling Core cannot recall work accepted by AWS. Preserve inbox/outbox/receipts, especially uncertain sends; do not redrive them under new ids.
+
+## Rollback
+
+Deactivation does not require table deletion. For source rollback, keep the AWS channel disabled, reverse the reviewed three-file patch and remove the package from that isolated application through Composer. Rebuild that application's caches and restart only its own workers. The production branch is not merged or modified by this workflow.
+
+The suite also executes migration `down()` on the disposable database and checks that native messages, tickets and channels survive. Do not use this destructive schema rollback as an ordinary live off switch; it deletes bridge evidence. Redis confirmation marks, mail and other external effects are not atomic with SQL. The rollback test proves that ticket/audit/checkpoint rows roll back together; recovery after loss of a Redis confirmation may require a new customer confirmation.
+
+## Coverage limits
+
+Read [Phase 3 evidence](PHASE-3.md). Full reseller/panel browser testing, every legacy transport's provider acceptance, a complete Core migration chain, crash/failover across hosts, real AWS status-id correlation, model permissions/quotas and live WhatsApp remain separate gates. Existing Telnyx text sending throws a pre-existing “Media WhatsApp aún no implementado…” exception in the reviewed baseline; the regression records this unchanged behavior and does not repair the Core.

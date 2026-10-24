@@ -10,3 +10,6 @@ build/
 coverage/
 bindings.local.json
 secrets.local.json
+
+__pycache__/
+*.pyc

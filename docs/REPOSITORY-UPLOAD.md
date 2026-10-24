@@ -1,36 +1,28 @@
-# Private GitHub repository upload from an authenticated root shell
+# Private repository preparation — publication on hold
 
-Requested owner/repository: **`screenartsl/aws-engagement-bridge`**, visibility **PRIVATE**. Creation and pushing this new module are authorized. Granting judge access is a separate action and has not been performed. No public SaaS source upload is authorized.
+Destination: **`screenartsl/aws-engagement-bridge`**, **PRIVATE**. The latest phase 3 instruction explicitly says **not to publish without specific authorization**. This supersedes the earlier permission to upload. No create/push/merge/invitation/publication operation was performed during phase 3.
 
-The development session could not create the remote: its execution user has no `gh` command or GitHub authentication configured. Root may have different credentials (for example, those used by Claude). Access to push an existing repository does not necessarily grant permission to create a new private repository.
+The local repository has an `origin` pointing to `https://github.com/screenartsl/aws-engagement-bridge.git`. This alone does not prove that the remote exists, is private or has received commits. Those properties have not been authenticated in this development session. Do not request or paste tokens into chat or embed them in remote URLs. Root's credentials, if available, are separate from this session.
 
-## With GitHub CLI already authenticated as an authorized identity
-
-First check `gh auth status`. If CLI is absent or not authenticated, use the existing root workflow or create the private repository in GitHub's UI; do not paste a token into chat or into Git remote URLs.
-
-For a **new, empty** repository (do not initialize it with a README/license):
+## Read-only review
 
 ```sh
 cd /var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge
-gh auth status
-gh repo create screenartsl/aws-engagement-bridge --private
-git -c safe.directory="$PWD" remote add origin https://github.com/screenartsl/aws-engagement-bridge.git
-git -c safe.directory="$PWD" -c credential.helper='!gh auth git-credential' push origin codex/aws-engagement-bridge:main
-git -c safe.directory="$PWD" -c credential.helper='!gh auth git-credential' push -u origin codex/aws-engagement-bridge-phase2
-gh repo view screenartsl/aws-engagement-bridge --json nameWithOwner,visibility,defaultBranchRef
+git status --short --branch
+git remote -v
+git log --all --format='%h %cI %s'
+python3 scripts/review-history.py --self-test
+python3 scripts/review-history.py
 ```
 
-The per-command `safe.directory` trust is only for this known local repository when root runs Git against files owned by the application user; it does not disable ownership checks globally. The helper is also per command. Do not run `git init`, rebase, squash or force-push: the original commit objects are already present and must stay intact.
+The scanner examines every locally stored Git object, including unreachable content and commit/tag/tree metadata, plus tracked/non-ignored working files and remote-URL credential exposure. It redacts findings. This is heuristic evidence, not a formal no-secret guarantee; ignored runtime files, external LFS content and remote-only history are not certified. The runtime directory contains only synthetic data but must still remain outside the upload.
 
-This publishes phase 1 as `main` and the tested-but-not-staging-accepted phase 2 as a development branch. Before final judging, review and merge the completed, honestly documented submission into `main`; the organizer evaluates that branch. Do not invite judges until the intended source/evaluation access is reviewed.
+A human review should check `git ls-files`, the three-file `core-hooks.patch`, dependencies/lockfiles, documentation and intended organization ownership. The complete proprietary MuseRelay Core is not part of this repository. Keep the original commits intact; do not reinitialize, squash, rewrite dates, rebase or force-push to claim older code as new hackathon work.
 
-If the repository already exists, inspect its owner, visibility and contents instead of repeating creation. If `origin` already exists, inspect it rather than overwriting another remote. If using GitHub UI plus the existing Claude/root Git authentication, use the same remote-add and ordinary push commands without the `gh` helper override; ensure that authentication has access to the new repository.
+In an authenticated operator shell, `gh auth status` and `gh repo view screenartsl/aws-engagement-bridge --json nameWithOwner,visibility,defaultBranchRef` can verify identity/visibility read-only. Do not assume that permission to push MuseRelay's other repository grants creation or access here.
 
-## Verify preserved history
+## After a future specific publication authorization
 
-```sh
-git -c safe.directory="$PWD" log --all --format='%h %cI %s'
-git -c safe.directory="$PWD" ls-remote origin refs/heads/main refs/heads/codex/aws-engagement-bridge-phase2
-```
+Verify the exact owner and PRIVATE visibility, inspect any existing remote refs/content and repeat the history/working-tree review after final commits. If absent, create an empty private repository through the authorized GitHub identity. If present, reconcile its contents without overwriting history. Push the reviewed local development branch through the authenticated credential helper; preserve all original commits and do not upload the external Core checkout, runtime, secrets or `.env` files. Judge access and making the repository public remain separate actions.
 
-The ancestry must still include original commits `2d02e31` and `f2b5d07`. Their full hashes and timestamps do not change on an ordinary push. No production Core history or full application copy belongs in this repository; the three-file reviewed integration patch is included instead.
+A local `git bundle` can preserve all local refs/history without publishing to any service. Phase 3's report records its path and verification when created. Keep that artifact private and repeat the secret scan before any later upload. A prepared local branch/bundle is not a GitHub backup until an authorized push is actually verified.

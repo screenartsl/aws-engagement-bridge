@@ -7,7 +7,7 @@ Parameters:
     Description: JSON bindings; no credentials. Topic ARN must match InboundTopic output.
   SocialPhoneArn:
     Type: String
-    AllowedPattern: 'arn:aws:social-messaging:eu-west-1:[0-9]{12}:phone-number-id/[a-zA-Z0-9]+'
+    AllowedPattern: 'arn:aws:social-messaging:eu-west-1:[0-9]{12}:phone-number-id/[a-zA-Z0-9][a-zA-Z0-9-]*'
   SecretArn:
     Type: String
     Description: Existing Secrets Manager secret with per-binding core/outbound signing keys
@@ -132,18 +132,93 @@ Resources:
     Type: AWS::Serverless::HttpApi
     Properties:
       DefaultRouteSettings: {ThrottlingBurstLimit: 2, ThrottlingRateLimit: 1}
+  InboundExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: bridge-runtime
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
+                Resource: !GetAtt State.Arn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-inbound:*'
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
+                Resource: !GetAtt InboundQueue.Arn
+  EnqueueExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: bridge-runtime
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:PutItem]
+                Resource: !GetAtt State.Arn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-enqueue:*'
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt OutboundQueue.Arn
+  SenderExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: bridge-runtime
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
+                Resource: !GetAtt State.Arn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-sender:*'
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
+                Resource: !GetAtt OutboundQueue.Arn
+              - Effect: Allow
+                Action: social-messaging:SendWhatsAppMessage
+                Resource: !Ref SocialPhoneArn
   InboundFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub '${AWS::StackName}-inbound'
+      Role: !GetAtt InboundExecutionRole.Arn
       Handler: handlers.inbound
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
-              Resource: !GetAtt State.Arn
-            - Effect: Allow
-              Action: secretsmanager:GetSecretValue
-              Resource: !Ref SecretArn
       Events:
         Input:
           Type: SQS
@@ -151,20 +226,11 @@ Resources:
   EnqueueFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub '${AWS::StackName}-enqueue'
+      Role: !GetAtt EnqueueExecutionRole.Arn
       Handler: handlers.enqueue
       Environment:
         Variables: {BRIDGE_OUTBOUND_QUEUE_URL: !Ref OutboundQueue}
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action: dynamodb:PutItem
-              Resource: !GetAtt State.Arn
-            - Effect: Allow
-              Action: secretsmanager:GetSecretValue
-              Resource: !Ref SecretArn
-            - Effect: Allow
-              Action: sqs:SendMessage
-              Resource: !GetAtt OutboundQueue.Arn
       Events:
         Outbound:
           Type: HttpApi
@@ -172,18 +238,9 @@ Resources:
   SenderFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub '${AWS::StackName}-sender'
+      Role: !GetAtt SenderExecutionRole.Arn
       Handler: handlers.sender
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
-              Resource: !GetAtt State.Arn
-            - Effect: Allow
-              Action: secretsmanager:GetSecretValue
-              Resource: !Ref SecretArn
-            - Effect: Allow
-              Action: social-messaging:SendWhatsAppMessage
-              Resource: !Ref SocialPhoneArn
       Events:
         Output:
           Type: SQS

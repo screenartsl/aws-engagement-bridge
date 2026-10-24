@@ -1,3 +1,5 @@
+> Historical phase 2 report. Current integration evidence and limitations are in [PHASE-3.md](PHASE-3.md).
+
 # Phase 2 development report — 2026-10-24
 
 ## Status

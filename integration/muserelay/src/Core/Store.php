@@ -36,7 +36,7 @@ final class Store
             || (int) ($channel->ai_agent_id ?? 0) !== (int) $agent->id) throw new BridgeException('ownership_mismatch', 403);
         if ($b->region !== 'eu-west-1' || !preg_match('/^[0-9]{12}$/D', $b->account_id)
             || !preg_match('/^[0-9]+$/D', $b->waba_id) || !preg_match('/^[0-9]+$/D', $b->meta_phone_id)
-            || !preg_match('~^arn:aws:social-messaging:'.preg_quote($b->region, '~').':'.preg_quote($b->account_id, '~').':phone-number-id/[a-zA-Z0-9]+$~D', $b->aws_phone_arn)) {
+            || !preg_match('~^arn:aws:social-messaging:'.preg_quote($b->region, '~').':'.preg_quote($b->account_id, '~').':phone-number-id/[a-zA-Z0-9][a-zA-Z0-9-]*$~D', $b->aws_phone_arn)) {
             throw new BridgeException('invalid_aws_identity', 403);
         }
         // The demo must actually use Bedrock, including configured agent fallbacks.
