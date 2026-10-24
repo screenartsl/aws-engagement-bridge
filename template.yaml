@@ -1,0 +1,205 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: MuseRelay AWS Engagement Bridge - isolated WhatsApp transport, no Core deployment
+Parameters:
+  BindingsJson:
+    Type: String
+    Description: JSON bindings; no credentials. Topic ARN must match InboundTopic output.
+  SocialPhoneArn:
+    Type: String
+    AllowedPattern: 'arn:aws:social-messaging:eu-west-1:[0-9]{12}:phone-number-id/[a-zA-Z0-9]+'
+  SecretArn:
+    Type: String
+    Description: Existing Secrets Manager secret with per-binding core/outbound signing keys
+    AllowedPattern: 'arn:aws:secretsmanager:eu-west-1:[0-9]{12}:secret:.+'
+  CoreBaseUrl:
+    Type: String
+    AllowedPattern: 'https://[a-zA-Z0-9.-]+'
+  MetaApiVersion:
+    Type: String
+    AllowedPattern: 'v[0-9]+\.[0-9]+'
+    Description: Explicit version supported by AWS Social at deployment time
+  LiveSend:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['false', 'true']
+  DailySendLimit:
+    Type: Number
+    Default: 20
+    MinValue: 1
+    MaxValue: 100
+  DailyInboundLimit:
+    Type: Number
+    Default: 40
+    MinValue: 1
+    MaxValue: 100
+Rules:
+  IrelandOnly:
+    Assertions:
+      - Assert: !Equals [!Ref 'AWS::Region', eu-west-1]
+        AssertDescription: This MVP template is restricted to eu-west-1; verify Social availability before deployment.
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    CodeUri: build/
+    Timeout: 30
+    MemorySize: 256
+    ReservedConcurrentExecutions: 1
+    Environment:
+      Variables:
+        BRIDGE_BINDINGS_JSON: !Ref BindingsJson
+        BRIDGE_STATE_TABLE: !Ref State
+        BRIDGE_SECRET_ARN: !Ref SecretArn
+        MUSERELAY_BASE_URL: !Ref CoreBaseUrl
+        BRIDGE_LIVE_SEND: !Ref LiveSend
+        BRIDGE_DAILY_SEND_LIMIT: !Ref DailySendLimit
+        BRIDGE_DAILY_INBOUND_LIMIT: !Ref DailyInboundLimit
+        META_API_VERSION: !Ref MetaApiVersion
+Resources:
+  InboundTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${AWS::StackName}-inbound'
+  TopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [!Ref InboundTopic]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: social-messaging.amazonaws.com}
+            Action: sns:Publish
+            Resource: !Ref InboundTopic
+            Condition:
+              StringEquals: {'aws:SourceAccount': !Ref 'AWS::AccountId'}
+              ArnLike: {'aws:SourceArn': !Sub 'arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*'}
+  State:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{AttributeName: pk, AttributeType: S}]
+      KeySchema: [{AttributeName: pk, KeyType: HASH}]
+      TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}
+      SSESpecification: {SSEEnabled: true}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+  InboundDlq:
+    Type: AWS::SQS::Queue
+    Properties: {MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+  OutboundDlq:
+    Type: AWS::SQS::Queue
+    Properties: {MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+  InboundQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy: {deadLetterTargetArn: !GetAtt InboundDlq.Arn, maxReceiveCount: 5}
+  OutboundQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy: {deadLetterTargetArn: !GetAtt OutboundDlq.Arn, maxReceiveCount: 5}
+  InboundQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref InboundQueue]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: sns.amazonaws.com}
+            Action: sqs:SendMessage
+            Resource: !GetAtt InboundQueue.Arn
+            Condition:
+              ArnEquals: {'aws:SourceArn': !Ref InboundTopic}
+              StringEquals: {'aws:SourceAccount': !Ref 'AWS::AccountId'}
+  Subscription:
+    Type: AWS::SNS::Subscription
+    DependsOn: InboundQueuePolicy
+    Properties:
+      TopicArn: !Ref InboundTopic
+      Protocol: sqs
+      Endpoint: !GetAtt InboundQueue.Arn
+      RawMessageDelivery: false
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefaultRouteSettings: {ThrottlingBurstLimit: 2, ThrottlingRateLimit: 1}
+  InboundFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.inbound
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
+              Resource: !GetAtt State.Arn
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref SecretArn
+      Events:
+        Input:
+          Type: SQS
+          Properties: {Queue: !GetAtt InboundQueue.Arn, BatchSize: 1, FunctionResponseTypes: [ReportBatchItemFailures]}
+  EnqueueFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.enqueue
+      Environment:
+        Variables: {BRIDGE_OUTBOUND_QUEUE_URL: !Ref OutboundQueue}
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: dynamodb:PutItem
+              Resource: !GetAtt State.Arn
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref SecretArn
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: !GetAtt OutboundQueue.Arn
+      Events:
+        Outbound:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /outbound, Method: POST}
+  SenderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.sender
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
+              Resource: !GetAtt State.Arn
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref SecretArn
+            - Effect: Allow
+              Action: social-messaging:SendWhatsAppMessage
+              Resource: !Ref SocialPhoneArn
+      Events:
+        Output:
+          Type: SQS
+          Properties: {Queue: !GetAtt OutboundQueue.Arn, BatchSize: 1, FunctionResponseTypes: [ReportBatchItemFailures]}
+  InboundLogs:
+    Type: AWS::Logs::LogGroup
+    Properties: {LogGroupName: !Sub '/aws/lambda/${InboundFunction}', RetentionInDays: 7}
+  EnqueueLogs:
+    Type: AWS::Logs::LogGroup
+    Properties: {LogGroupName: !Sub '/aws/lambda/${EnqueueFunction}', RetentionInDays: 7}
+  SenderLogs:
+    Type: AWS::Logs::LogGroup
+    Properties: {LogGroupName: !Sub '/aws/lambda/${SenderFunction}', RetentionInDays: 7}
+Outputs:
+  InboundTopicArn: {Value: !Ref InboundTopic}
+  OutboundUrl: {Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/outbound'}
+  StateTable: {Value: !Ref State}
+  InboundDeadLetterQueue: {Value: !Ref InboundDlq}
+  OutboundDeadLetterQueue: {Value: !Ref OutboundDlq}

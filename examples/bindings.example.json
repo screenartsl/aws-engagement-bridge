@@ -1,0 +1,13 @@
+[
+  {
+    "id": "demo",
+    "enabled": false,
+    "region": "eu-west-1",
+    "topicArn": "arn:aws:sns:eu-west-1:111111111111:bridge-demo-inbound",
+    "wabaId": "123456",
+    "metaPhoneNumberId": "789012",
+    "awsPhoneNumberId": "arn:aws:social-messaging:eu-west-1:111111111111:phone-number-id/replacewithawsid",
+    "channelRef": "replace-with-dedicated-muserelay-channel-reference",
+    "allowedRecipients": []
+  }
+]

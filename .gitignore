@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.aws-sam/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+coverage/
+bindings.local.json
+secrets.local.json
