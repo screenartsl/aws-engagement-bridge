@@ -3,6 +3,8 @@
 Private development module for Screen Art S.L.'s AWS CDS Agentic AI Partner Hackathon project.
 Created on 2026-10-24. This repository contains new bridge code, not a copy of the proprietary MuseRelay application.
 
+Local development location: `/var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge` (moved from `.codex/projects/` on 2026-10-24 at the user's request). See the parent `modules-develop/README.md` and `AGENTS.md` for discovery and working rules. This is not an installed extension loader: MuseRelay does not automatically load code from this directory. The existing lsyncd scope includes this location; file replication is not deployment or activation.
+
 ## Current status — transport phase, not a completed MVP
 
 Implemented locally: official AWS Social Messaging SDK adapter, text/status event normalization, explicitly scoped channel bindings, HMAC transport, DynamoDB idempotency/leases/nonces/demo budgets, SQS handlers, isolated infrastructure template and PHP/Node signature interoperability.

@@ -2,7 +2,7 @@
 
 ## Isolation
 
-Independent local Git repository, branch `codex/aws-engagement-bridge`, outside `httpdocs`. Its enclosing `.codex` directory is excluded by the existing lsyncd configuration. No remote is configured. No code, configuration, credentials or dependencies were installed into the live MuseRelay application. No production route, migration, process, cron, infrastructure or channel was changed.
+Independent local Git repository, branch `codex/aws-engagement-bridge`, outside `httpdocs`. Originally created under `.codex/projects/`, which is excluded by lsyncd. Later on 2026-10-24 the user requested relocation to `/var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge`; the repository was moved there intact. The new location is within the existing lsyncd scope, without any change to that service. Replication of these development files does not load or activate the module. No remote is configured. No code, configuration, credentials or dependencies were installed into the live MuseRelay application. No production route, migration, process, cron, infrastructure or channel was changed.
 
 The live application's pre-existing status remained the same at verification: modified `storage/geoip/GeoLite2-Country.mmdb`, untracked `resources/views/contacts/index.blade.php.back`. Those files were not edited by this work.
 
