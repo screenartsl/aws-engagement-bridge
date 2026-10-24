@@ -28,7 +28,7 @@ PHONE=re.compile(rb'(?<![A-Za-z0-9])\+[1-9][0-9]{8,14}(?![0-9])')
 def entropy(value):
     return -sum((value.count(c)/len(value))*math.log2(value.count(c)/len(value)) for c in set(value))
 
-def inspect(data):
+def inspect(data, object_kind=None):
     hits=[]
     for rule, pattern in RULES.items():
         if re.search(pattern,data): hits.append(rule)
@@ -38,6 +38,11 @@ def inspect(data):
         if any(marker in value.lower() for marker in [b'synthetic',b'test-only',b'test_only',b'never-use',b'<',b'${',b'{{']): continue
         if entropy(value)>=3.8 and re.fullmatch(rb'[A-Za-z0-9_+/=.-]{24,}',value): hits.append('opaque-secret-assignment')
     for m in EMAIL.finditer(data):
+        # Manually reviewed automatic workstation committer, not customer data.
+        # Applies ONLY to an actual Git author/committer header; source files still flag it.
+        technical_identity=b'muserelaycom@'+b'mail.muserelay.com'
+        if object_kind=='commit' and m.group()==technical_identity and re.search(
+            rb'^(?:author|committer) [^\n]*<'+re.escape(technical_identity)+rb'> [0-9]+ [+-][0-9]{4}$',data,re.M): continue
         domain=m.group().split(b'@')[1].lower()
         if domain.endswith((b'.invalid',b'.example',b'.test')) or domain in [b'example.com',b'example.org',b'example.net']: continue
         hits.append('non-synthetic-email')
@@ -53,6 +58,9 @@ def selftest():
     assert 'private-key' in inspect(b'-----BEGIN '+b'PRIVATE KEY-----')
     assert 'non-synthetic-email' in inspect(b'customer@'+b'real-domain.tld')
     assert not inspect(b'visitor@example.invalid +12025550123 synthetic-stage-key')
+    technical=b'muserelaycom@'+b'mail.muserelay.com'
+    assert not inspect(b'committer MuseRelay User <'+technical+b'> 1 +0000', 'commit')
+    assert 'non-synthetic-email' in inspect(technical)
     print('Scanner rule self-tests passed')
 
 parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('--self-test',action='store_true'); args=parser.parse_args()
@@ -63,7 +71,7 @@ for sha,kind,size in blobs:
     data=git('cat-file',kind,sha); object_count+=1; byte_count+=len(data)
     if kind=='blob': count+=1
     else: metadata_count+=1
-    for rule in inspect(data): findings.append({'object':sha,'rule':rule})
+    for rule in inspect(data,kind): findings.append({'object':sha,'rule':rule})
 files=git('ls-files','--cached','--others','--exclude-standard','-z').split(b'\0')
 working_count=0
 for name in sorted(set(files)):
@@ -78,6 +86,6 @@ for row in remotes.splitlines():
     if parsed.password or (parsed.scheme in ['http','https'] and parsed.username): findings.append({'config':name,'rule':'credential-in-remote-url'})
 report={'scope':'all stored Git objects including commit/tag/tree metadata and unreachable objects; tracked and non-ignored working files; remote URL credentials',
         'commits':git('rev-list','--all').decode().splitlines(),'gitObjects':object_count,'gitBlobs':count,'metadataObjects':metadata_count,'objectBytes':byte_count,'workingFiles':working_count,
-        'findings':findings,'result':'PASS' if not findings else 'REVIEW_REQUIRED',
+        'reviewedMetadataException':'Automatic workstation author/committer service identity, restricted to Git headers; source files remain checked','findings':findings,'result':'PASS' if not findings else 'REVIEW_REQUIRED',
         'limitations':'Heuristic rules; external LFS objects, ignored local files and remote-only Git history are not covered. No secret values are printed.'}
 print(json.dumps(report,indent=2)); raise SystemExit(1 if findings else 0)
