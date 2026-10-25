@@ -209,6 +209,8 @@ Guardar run ID, cuenta/región, hashes de release, timestamps, IDs de correlaci�
 
 ## 12. Modelos comerciales propuestos
 
+La conversación posterior amplía estas ideas a modalidades personal, empresa e híbrida. El [registro de arquitectura futura](FUTURE-HYBRID-ARCHITECTURE.md) distingue Connect, SaaS, Desktop/Mobile, backend privado y BYO; explica retención SQS, sincronización por dispositivo y límites de las promesas de privacidad. Son propuestas fuera del alcance del primer ensayo.
+
 | Aspecto | AWS gestionado por MuseRelay | BYO AWS del partner/reseller |
 | --- | --- | --- |
 | Recursos y facturación AWS | Cuenta(s) de la plataforma, con separación por cliente por definir. | Cuenta del partner; delegación limitada a MuseRelay. |

@@ -13,6 +13,8 @@ The user has since reported completing the Meta portion of demo signup and prepa
 
 The AWS transport currently supports text and selected delivery states, and deliberately ignores inbound media. Media retrieval/storage is not implemented. A larger SNS payload limit does not add that support; see [media and payload limits](docs/MEDIA-AND-PAYLOAD-LIMITS.md).
 
+Future product ideas are recorded in [Connect and personal/business/hybrid deployment concepts](docs/FUTURE-HYBRID-ARCHITECTURE.md). Desktop, Mobile, offline synchronization, private hosting and BYO AWS remain proposals, outside the first live demonstration; no new functionality is implemented by that document.
+
 Implemented locally: official AWS Social Messaging SDK adapter, text/status event normalization, explicitly scoped channel bindings, HMAC transport, DynamoDB idempotency/leases/nonces/demo budgets, SQS handlers, isolated infrastructure template and PHP/Node signature interoperability.
 
 Phase 2 adds the Laravel package under `integration/muserelay/`: authenticated controllers, opt-in organization/channel binding, encrypted durable inbox/outbox, worker, native agent/inbox adapter and transactional ticket-action checkpoint. The three Core changes are maintained in `core-hooks.patch`; trusted module support is in `core-extension-support.patch`. Release 0.4.0 includes the authorized, disabled Core installation. See `docs/PHASE-2.md` and `docs/STAGING.md` for the original phase scope and test limitations.
