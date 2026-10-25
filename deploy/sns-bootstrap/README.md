@@ -6,7 +6,7 @@ La guía vigente de las dos etapas, permisos, costes y retirada es [CLOUDFORMATI
 
 `template.yaml` contiene **12 recursos**: clave KMS simétrica + alias; tema SNS Standard + política; cola de entrada + DLQ de procesamiento + política; suscripción con `RawMessageDelivery=false`; DLQ de entrega SNS + política; bucket privado de artefactos + política TLS. El bucket tiene SSE-S3 y bloqueo público; colas SSE-SQS. El secreto y el runtime no se crean en esta etapa.
 
-Único parámetro: `KmsAdministratorArn`, ARN IAM existente no-root de Screen Art correspondiente al ejecutor efectivo CloudFormation. Requiere identificarlo y comprobar permisos; no se inventa ni crea un rol. Las Rules rechazan otra cuenta, región o nombre de pila.
+Parámetros: `KmsAdministratorArn` y `KmsRecoveryAdministratorArn`, correspondientes a los dos roles IAM estables de la [revisión SSO/KMS](../../docs/AWS-KMS-ADMINISTRATION.md). Seleccionar además el primero como rol de servicio en Permisos de CloudFormation. No usar el rol AWSReservedSSO directamente ni el archivo histórico de la entrega anterior. Requiere identificarlo y comprobar permisos; no se inventa ni crea un rol. Las Rules rechazan otra cuenta, región o nombre de pila.
 
 Salidas: `InboundTopicArn`, `SnsKeyArn`, `InboundQueueArn`, `InboundQueueUrl`, `InboundDeadLetterQueue`, `SnsDeliveryDeadLetterQueue`, `SubscriptionArn`, `ArtifactBucketName`. No hay valores secretos.
 

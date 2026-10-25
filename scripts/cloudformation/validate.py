@@ -28,7 +28,7 @@ def review():
  t=yaml.safe_load((ROOT/'template.yaml').read_text());b=yaml.safe_load((ROOT/'deploy/sns-bootstrap/template.yaml').read_text())
  spec=importlib.util.spec_from_file_location('bootstrap',ROOT/'scripts/cloudformation/generate-bootstrap.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
  assert b==m.build(t),'Bootstrap drift: regenerate before review'
- r=t['Resources'];p=t['Parameters'];values={k:v.get('Default','arn:aws:iam::365470560685:role/synthetic-cfn-admin') for k,v in p.items()}
+ r=t['Resources'];p=t['Parameters'];values={k:v.get('Default',v.get('AllowedValues',['synthetic-required'])[0]) for k,v in p.items()}
  values.update({'AWS::AccountId':'365470560685','AWS::Region':'eu-west-1','AWS::StackName':'muserelay-aws-bridge-stage'})
  assert rules(t,values) and rules(b,values)
  for k,v in [('AWS::AccountId','374040321139'),('AWS::Region','eu-central-1'),('AWS::StackName','unreviewed-stack')]:
@@ -45,12 +45,18 @@ def review():
  topic=r['InboundTopic']['Properties'];assert topic['FifoTopic'] is False and topic['MaximumMessageSize']==262144
  assert topic['KmsMasterKeyId']=={'Fn::GetAtt':['SnsKey','Arn']}
  key=r['SnsKey'];assert key['DeletionPolicy']==key['UpdateReplacePolicy']=='Retain'
- policy=key['Properties']['KeyPolicy']['Statement'];assert len(policy)==2
+ policy=key['Properties']['KeyPolicy']['Statement'];assert len(policy)==4
+ assert key['Properties']['BypassPolicyLockoutSafetyCheck'] is False
  assert policy[0]['Principal']=={'AWS':ref('KmsAdministratorArn')}
  assert 'kms:*' not in policy[0]['Action']
- assert policy[1]['Principal']=={'Service':'social-messaging.amazonaws.com'}
- assert set(policy[1]['Action'])=={'kms:GenerateDataKey*','kms:Decrypt'}
- assert policy[1]['Condition']['StringEquals']['aws:SourceAccount']==ref('AWS::AccountId')
+ assert policy[1]['Principal']=={'AWS':ref('KmsRecoveryAdministratorArn')}
+ assert set(policy[1]['Action'])==set(policy[2]['Action'])=={'kms:DescribeKey','kms:GetKeyPolicy','kms:PutKeyPolicy'}
+ assert policy[2]['Principal']=={'AWS':{'Fn::Sub':'arn:${AWS::Partition}:iam::${AWS::AccountId}:root'}}
+ assert policy[3]['Principal']=={'Service':'social-messaging.amazonaws.com'}
+ assert set(policy[3]['Action'])=={'kms:GenerateDataKey*','kms:Decrypt'}
+ assert policy[3]['Condition']['StringEquals']['aws:SourceAccount']==ref('AWS::AccountId')
+ assert p['KmsAdministratorArn']['AllowedValues']==['arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution']
+ assert p['KmsRecoveryAdministratorArn']['AllowedValues']==['arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery']
  assert r['Subscription']['Properties']['RawMessageDelivery'] is False
  assert r['Subscription']['Properties']['RedrivePolicy']['deadLetterTargetArn']=={'Fn::GetAtt':['DeliveryDlq','Arn']}
  for n in ['InboundQueuePolicy','DeliveryDlqPolicy']:

@@ -1,0 +1,195 @@
+{
+  "kind": "OFFLINE_STABLE_KMS_ADMIN_PREPARATION",
+  "reviewDate": "2026-10-25 Europe/Paris",
+  "accountIdExpected": "365470560685",
+  "regionExpected": "eu-west-1",
+  "awsCalls": 0,
+  "accountAuthenticated": false,
+  "iamRolesCreated": 0,
+  "deployed": false,
+  "coreModified": false,
+  "reportedIdentityCenter": {
+    "user": "antoni.caimari",
+    "permissionSet": "AdministratorAccess",
+    "mfa": "configured and working according to user",
+    "roleArn": "arn:aws:iam::365470560685:role/aws-reserved/sso.amazonaws.com/eu-west-1/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256"
+  },
+  "proposedExecutionArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution",
+  "proposedRecoveryArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery",
+  "foundationResources": 2,
+  "ingressResources": 12,
+  "runtimeExpandedResources": 30,
+  "checks": {
+    "cfnLint": {
+      "version": "1.58.0",
+      "templates": [
+        "template.yaml",
+        "deploy/sns-bootstrap/template.yaml",
+        "deploy/iam-foundation/template.yaml"
+      ],
+      "result": "PASS",
+      "diagnostics": 0
+    },
+    "foundation": {
+      "result": "PASS",
+      "kind": "OFFLINE_ONLY",
+      "awsCalls": 0,
+      "iamRolesCreated": 0,
+      "foundationResources": 2,
+      "foundationSha256": "5ceec36ff50a927d7f87c0a7af0d7d4f6834e1112532e70c1b7c8f9bb4720ee3",
+      "checks": [
+        "Template/JSON equality",
+        "Stable retained roles without AdministratorAccess",
+        "Recreated SSO suffix accepted by trust pattern",
+        "Wrong account/region/permission set rejected by trust pattern",
+        "No runtime messaging/AI permissions",
+        "KMS lockout check remains enabled",
+        "Limited account recovery and stable recovery administrator"
+      ],
+      "limitations": [
+        "Not IAM policy simulation or IAM Access Analyzer",
+        "No authenticated AWS/SCP/boundary checks",
+        "Propagation, create/update/delete and recovery must be verified after authorization",
+        "Execution policy covers ingress only, not runtime stage 2"
+      ]
+    },
+    "transport": {
+      "result": "PASS",
+      "kind": "OFFLINE_PREPARATION_ONLY",
+      "awsCalls": 0,
+      "accountVerified": false,
+      "templateSha256": "df4343b1662c38e40ac16e0129289f91bc9f0ce7b1fbd9ea7fe6996856f8ab6a",
+      "bootstrapSha256": "bfb37312b5fa8045ccc02bd5aabd136104015a67984ca53b3fa6f3afd15ea1fb",
+      "defaultRuntimeEnabled": false,
+      "defaultLiveSend": false,
+      "inventory": {
+        "ingress": {
+          "declaredResources": 12,
+          "resourceTypes": {
+            "AWS::KMS::Key": 1,
+            "AWS::KMS::Alias": 1,
+            "AWS::SNS::Topic": 1,
+            "AWS::SNS::TopicPolicy": 1,
+            "AWS::SQS::Queue": 3,
+            "AWS::SQS::QueuePolicy": 2,
+            "AWS::SNS::Subscription": 1,
+            "AWS::S3::Bucket": 1,
+            "AWS::S3::BucketPolicy": 1
+          },
+          "logicalIds": [
+            "SnsKey",
+            "SnsKeyAlias",
+            "InboundTopic",
+            "TopicPolicy",
+            "InboundDlq",
+            "InboundQueue",
+            "InboundQueuePolicy",
+            "Subscription",
+            "DeliveryDlq",
+            "DeliveryDlqPolicy",
+            "ArtifactBucket",
+            "ArtifactBucketPolicy"
+          ]
+        },
+        "runtime": {
+          "declaredResources": 26,
+          "resourceTypes": {
+            "AWS::KMS::Key": 1,
+            "AWS::KMS::Alias": 1,
+            "AWS::SNS::Topic": 1,
+            "AWS::SNS::TopicPolicy": 1,
+            "AWS::DynamoDB::Table": 1,
+            "AWS::SQS::Queue": 5,
+            "AWS::SQS::QueuePolicy": 2,
+            "AWS::SNS::Subscription": 1,
+            "AWS::Serverless::HttpApi": 1,
+            "AWS::IAM::Role": 3,
+            "AWS::Serverless::Function": 3,
+            "AWS::Logs::LogGroup": 3,
+            "AWS::SecretsManager::Secret": 1,
+            "AWS::S3::Bucket": 1,
+            "AWS::S3::BucketPolicy": 1
+          },
+          "logicalIds": [
+            "SnsKey",
+            "SnsKeyAlias",
+            "InboundTopic",
+            "TopicPolicy",
+            "State",
+            "InboundDlq",
+            "OutboundDlq",
+            "InboundQueue",
+            "OutboundQueue",
+            "InboundQueuePolicy",
+            "Subscription",
+            "HttpApi",
+            "InboundExecutionRole",
+            "EnqueueExecutionRole",
+            "SenderExecutionRole",
+            "InboundFunction",
+            "EnqueueFunction",
+            "SenderFunction",
+            "InboundLogs",
+            "EnqueueLogs",
+            "SenderLogs",
+            "DeliveryDlq",
+            "DeliveryDlqPolicy",
+            "SigningSecret",
+            "ArtifactBucket",
+            "ArtifactBucketPolicy"
+          ]
+        }
+      },
+      "limitations": [
+        "No CloudFormation service-side change set or deployment executed",
+        "IAM/SCP/quotas/Meta eligibility remain unverified",
+        "Signing secret starts without a value; private initialization required before enabling",
+        "Bedrock identity and isolated Core staging are external to this AWS transport stack"
+      ]
+    },
+    "samExpansion": {
+      "result": "PASS",
+      "awsCalls": 0,
+      "expandedResources": 30,
+      "unconditionalResources": 12,
+      "conditionalRuntimeResources": 18,
+      "resourceTypes": {
+        "AWS::KMS::Key": 1,
+        "AWS::KMS::Alias": 1,
+        "AWS::SNS::Topic": 1,
+        "AWS::SNS::TopicPolicy": 1,
+        "AWS::DynamoDB::Table": 1,
+        "AWS::SQS::Queue": 5,
+        "AWS::SQS::QueuePolicy": 2,
+        "AWS::SNS::Subscription": 1,
+        "AWS::IAM::Role": 3,
+        "AWS::Logs::LogGroup": 3,
+        "AWS::SecretsManager::Secret": 1,
+        "AWS::S3::Bucket": 1,
+        "AWS::S3::BucketPolicy": 1,
+        "AWS::Lambda::Function": 3,
+        "AWS::Lambda::EventSourceMapping": 2,
+        "AWS::Lambda::Permission": 1,
+        "AWS::ApiGatewayV2::Api": 1,
+        "AWS::ApiGatewayV2::Stage": 1
+      }
+    },
+    "phase4PreparationTests": {
+      "passed": 10,
+      "failed": 0
+    }
+  },
+  "templateHashes": {
+    "template.yaml": "df4343b1662c38e40ac16e0129289f91bc9f0ce7b1fbd9ea7fe6996856f8ab6a",
+    "deploy/sns-bootstrap/template.yaml": "bfb37312b5fa8045ccc02bd5aabd136104015a67984ca53b3fa6f3afd15ea1fb",
+    "deploy/iam-foundation/template.yaml": "5ceec36ff50a927d7f87c0a7af0d7d4f6834e1112532e70c1b7c8f9bb4720ee3"
+  },
+  "pending": [
+    "Authorization for creating two stable IAM roles",
+    "Read-only verification of roles, effective permissions, SCP/boundaries and propagation",
+    "Select same stable execution role in CloudFormation Permissions and KmsAdministratorArn",
+    "Authorization for initial ingress change set execution",
+    "Stage 2 execution-role permissions extension before deploying runtime",
+    "Administrative emergency recovery and root MFA confirmation by owner"
+  ]
+}

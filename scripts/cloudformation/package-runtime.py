@@ -38,7 +38,8 @@ def package(destination):
         entry.external_attr = 0o100644 << 16
         archive.writestr(entry, payload.read_bytes())
     artifact.chmod(0o600)
-    for source, name in [('deploy/sns-bootstrap/template.yaml', '01-ingress.yaml'), ('template.yaml', '02-runtime.yaml')]:
+    for source, name in [('deploy/iam-foundation/template.yaml', '00-iam-foundation.yaml'),
+                         ('deploy/sns-bootstrap/template.yaml', '01-ingress.yaml'), ('template.yaml', '02-runtime.yaml')]:
         output = destination/name
         output.write_bytes((ROOT/source).read_bytes())
         output.chmod(0o600)

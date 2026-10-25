@@ -3,9 +3,16 @@ Description: Screen Art encrypted WhatsApp demo ingress only; no runtime, sends 
 Parameters:
   KmsAdministratorArn:
     Type: String
-    AllowedPattern: arn:aws:iam::365470560685:(role|user)/[A-Za-z0-9/+=,.@_-]+
-    Description: Approved non-root IAM identity used by CloudFormation to administer this dedicated SNS key. No
-      STS session ARN.
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution
+    Description: Existing stable IAM CloudFormation service role. Also select this role in stack Permissions. Do
+      not use AWSReservedSSO roles.
+  KmsRecoveryAdministratorArn:
+    Type: String
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery
+    Description: Existing stable IAM recovery role from separately authorized IAM foundation; retain while the KMS
+      key exists.
 Rules:
   ScreenArtDemo:
     Assertions:
@@ -62,6 +69,26 @@ Resources:
           - kms:UpdateAlias
           - kms:DeleteAlias
           Resource: '*'
+        - Sid: DedicatedRecoveryAdministrator
+          Effect: Allow
+          Principal:
+            AWS:
+              Ref: KmsRecoveryAdministratorArn
+          Action:
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          - kms:PutKeyPolicy
+          Resource: '*'
+        - Sid: AccountPolicyRecovery
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+          Action:
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          - kms:PutKeyPolicy
+          Resource: '*'
         - Sid: AllowScreenArtSocialPublishEncryption
           Effect: Allow
           Principal:
@@ -88,6 +115,7 @@ Resources:
         Value: staging
       - Key: Purpose
         Value: hackathon
+      BypassPolicyLockoutSafetyCheck: false
   SnsKeyAlias:
     Type: AWS::KMS::Alias
     Properties:

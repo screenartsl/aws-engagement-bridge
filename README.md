@@ -78,6 +78,8 @@ The first deployment must use `enabled:false` and `LiveSend=false`. Allowed reci
 
 ## Provisioning — requires separate authorization
 
+The later [SSO/KMS administration review](docs/AWS-KMS-ADMINISTRATION.md) supersedes the earlier sole-administrator design. Use the revised templates with two stable IAM roles, a CloudFormation service role and limited account recovery. The old release YAML must not be deployed. The user reports Identity Center/MFA ready; no authenticated AWS verification or new role creation has been performed here.
+
 Use the authoritative [two-stage encrypted CloudFormation runbook](docs/CLOUDFORMATION-DEPLOYMENT.md). No deployment, AWS changes or activation is authorized by preparing these files.
 
 1. Read-only preflight: confirm non-root execution identity, Screen Art account `365470560685`, `eu-west-1`, permissions/SCP/quotas and existing resources. `KmsAdministratorArn` is still required; do not invent it.

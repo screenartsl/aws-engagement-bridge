@@ -2,6 +2,8 @@
 
 Revisión documental: **25-10-2026, Europe/Paris**. Recoge la explicación aportada por el usuario y sus matices para futuros presupuestos. No crea claves, identidades, MFA, permisos ni recursos. Cuenta prevista: Screen Art S.L. `365470560685`, Irlanda `eu-west-1`.
 
+**Actualización posterior del usuario:** Identity Center operativo, usuario `antoni.caimari`, AdministratorAccess y MFA SSO funcionando. No comprobado por API desde aquí. La decisión actual sobre roles estables, clave y recuperación prevalece en [AWS-KMS-ADMINISTRATION.md](AWS-KMS-ADMINISTRATION.md); MFA root continúa sin confirmar.
+
 ## 1. Dos conceptos de coste diferentes
 
 Una clave KMS propia tiene un coste base de **USD 1/mes, prorrateado por horas**, más solicitudes facturables. **USD 0,13 durante cuatro días es una estimación de permanencia, no de cuatro usos.** Los ejemplos oficiales muestran USD 0,03/10.000 solicitudes para determinadas operaciones simétricas; no es una tarifa universal. Revisar región, operación, tipo de clave, franquicia aplicable y recargos de rotación. [Precio oficial KMS](https://aws.amazon.com/kms/pricing/).
@@ -65,7 +67,7 @@ Puede hacerse desde una consola autenticada; no es necesario entregar claves al 
 | Cuenta/región objetivo | `365470560685` / `eu-west-1`, facilitadas por el usuario. |
 | Identidad efectiva de despliegue | Pendiente de identificar y verificar; no se ha utilizado root AWS desde esta sesión. |
 | MFA root | Pendiente de confirmar por el titular; no se solicitan sus valores. |
-| Identity Center / roles administrativos existentes | Sin inventario autenticado; no afirmar que falten ni crearlos por suposición. |
+| Identity Center / roles administrativos existentes | El usuario comunica SSO AdministratorAccess con MFA; los dos roles estables nuevos siguen sin crear/verificar. Sin inventario API. |
 | Clave KMS de staging | Definida en plantilla local, sin creación ni ARN real verificado aquí. |
 | Permisos / despliegue / envíos | Sin cambios ni autorización nueva por este documento. |
 

@@ -14,7 +14,8 @@ fragment=yaml_parse((Path(__file__).resolve().parents[1]/'template.yaml').read_t
 # Review the actual parameterized S3 CodeUri; no upload and no replacement fixture.
 params={'BindingsJson':'[]','SocialPhoneArn':'arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/synthetic-stage',
         'SecretArn':'','CoreBaseUrl':'https://aws-bridge-staging.muserelay.com','MetaApiVersion':'v23.0',
-        'KmsAdministratorArn':'arn:aws:iam::365470560685:role/synthetic-cfn-administrator',
+        'KmsAdministratorArn':'arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution',
+        'KmsRecoveryAdministratorArn':'arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery',
         'DeployProcessing':'true','ProcessingEnabled':'false','LiveSend':'false',
         'RuntimeArtifactKey':'releases/'+'a'*40+'/bridge.zip'}
 expanded=transform(fragment,params,OfflinePolicies())

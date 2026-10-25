@@ -1,0 +1,23 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RecoverTaggedStageKeyPolicy",
+      "Effect": "Allow",
+      "Action": [
+        "kms:DescribeKey",
+        "kms:GetKeyPolicy",
+        "kms:PutKeyPolicy"
+      ],
+      "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1",
+          "aws:ResourceTag/Company": "ScreenArt",
+          "aws:ResourceTag/Component": "aws-engagement-bridge",
+          "aws:ResourceTag/Environment": "staging"
+        }
+      }
+    }
+  ]
+}

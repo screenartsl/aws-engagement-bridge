@@ -4,7 +4,7 @@
   "accountId": "365470560685",
   "region": "eu-west-1",
   "stackName": "muserelay-aws-bridge-stage",
-  "KmsAdministratorArn": "TO_SUPPLY_EXISTING_APPROVED_NON_ROOT_IAM_PRINCIPAL",
+  "KmsAdministratorArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution",
   "metaWabaIdReported": "29207063275646749",
   "linkedAwsWabaId": "TO_SUPPLY_FROM_AWS_AFTER_SIGNUP",
   "linkedAwsPhoneArn": "TO_SUPPLY_FROM_AWS_AFTER_SIGNUP",
@@ -20,11 +20,18 @@
   "DailyInboundLimit": 6,
   "DailySendLimit": 6,
   "pendingExternal": [
-    "Read-only STS/account/IAM/SCP/quota and existing-resource checks",
+    "Read-only STS/IAM/SCP/quota check; authorization and existence verification of two stable foundation roles",
     "Approval for initial encrypted ingress stack and template S3 upload",
     "Verify actual SNS output and authorize demo WABA event destination",
     "Isolated Core staging HTTPS, organization/channel/agent/ticket inbox and Bedrock identity",
     "Private signing-secret initialization and demo binding configuration",
     "Separate authorization for runtime update, processing and real messages"
-  ]
+  ],
+  "KmsRecoveryAdministratorArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery",
+  "identityCenterReported": {
+    "user": "antoni.caimari",
+    "permissionSet": "AdministratorAccess",
+    "mfa": "configured according to user; not API verified",
+    "roleArn": "arn:aws:iam::365470560685:role/aws-reserved/sso.amazonaws.com/eu-west-1/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256"
+  }
 }

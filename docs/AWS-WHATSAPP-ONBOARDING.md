@@ -177,6 +177,8 @@ Fuente: [AWS Social: temas cifrados y permisos de clave](https://docs.aws.amazon
 
 ## 9. IAM, acceso y separación de responsabilidades
 
+Actualización: el usuario comunica SSO/MFA operativo. La [revisión de administración KMS](AWS-KMS-ADMINISTRATION.md) exige roles estables de ejecución y recuperación y reemplaza el uso directo del ARN SSO como único administrador. Ningún rol nuevo se ha creado desde esta sesión.
+
 Véase [costes KMS y acceso AWS](AWS-ACCESS-AND-KMS-COSTS.md) para el procedimiento propuesto de identidad no-root, MFA, ejecutor CloudFormation y estado pendiente. Documentarlo no configura Identity Center ni autoriza cambios IAM.
 
 - Operador de lectura: comprobar identidad STS y cuenta antes de listar temas/atributos/suscripciones, metadatos de cola, stack y demo Social. Sin root AWS, valores de secretos, cuerpos de mensajes ni invocaciones.

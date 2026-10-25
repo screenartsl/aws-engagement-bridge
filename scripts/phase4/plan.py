@@ -52,7 +52,8 @@ def render(config):
     params={'BindingsJson':json.dumps([binding],separators=(',',':')),'SocialPhoneArn':c['socialPhoneArn'],'SecretArn':c['secretArn'],
         'CoreBaseUrl':'https://'+c['coreHostname'],'MetaApiVersion':c['metaApiVersion'],'LiveSend':'false','RunId':c['runId'],
         'DailyInboundLimit':str(c['dailyInboundLimit']),'DailySendLimit':str(c['dailySendLimit']),
-        'KmsAdministratorArn':c['deployerPrincipalArn'],'DeployProcessing':'false','ProcessingEnabled':'false'}
+        'KmsAdministratorArn':'arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution',
+        'KmsRecoveryAdministratorArn':'arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery','DeployProcessing':'false','ProcessingEnabled':'false'}
     read_actions=['sts:GetCallerIdentity','social-messaging:GetLinkedWhatsAppBusinessAccount','social-messaging:GetLinkedWhatsAppBusinessAccountPhoneNumber',
         'bedrock:GetInferenceProfile','cloudformation:DescribeStacks','cloudformation:ListStackResources','lambda:GetFunctionConfiguration','lambda:GetPolicy',
         'sns:GetTopicAttributes','sns:ListSubscriptionsByTopic','sqs:GetQueueAttributes','secretsmanager:DescribeSecret','logs:FilterLogEvents',

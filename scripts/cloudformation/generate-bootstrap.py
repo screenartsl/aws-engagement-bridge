@@ -5,6 +5,9 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+class NoAliasDumper(yaml.SafeDumper):
+    def ignore_aliases(self, data):
+        return True
 INGRESS = ['SnsKey', 'SnsKeyAlias', 'InboundTopic', 'TopicPolicy', 'InboundDlq',
            'InboundQueue', 'InboundQueuePolicy', 'DeliveryDlq', 'DeliveryDlqPolicy', 'Subscription',
            'ArtifactBucket', 'ArtifactBucketPolicy']
@@ -13,7 +16,7 @@ def build(source):
     return {
         'AWSTemplateFormatVersion': '2010-09-09',
         'Description': 'Screen Art encrypted WhatsApp demo ingress only; no runtime, sends or Core deployment',
-        'Parameters': {'KmsAdministratorArn': copy.deepcopy(source['Parameters']['KmsAdministratorArn'])},
+        'Parameters': {name: copy.deepcopy(source['Parameters'][name]) for name in ['KmsAdministratorArn','KmsRecoveryAdministratorArn']},
         'Rules': {'ScreenArtDemo': copy.deepcopy(source['Rules']['ScreenArtDemo'])},
         'Resources': {key: copy.deepcopy(source['Resources'][key]) for key in INGRESS},
         'Outputs': {key: copy.deepcopy(source['Outputs'][key]) for key in [
@@ -23,5 +26,5 @@ def build(source):
 
 if __name__ == '__main__':
     result = build(yaml.safe_load((ROOT / 'template.yaml').read_text()))
-    (ROOT / 'deploy/sns-bootstrap/template.yaml').write_text(yaml.safe_dump(result, sort_keys=False, width=110))
+    (ROOT / 'deploy/sns-bootstrap/template.yaml').write_text(yaml.dump(result, Dumper=NoAliasDumper, sort_keys=False, width=110))
     print('Prepared 12 bootstrap resources locally. No AWS calls.')
