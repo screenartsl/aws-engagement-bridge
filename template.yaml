@@ -12,9 +12,9 @@ Parameters:
     Default: ''
   SecretArn:
     Type: String
-    Description: Optional existing dedicated secret using the default Secrets Manager KMS key; empty creates an
-      unpopulated secret during runtime deployment. Never pass secret values.
-    AllowedPattern: ^$|arn:aws:secretsmanager:eu-west-1:365470560685:secret:.+
+    Description: Optional dedicated Core-direction signing secret using the default Secrets Manager key; empty creates
+      an unpopulated secret. No secret values.
+    AllowedPattern: ^$|arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-[A-Za-z0-9]{6}$
     Default: ''
   CoreBaseUrl:
     Type: String
@@ -76,6 +76,50 @@ Parameters:
     - arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery
     Description: Existing stable IAM recovery role from separately authorized IAM foundation; retain while the KMS
       key exists.
+  ReceiveEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Explicit inbound-only consumer authorization
+  SendEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Explicit outbound processing authorization
+  DeployOutbound:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Create outbound API, functions and queues; not required for reception
+  InboundExecutionRoleArn:
+    Type: String
+    Default: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime
+    Description: Pre-created, separately reviewed runtime IAM foundation role; no credentials
+  EnqueueExecutionRoleArn:
+    Type: String
+    Default: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-enqueue-runtime
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-enqueue-runtime
+    Description: Pre-created, separately reviewed runtime IAM foundation role; no credentials
+  SenderExecutionRoleArn:
+    Type: String
+    Default: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-sender-runtime
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-sender-runtime
+    Description: Pre-created, separately reviewed runtime IAM foundation role; no credentials
+  OutboundSecretArn:
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-outbound-[A-Za-z0-9]{6}$
+    Description: Optional dedicated outbound HMAC secret; never the inbound/Core signing secret
 Rules:
   ScreenArtDemo:
     Assertions:
@@ -115,12 +159,6 @@ Rules:
     - Assert:
         Fn::Not:
         - Fn::Equals:
-          - Ref: MetaApiVersion
-          - ''
-      AssertDescription: Runtime deployment requires MetaApiVersion
-    - Assert:
-        Fn::Not:
-        - Fn::Equals:
           - Ref: BindingsJson
           - '[]'
       AssertDescription: Supply real, initially disabled demo bindings.
@@ -152,6 +190,92 @@ Rules:
         - Ref: ProcessingEnabled
         - 'true'
       AssertDescription: Sending requires an explicitly enabled runtime.
+  ReceiveEnabledPrerequisites:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: ReceiveEnabled
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: ReceiveEnabled requires DeployProcessing
+    - Assert:
+        Fn::Equals:
+        - Ref: ProcessingEnabled
+        - 'true'
+      AssertDescription: ReceiveEnabled requires ProcessingEnabled
+  SendEnabledPrerequisites:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: SendEnabled
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: SendEnabled requires DeployProcessing
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployOutbound
+        - 'true'
+      AssertDescription: SendEnabled requires DeployOutbound
+    - Assert:
+        Fn::Equals:
+        - Ref: ProcessingEnabled
+        - 'true'
+      AssertDescription: SendEnabled requires ProcessingEnabled
+  LiveSendPrerequisites:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: LiveSend
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: LiveSend requires DeployProcessing
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployOutbound
+        - 'true'
+      AssertDescription: LiveSend requires DeployOutbound
+    - Assert:
+        Fn::Equals:
+        - Ref: ProcessingEnabled
+        - 'true'
+      AssertDescription: LiveSend requires ProcessingEnabled
+    - Assert:
+        Fn::Equals:
+        - Ref: SendEnabled
+        - 'true'
+      AssertDescription: LiveSend requires SendEnabled
+  DeployOutboundPrerequisites:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: DeployOutbound
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: DeployOutbound requires DeployProcessing
+  OutboundInputs:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: DeployOutbound
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: MetaApiVersion
+          - ''
+      AssertDescription: Runtime deployment requires MetaApiVersion
 Globals:
   Function:
     Runtime: nodejs22.x
@@ -190,6 +314,10 @@ Globals:
           Ref: RunId
         BRIDGE_RUNTIME_ENABLED:
           Ref: ProcessingEnabled
+        BRIDGE_RECEIVE_ENABLED:
+          Ref: ReceiveEnabled
+        BRIDGE_SEND_ENABLED:
+          Ref: SendEnabled
     Tags:
       Company: ScreenArt
       Project: MuseRelay
@@ -358,6 +486,8 @@ Resources:
         Value: staging
       - Key: Purpose
         Value: hackathon
+      TableName:
+        Fn::Sub: ${AWS::StackName}-state
     Condition: DeployRuntime
   InboundDlq:
     Type: AWS::SQS::Queue
@@ -403,7 +533,7 @@ Resources:
         Value: staging
       - Key: Purpose
         Value: hackathon
-    Condition: DeployRuntime
+    Condition: DeployOutboundRuntime
   InboundQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -454,7 +584,7 @@ Resources:
         Value: staging
       - Key: Purpose
         Value: hackathon
-    Condition: DeployRuntime
+    Condition: DeployOutboundRuntime
   InboundQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -510,194 +640,16 @@ Resources:
         Component: aws-engagement-bridge
         Environment: staging
         Purpose: hackathon
-    Condition: DeployRuntime
-  InboundExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
-      Policies:
-      - PolicyName: bridge-runtime
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Effect: Allow
-            Action:
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
-            Resource:
-              Fn::GetAtt:
-              - State
-              - Arn
-          - Effect: Allow
-            Action: secretsmanager:GetSecretValue
-            Resource:
-              Fn::If:
-              - HasExternalSecret
-              - Ref: SecretArn
-              - Ref: SigningSecret
-          - Effect: Allow
-            Action:
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource:
-              Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-inbound:*
-          - Effect: Allow
-            Action:
-            - sqs:ReceiveMessage
-            - sqs:DeleteMessage
-            - sqs:GetQueueAttributes
-            Resource:
-              Fn::GetAtt:
-              - InboundQueue
-              - Arn
-      Tags:
-      - Key: Company
-        Value: ScreenArt
-      - Key: Project
-        Value: MuseRelay
-      - Key: Component
-        Value: aws-engagement-bridge
-      - Key: Environment
-        Value: staging
-      - Key: Purpose
-        Value: hackathon
-    Condition: DeployRuntime
-  EnqueueExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
-      Policies:
-      - PolicyName: bridge-runtime
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Effect: Allow
-            Action:
-            - dynamodb:PutItem
-            Resource:
-              Fn::GetAtt:
-              - State
-              - Arn
-          - Effect: Allow
-            Action: secretsmanager:GetSecretValue
-            Resource:
-              Fn::If:
-              - HasExternalSecret
-              - Ref: SecretArn
-              - Ref: SigningSecret
-          - Effect: Allow
-            Action:
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource:
-              Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-enqueue:*
-          - Effect: Allow
-            Action: sqs:SendMessage
-            Resource:
-              Fn::GetAtt:
-              - OutboundQueue
-              - Arn
-      Tags:
-      - Key: Company
-        Value: ScreenArt
-      - Key: Project
-        Value: MuseRelay
-      - Key: Component
-        Value: aws-engagement-bridge
-      - Key: Environment
-        Value: staging
-      - Key: Purpose
-        Value: hackathon
-    Condition: DeployRuntime
-  SenderExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
-      Policies:
-      - PolicyName: bridge-runtime
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Effect: Allow
-            Action:
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
-            Resource:
-              Fn::GetAtt:
-              - State
-              - Arn
-          - Effect: Allow
-            Action: secretsmanager:GetSecretValue
-            Resource:
-              Fn::If:
-              - HasExternalSecret
-              - Ref: SecretArn
-              - Ref: SigningSecret
-          - Effect: Allow
-            Action:
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource:
-              Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-sender:*
-          - Effect: Allow
-            Action:
-            - sqs:ReceiveMessage
-            - sqs:DeleteMessage
-            - sqs:GetQueueAttributes
-            Resource:
-              Fn::GetAtt:
-              - OutboundQueue
-              - Arn
-          - Fn::If:
-            - HasSocialPhone
-            - Effect: Allow
-              Action: social-messaging:SendWhatsAppMessage
-              Resource:
-                Ref: SocialPhoneArn
-            - Ref: AWS::NoValue
-      Tags:
-      - Key: Company
-        Value: ScreenArt
-      - Key: Project
-        Value: MuseRelay
-      - Key: Component
-        Value: aws-engagement-bridge
-      - Key: Environment
-        Value: staging
-      - Key: Purpose
-        Value: hackathon
-    Condition: DeployRuntime
+      Name:
+        Fn::Sub: ${AWS::StackName}-outbound
+    Condition: DeployOutboundRuntime
   InboundFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
         Fn::Sub: ${AWS::StackName}-inbound
       Role:
-        Fn::GetAtt:
-        - InboundExecutionRole
-        - Arn
+        Ref: InboundExecutionRoleArn
       Handler: handlers.inbound
       Events:
         Input:
@@ -712,7 +664,7 @@ Resources:
             - ReportBatchItemFailures
             Enabled:
               Fn::If:
-              - RunConsumers
+              - RunInboundConsumer
               - true
               - false
     Condition: DeployRuntime
@@ -722,14 +674,17 @@ Resources:
       FunctionName:
         Fn::Sub: ${AWS::StackName}-enqueue
       Role:
-        Fn::GetAtt:
-        - EnqueueExecutionRole
-        - Arn
+        Ref: EnqueueExecutionRoleArn
       Handler: handlers.enqueue
       Environment:
         Variables:
           BRIDGE_OUTBOUND_QUEUE_URL:
             Ref: OutboundQueue
+          BRIDGE_SECRET_ARN:
+            Fn::If:
+            - HasExternalOutboundSecret
+            - Ref: OutboundSecretArn
+            - Ref: OutboundSigningSecret
       Events:
         Outbound:
           Type: HttpApi
@@ -738,16 +693,14 @@ Resources:
               Ref: HttpApi
             Path: /outbound
             Method: POST
-    Condition: DeployRuntime
+    Condition: DeployOutboundRuntime
   SenderFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
         Fn::Sub: ${AWS::StackName}-sender
       Role:
-        Fn::GetAtt:
-        - SenderExecutionRole
-        - Arn
+        Ref: SenderExecutionRoleArn
       Handler: handlers.sender
       Events:
         Output:
@@ -762,10 +715,10 @@ Resources:
             - ReportBatchItemFailures
             Enabled:
               Fn::If:
-              - RunConsumers
+              - RunOutboundConsumer
               - true
               - false
-    Condition: DeployRuntime
+    Condition: DeployOutboundRuntime
   InboundLogs:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -801,7 +754,7 @@ Resources:
         Value: staging
       - Key: Purpose
         Value: hackathon
-    Condition: DeployRuntime
+    Condition: DeployOutboundRuntime
   SenderLogs:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -819,7 +772,7 @@ Resources:
         Value: staging
       - Key: Purpose
         Value: hackathon
-    Condition: DeployRuntime
+    Condition: DeployOutboundRuntime
   DeliveryDlq:
     Type: AWS::SQS::Queue
     Properties:
@@ -940,6 +893,26 @@ Resources:
             Bool:
               aws:SecureTransport: 'false'
               aws:PrincipalIsAWSService: 'false'
+  OutboundSigningSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: CreateOutboundSigningSecret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name:
+        Fn::Sub: ${AWS::StackName}/signing-outbound
+      Description: Dedicated outbound-direction HMAC only; no secret value until separate initialization approval
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
 Outputs:
   InboundTopicArn:
     Value:
@@ -947,7 +920,7 @@ Outputs:
   OutboundUrl:
     Value:
       Fn::Sub: https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/outbound
-    Condition: DeployRuntime
+    Condition: DeployOutboundRuntime
   StateTable:
     Value:
       Ref: State
@@ -958,7 +931,7 @@ Outputs:
   OutboundDeadLetterQueue:
     Value:
       Ref: OutboundDlq
-    Condition: DeployRuntime
+    Condition: DeployOutboundRuntime
   SnsKeyArn:
     Value:
       Fn::GetAtt:
@@ -999,10 +972,6 @@ Conditions:
     Fn::Equals:
     - Ref: DeployProcessing
     - 'true'
-  RunConsumers:
-    Fn::Equals:
-    - Ref: ProcessingEnabled
-    - 'true'
   CreateSigningSecret:
     Fn::And:
     - Condition: DeployRuntime
@@ -1014,8 +983,41 @@ Conditions:
     - Fn::Equals:
       - Ref: SecretArn
       - ''
-  HasSocialPhone:
+  DeployOutboundRuntime:
+    Fn::And:
+    - Condition: DeployRuntime
+    - Fn::Equals:
+      - Ref: DeployOutbound
+      - 'true'
+  RunInboundConsumer:
+    Fn::And:
+    - Condition: DeployRuntime
+    - Fn::Equals:
+      - Ref: ProcessingEnabled
+      - 'true'
+    - Fn::Equals:
+      - Ref: ReceiveEnabled
+      - 'true'
+  RunOutboundConsumer:
+    Fn::And:
+    - Condition: DeployOutboundRuntime
+    - Fn::Equals:
+      - Ref: ProcessingEnabled
+      - 'true'
+    - Fn::Equals:
+      - Ref: SendEnabled
+      - 'true'
+    - Fn::Equals:
+      - Ref: LiveSend
+      - 'true'
+  HasExternalOutboundSecret:
     Fn::Not:
     - Fn::Equals:
-      - Ref: SocialPhoneArn
+      - Ref: OutboundSecretArn
+      - ''
+  CreateOutboundSigningSecret:
+    Fn::And:
+    - Condition: DeployOutboundRuntime
+    - Fn::Equals:
+      - Ref: OutboundSecretArn
       - ''

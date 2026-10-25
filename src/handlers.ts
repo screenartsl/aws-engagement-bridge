@@ -11,15 +11,15 @@ import { ingest, deliver } from './workers.js';
 
 interface Runtime {
   bindings: Binding[];
-  secrets: Record<string, { core: string; outbound: string }>;
+  secrets: Record<string, { core?: string; outbound?: string }>;
   store: DynamoState;
   core: CoreClient;
   region: string;
 }
-let cached: { until: number; value: Runtime } | undefined;
+let cached: { until: number; direction: string; value: Runtime } | undefined;
 function env(name: string): string { return string(process.env[name], 20_000); }
-async function runtime(): Promise<Runtime> {
-  if (cached && cached.until > Date.now()) return cached.value;
+async function runtime(direction: 'core' | 'outbound' = 'core'): Promise<Runtime> {
+  if (cached && cached.direction === direction && cached.until > Date.now()) return cached.value;
   const region = env('AWS_REGION');
   const bindings = parseBindings(env('BRIDGE_BINDINGS_JSON'));
   if (bindings.some(b => b.region !== region)) throw new BridgeError('binding_region_mismatch');
@@ -29,15 +29,16 @@ async function runtime(): Promise<Runtime> {
   const secrets: Runtime['secrets'] = {};
   for (const b of bindings) {
     const keys = record(data[b.id]);
-    secrets[b.id] = { core: string(keys.core), outbound: string(keys.outbound) };
-    if (secrets[b.id]!.core.length < 32 || secrets[b.id]!.outbound.length < 32 || keys.core === keys.outbound) throw new BridgeError('weak_or_shared_secret');
+    const key = string(keys[direction]);
+    if (key.length < 32) throw new BridgeError('weak_secret');
+    secrets[b.id] = { [direction]: key };
   }
   const store = new DynamoState(env('BRIDGE_STATE_TABLE'), region);
   const core = new CoreClient(env('MUSERELAY_BASE_URL'), id => {
     const key = secrets[id]?.core; if (!key) throw new BridgeError('missing_secret'); return key;
   });
   const value = { bindings, secrets, store, core, region };
-  cached = { until: Date.now() + 60_000, value }; return value;
+  cached = { until: Date.now() + 60_000, direction, value }; return value;
 }
 
 export async function inbound(event: SQSEvent, context?: Context): Promise<SQSBatchResponse> {
@@ -61,7 +62,7 @@ export async function enqueue(event: APIGatewayProxyEventV2): Promise<APIGateway
       return jsonResponse(401, { error: 'unauthorized' });
     }
     if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true' || process.env.BRIDGE_SEND_ENABLED !== 'true' || process.env.BRIDGE_LIVE_SEND !== 'true') return jsonResponse(503, { error: 'bridge_runtime_disabled' });
-    const rt = await runtime();
+    const rt = await runtime('outbound');
     return enqueueRequest(event, { bindings: rt.bindings, secret: id => rt.secrets[id]?.outbound,
       nonce: key => rt.store.nonce(key), queue: async command => {
         await new SQSClient({ region: rt.region }).send(new SendMessageCommand({ QueueUrl: env('BRIDGE_OUTBOUND_QUEUE_URL'), MessageBody: JSON.stringify(command) }));

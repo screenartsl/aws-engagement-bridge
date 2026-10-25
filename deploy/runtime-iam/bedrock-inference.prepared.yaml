@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: PREPARED ONLY - independent future demo Bedrock Lambda identity; no function, inference or Core configuration
+Parameters:
+  InferenceProfileArns:
+    Type: CommaDelimitedList
+    AllowedPattern: '^arn:aws:bedrock:eu-west-1:365470560685:inference-profile/eu\.amazon\.nova-(lite|micro)-v1:0$'
+    Description: Supply the verified Nova Lite/Micro profile ARNs; no default or automatic lookup
+  DestinationModelArns:
+    Type: CommaDelimitedList
+    AllowedPattern: '^arn:aws:bedrock:eu-[a-z]+-[0-9]+::foundation-model/amazon\.nova-(lite|micro)-v1:0$'
+    Description: Exact destination models returned by GetInferenceProfile; do not guess regions
+Rules:
+  ScreenArtIrelandOnly:
+    Assertions:
+    - Assert:
+        Fn::Equals: [{Ref: 'AWS::AccountId'}, '365470560685']
+      AssertDescription: Screen Art account only
+    - Assert:
+        Fn::Equals: [{Ref: 'AWS::Region'}, eu-west-1]
+      AssertDescription: Ireland only
+Resources:
+  BedrockInferenceRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RoleName: muserelay-aws-bridge-stage-bedrock-runtime
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: {Service: lambda.amazonaws.com}
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: bridge-bedrock-only
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: SelectedProfiles
+            Effect: Allow
+            Action: bedrock:InvokeModel
+            Resource: {Ref: InferenceProfileArns}
+          - Sid: SelectedDestinationModelsThroughProfiles
+            Effect: Allow
+            Action: bedrock:InvokeModel
+            Resource: {Ref: DestinationModelArns}
+            Condition:
+              ArnEquals:
+                bedrock:InferenceProfileArn: {Ref: InferenceProfileArns}
+          - Sid: OwnInferenceLogs
+            Effect: Allow
+            Action: [logs:CreateLogStream, logs:PutLogEvents]
+            Resource: arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-bedrock:*
+      Tags:
+      - {Key: Company, Value: ScreenArt}
+      - {Key: Project, Value: MuseRelay}
+      - {Key: Component, Value: aws-engagement-bridge}
+      - {Key: Environment, Value: staging}
+      - {Key: Purpose, Value: hackathon}
+Outputs:
+  BedrockInferenceRoleArn:
+    Value: {Fn::GetAtt: [BedrockInferenceRole, Arn]}

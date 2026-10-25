@@ -1,0 +1,56 @@
+{
+  "StackName": "muserelay-aws-bridge-stage",
+  "ChangeSetName": "receive-runtime-review-3e82e39dd7aa",
+  "ChangeSetType": "UPDATE",
+  "RoleARN": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution",
+  "Parameters": [
+    {
+      "ParameterKey": "KmsAdministratorArn",
+      "ParameterValue": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution"
+    },
+    {
+      "ParameterKey": "KmsRecoveryAdministratorArn",
+      "ParameterValue": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery"
+    },
+    {
+      "ParameterKey": "DeployProcessing",
+      "ParameterValue": "true"
+    },
+    {
+      "ParameterKey": "DeployOutbound",
+      "ParameterValue": "false"
+    },
+    {
+      "ParameterKey": "ProcessingEnabled",
+      "ParameterValue": "false"
+    },
+    {
+      "ParameterKey": "ReceiveEnabled",
+      "ParameterValue": "false"
+    },
+    {
+      "ParameterKey": "SendEnabled",
+      "ParameterValue": "false"
+    },
+    {
+      "ParameterKey": "LiveSend",
+      "ParameterValue": "false"
+    },
+    {
+      "ParameterKey": "SocialPhoneArn",
+      "ParameterValue": "arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/b1e7f9e53c454f15be065a2e2b5a1f00"
+    },
+    {
+      "ParameterKey": "CoreBaseUrl",
+      "ParameterValue": "https://aws-bridge-staging.muserelay.com"
+    },
+    {
+      "ParameterKey": "RuntimeArtifactKey",
+      "ParameterValue": "TO_SUPPLY_FROM_REVIEWED_RELEASE"
+    },
+    {
+      "ParameterKey": "BindingsJson",
+      "ParameterValue": "[{\"id\":\"screenart-demo\",\"channelRef\":\"screenart-demo-aws\",\"region\":\"eu-west-1\",\"enabled\":false,\"topicArn\":\"arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound\",\"wabaId\":\"29207063275646749\",\"metaPhoneNumberId\":\"1383587584839516\",\"awsPhoneNumberId\":\"arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/b1e7f9e53c454f15be065a2e2b5a1f00\",\"allowedRecipients\":[]}]"
+    }
+  ]
+}

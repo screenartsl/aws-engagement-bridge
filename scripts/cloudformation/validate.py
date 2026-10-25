@@ -65,7 +65,7 @@ def review():
   assert s['Condition']['ArnEquals']['aws:SourceArn']==ref('InboundTopic')
  for n in ['InboundFunction','SenderFunction']:
   props=next(iter(r[n]['Properties']['Events'].values()))['Properties']
-  assert props['Enabled']=={'Fn::If':['RunConsumers',True,False]}
+  assert props['Enabled']=={'Fn::If':['RunInboundConsumer' if n=='InboundFunction' else 'RunOutboundConsumer',True,False]}
  secret=r['SigningSecret'];assert 'SecretString' not in secret['Properties'] and 'GenerateSecretString' not in secret['Properties']
  assert secret['DeletionPolicy']=='Retain'
  bucket=r['ArtifactBucket'];assert bucket['DeletionPolicy']==bucket['UpdateReplacePolicy']=='Retain'
@@ -73,18 +73,17 @@ def review():
  assert bucket['Properties']['BucketEncryption']['ServerSideEncryptionConfiguration'][0]['ServerSideEncryptionByDefault']['SSEAlgorithm']=='AES256'
  deny=r['ArtifactBucketPolicy']['Properties']['PolicyDocument']['Statement'][0]
  assert deny['Effect']=='Deny' and deny['Condition']['Bool']['aws:SecureTransport']=='false'
- roles=[v for v in r.values() if v['Type']=='AWS::IAM::Role'];assert len(roles)==3
- for role in roles:
-  assert role['Condition']=='DeployRuntime' and not role['Properties'].get('ManagedPolicyArns')
-  for statement in role['Properties']['Policies'][0]['PolicyDocument']['Statement']:
-   if 'Fn::If' in statement:statement=statement['Fn::If'][1]
-   assert statement['Resource']!='*'
-   assert not any(a.startswith(('iam:','kms:','bedrock:')) for a in (statement['Action'] if isinstance(statement['Action'],list) else [statement['Action']]))
+ assert not any(v['Type']=='AWS::IAM::Role' for v in r.values()),'Runtime must not create or edit its IAM roles'
+ for name in ['Inbound','Enqueue','Sender']:
+  assert r[name+'Function']['Properties']['Role']==ref(name+'ExecutionRoleArn')
+ for name in ['ReceiveEnabled','SendEnabled','DeployOutbound']:
+  assert p[name]['Default']=='false'
  assert not any(v['Type'].startswith('AWS::Bedrock') for v in r.values())
  inventory={}
- for mode in ['ingress','runtime']:
+ for mode in ['ingress','receive_runtime','runtime']:
   vals=dict(values)
-  if mode=='runtime':vals.update(DeployProcessing='true',SocialPhoneArn='arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/synthetic',CoreBaseUrl='https://aws-bridge-staging.muserelay.com',MetaApiVersion='v23.0',BindingsJson='[{"synthetic":true}]',RuntimeArtifactKey='releases/'+'a'*40+'/bridge.zip')
+  if mode!='ingress':vals.update(DeployProcessing='true',SocialPhoneArn='arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/synthetic',CoreBaseUrl='https://aws-bridge-staging.muserelay.com',MetaApiVersion='v23.0',BindingsJson='[{"synthetic":true}]',RuntimeArtifactKey='releases/'+'a'*40+'/bridge.zip')
+  if mode=='runtime':vals['DeployOutbound']='true'
   assert rules(t,vals)
   selected={k:v for k,v in r.items() if 'Condition' not in v or condition(v['Condition'],vals,t['Conditions'])}
   inventory[mode]={'declaredResources':len(selected),'resourceTypes':dict(collections.Counter(v['Type'] for v in selected.values())),'logicalIds':list(selected)}

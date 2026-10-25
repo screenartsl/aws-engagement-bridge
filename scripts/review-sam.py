@@ -21,11 +21,11 @@ params={'BindingsJson':'[]','SocialPhoneArn':'arn:aws:social-messaging:eu-west-1
 expanded=transform(fragment,params,OfflinePolicies())
 resources=expanded['Resources']
 roles=[r['Properties'] for r in resources.values() if r['Type']=='AWS::IAM::Role']
-assert len(roles)==3
+assert len(roles)==0, 'IAM roles are provisioned separately by the reviewed foundation UPDATE'
 initial={name for name,r in fragment['Resources'].items() if 'Condition' not in r}
 for name,resource in resources.items():
     if name not in initial:
-        assert resource.get('Condition') in ['DeployRuntime','CreateSigningSecret'], 'Runtime resource missing deployment condition: '+name
+        assert resource.get('Condition') in ['DeployRuntime','DeployOutboundRuntime','CreateSigningSecret','CreateOutboundSigningSecret'], 'Runtime resource missing deployment condition: '+name
     if resource['Type']=='AWS::Lambda::Function':
         assert resource['Properties']['Code']=={'S3Bucket':{'Ref':'ArtifactBucket'},'S3Key':{'Ref':'RuntimeArtifactKey'}}
         assert resource['Properties']['Environment']['Variables']['BRIDGE_RUNTIME_ENABLED']=={'Ref':'ProcessingEnabled'}

@@ -1,0 +1,15 @@
+{
+  "StackName": "muserelay-aws-bridge-iam-foundation",
+  "ChangeSetName": "receive-runtime-iam-review-b2a87ec5d7d2",
+  "ChangeSetType": "UPDATE",
+  "Capabilities": [
+    "CAPABILITY_NAMED_IAM"
+  ],
+  "Parameters": [
+    {
+      "ParameterKey": "GrantSocialSend",
+      "ParameterValue": "false"
+    }
+  ],
+  "Description": "LOCAL REQUEST ONLY. Existing recovery role untouched; add three independent runtime roles; extend executor for ingress only."
+}
