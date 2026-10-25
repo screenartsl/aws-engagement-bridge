@@ -1,5 +1,7 @@
 # Conectar la demo: trabajo en paralelo y autorizaciones
 
+**HOLD — 26/10/2026:** el conjunto runtime falló al preparar la transformación SAM. El propietario no autoriza modificaciones IAM ni nuevos intentos antes de revisar la [corrección mínima y alternativa nativa](SAM-TRANSFORM-REVIEW-2026-10-26.md). Las instrucciones de preparación siguientes son históricas hasta escoger y autorizar una ruta; no repetirlas automáticamente. La subida S3 ya está verificada y no se repite.
+
 25/10/2026, Europe/Paris. Se mantiene el alcance de recepción primero. No se interpretan «vamos a conectarlo todo» ni la creación del usuario demo como autorización para desplegar recursos, modificar producción o consumir/envíar mensajes reales.
 
 Actualización: el propietario autorizó específicamente la subida de bridge.zip y comunica que ya se completó, con tamaño/checksum/AES256 coincidentes y sin sobrescritura. Caducidad prevista comunicada: 25/11/2026, regla ExpireDemoArtifacts. [Evidencia con procedencia](../deploy/runtime-review/evidence.s3-upload.owner-reported.json). No repetir esa escritura ni considerar que autoriza el despliegue. El siguiente paso de consola es crear/revisar el conjunto deshabilitado.

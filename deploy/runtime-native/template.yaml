@@ -1,0 +1,1182 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MuseRelay AWS Engagement Bridge - isolated WhatsApp transport, no Core deployment
+Parameters:
+  BindingsJson:
+    Type: String
+    Description: JSON bindings; no credentials. Topic ARN must match InboundTopic output.
+    Default: '[]'
+  SocialPhoneArn:
+    Type: String
+    AllowedPattern: ^$|arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/[a-zA-Z0-9][a-zA-Z0-9-]*
+    Default: ''
+  SecretArn:
+    Type: String
+    Description: Optional dedicated Core-direction signing secret using the default Secrets Manager key; empty creates
+      an unpopulated secret. No secret values.
+    AllowedPattern: ^$|arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-[A-Za-z0-9]{6}$
+    Default: ''
+  CoreBaseUrl:
+    Type: String
+    AllowedPattern: ^$|https://aws-bridge-staging\.muserelay\.com
+    Default: ''
+  MetaApiVersion:
+    Type: String
+    AllowedPattern: ^$|v[0-9]+\.[0-9]+
+    Description: Explicit version supported by AWS Social at deployment time
+    Default: ''
+  LiveSend:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+  RunId:
+    Type: String
+    Default: phase4_not_started
+    AllowedPattern: phase4_[A-Za-z0-9_-]{4,56}
+  DailySendLimit:
+    Type: Number
+    Default: 6
+    MinValue: 1
+    MaxValue: 6
+  DailyInboundLimit:
+    Type: Number
+    Default: 6
+    MinValue: 1
+    MaxValue: 6
+  KmsAdministratorArn:
+    Type: String
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution
+    Description: Existing stable IAM CloudFormation service role. Also select this role in stack Permissions. Do
+      not use AWSReservedSSO roles.
+  DeployProcessing:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Requires separate authorization. Default false; does not modify the MuseRelay Core.
+  ProcessingEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Requires separate authorization. Default false; does not modify the MuseRelay Core.
+  RuntimeArtifactKey:
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|releases/[a-f0-9]{40}/bridge\.zip
+    Description: Private S3 key uploaded after approval to this stack ArtifactBucket. No URL or secret.
+  KmsRecoveryAdministratorArn:
+    Type: String
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery
+    Description: Existing stable IAM recovery role from separately authorized IAM foundation; retain while the KMS
+      key exists.
+  ReceiveEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Explicit inbound-only consumer authorization
+  SendEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Explicit outbound processing authorization
+  DeployOutbound:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Create outbound API, functions and queues; not required for reception
+  InboundExecutionRoleArn:
+    Type: String
+    Default: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime
+    Description: Pre-created, separately reviewed runtime IAM foundation role; no credentials
+  EnqueueExecutionRoleArn:
+    Type: String
+    Default: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-enqueue-runtime
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-enqueue-runtime
+    Description: Pre-created, separately reviewed runtime IAM foundation role; no credentials
+  SenderExecutionRoleArn:
+    Type: String
+    Default: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-sender-runtime
+    AllowedValues:
+    - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-sender-runtime
+    Description: Pre-created, separately reviewed runtime IAM foundation role; no credentials
+  OutboundSecretArn:
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-outbound-[A-Za-z0-9]{6}$
+    Description: Optional dedicated outbound HMAC secret; never the inbound/Core signing secret
+Rules:
+  ScreenArtDemo:
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::AccountId
+        - '365470560685'
+      AssertDescription: Screen Art account only.
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::Region
+        - eu-west-1
+      AssertDescription: Ireland only.
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::StackName
+        - muserelay-aws-bridge-stage
+      AssertDescription: Use the reviewed stack name to preserve the SNS topic and queue identities.
+  RuntimeInputs:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: DeployProcessing
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: SocialPhoneArn
+          - ''
+      AssertDescription: Runtime deployment requires SocialPhoneArn
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: CoreBaseUrl
+          - ''
+      AssertDescription: Runtime deployment requires CoreBaseUrl
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: BindingsJson
+          - '[]'
+      AssertDescription: Supply real, initially disabled demo bindings.
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: RuntimeArtifactKey
+          - ''
+      AssertDescription: Upload the reviewed runtime ZIP before updating processing resources.
+  ProcessingRequiresRuntime:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: ProcessingEnabled
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: Runtime must be deployed before processing is enabled.
+  SendingRequiresProcessing:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: LiveSend
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: ProcessingEnabled
+        - 'true'
+      AssertDescription: Sending requires an explicitly enabled runtime.
+  ReceiveEnabledPrerequisites:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: ReceiveEnabled
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: ReceiveEnabled requires DeployProcessing
+    - Assert:
+        Fn::Equals:
+        - Ref: ProcessingEnabled
+        - 'true'
+      AssertDescription: ReceiveEnabled requires ProcessingEnabled
+  SendEnabledPrerequisites:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: SendEnabled
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: SendEnabled requires DeployProcessing
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployOutbound
+        - 'true'
+      AssertDescription: SendEnabled requires DeployOutbound
+    - Assert:
+        Fn::Equals:
+        - Ref: ProcessingEnabled
+        - 'true'
+      AssertDescription: SendEnabled requires ProcessingEnabled
+  LiveSendPrerequisites:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: LiveSend
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: LiveSend requires DeployProcessing
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployOutbound
+        - 'true'
+      AssertDescription: LiveSend requires DeployOutbound
+    - Assert:
+        Fn::Equals:
+        - Ref: ProcessingEnabled
+        - 'true'
+      AssertDescription: LiveSend requires ProcessingEnabled
+    - Assert:
+        Fn::Equals:
+        - Ref: SendEnabled
+        - 'true'
+      AssertDescription: LiveSend requires SendEnabled
+  DeployOutboundPrerequisites:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: DeployOutbound
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: DeployOutbound requires DeployProcessing
+  OutboundInputs:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: DeployOutbound
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: MetaApiVersion
+          - ''
+      AssertDescription: Runtime deployment requires MetaApiVersion
+Resources:
+  SnsKey:
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: Screen Art MuseRelay staging SNS events; dedicated hackathon key
+      KeySpec: SYMMETRIC_DEFAULT
+      KeyUsage: ENCRYPT_DECRYPT
+      EnableKeyRotation: false
+      PendingWindowInDays: 7
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: DedicatedKeyAdministration
+          Effect: Allow
+          Principal:
+            AWS:
+              Ref: KmsAdministratorArn
+          Action:
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          - kms:PutKeyPolicy
+          - kms:EnableKey
+          - kms:EnableKeyRotation
+          - kms:DisableKeyRotation
+          - kms:GetKeyRotationStatus
+          - kms:ListResourceTags
+          - kms:TagResource
+          - kms:UntagResource
+          - kms:UpdateKeyDescription
+          - kms:CreateAlias
+          - kms:UpdateAlias
+          - kms:DeleteAlias
+          Resource: '*'
+        - Sid: DedicatedRecoveryAdministrator
+          Effect: Allow
+          Principal:
+            AWS:
+              Ref: KmsRecoveryAdministratorArn
+          Action:
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          - kms:PutKeyPolicy
+          Resource: '*'
+        - Sid: AccountPolicyRecovery
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+          Action:
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          - kms:PutKeyPolicy
+          Resource: '*'
+        - Sid: AllowScreenArtSocialPublishEncryption
+          Effect: Allow
+          Principal:
+            Service: social-messaging.amazonaws.com
+          Action:
+          - kms:GenerateDataKey*
+          - kms:Decrypt
+          Resource: '*'
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+            ArnLike:
+              aws:SourceArn:
+                Fn::Sub: arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+      BypassPolicyLockoutSafetyCheck: false
+  SnsKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName:
+        Fn::Sub: alias/${AWS::StackName}-sns
+      TargetKeyId:
+        Ref: SnsKey
+  InboundTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Sub: ${AWS::StackName}-inbound
+      FifoTopic: false
+      KmsMasterKeyId:
+        Fn::GetAtt:
+        - SnsKey
+        - Arn
+      MaximumMessageSize: 262144
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  TopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+      - Ref: InboundTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: social-messaging.amazonaws.com
+          Action: sns:Publish
+          Resource:
+            Ref: InboundTopic
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+            ArnLike:
+              aws:SourceArn:
+                Fn::Sub: arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*
+  State:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: pk
+        AttributeType: S
+      KeySchema:
+      - AttributeName: pk
+        KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+      TableName:
+        Fn::Sub: ${AWS::StackName}-state
+    Condition: DeployRuntime
+  InboundDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-inbound-dlq
+      RedriveAllowPolicy:
+        redrivePermission: byQueue
+        sourceQueueArns:
+        - Fn::Sub: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${AWS::StackName}-inbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  OutboundDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-outbound-dlq
+      RedriveAllowPolicy:
+        redrivePermission: byQueue
+        sourceQueueArns:
+        - Fn::Sub: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${AWS::StackName}-outbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployOutboundRuntime
+  InboundQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - InboundDlq
+          - Arn
+        maxReceiveCount: 5
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-inbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  OutboundQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - OutboundDlq
+          - Arn
+        maxReceiveCount: 5
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-outbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployOutboundRuntime
+  InboundQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: InboundQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: sns.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - InboundQueue
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Ref: InboundTopic
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+  Subscription:
+    Type: AWS::SNS::Subscription
+    DependsOn:
+    - InboundQueuePolicy
+    - DeliveryDlqPolicy
+    - TopicPolicy
+    Properties:
+      TopicArn:
+        Ref: InboundTopic
+      Protocol: sqs
+      Endpoint:
+        Fn::GetAtt:
+        - InboundQueue
+        - Arn
+      RawMessageDelivery: false
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - DeliveryDlq
+          - Arn
+  InboundLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${InboundFunction}
+      RetentionInDays: 7
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
+  EnqueueLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${EnqueueFunction}
+      RetentionInDays: 7
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployOutboundRuntime
+  SenderLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${SenderFunction}
+      RetentionInDays: 7
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployOutboundRuntime
+  DeliveryDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-sns-delivery-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  DeliveryDlqPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: DeliveryDlq
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: sns.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - DeliveryDlq
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Ref: InboundTopic
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+  SigningSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: CreateSigningSecret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name:
+        Fn::Sub: ${AWS::StackName}/signing
+      Description: Dedicated Bridge signing JSON. Created without a value; populate through approved private procedure
+        before enabling runtime.
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName:
+        Fn::Sub: ${AWS::StackName}-artifacts-${AWS::AccountId}-${AWS::Region}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+        - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - Id: ExpireDemoArtifacts
+          Status: Enabled
+          ExpirationInDays: 30
+          AbortIncompleteMultipartUpload:
+            DaysAfterInitiation: 1
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  ArtifactBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: ArtifactBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: RequireTls
+          Effect: Deny
+          Principal: '*'
+          Action: s3:*
+          Resource:
+          - Fn::GetAtt:
+            - ArtifactBucket
+            - Arn
+          - Fn::Sub: ${ArtifactBucket.Arn}/*
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+              aws:PrincipalIsAWSService: 'false'
+  OutboundSigningSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: CreateOutboundSigningSecret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name:
+        Fn::Sub: ${AWS::StackName}/signing-outbound
+      Description: Dedicated outbound-direction HMAC only; no secret value until separate initialization approval
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  InboundFunction:
+    Type: AWS::Lambda::Function
+    Condition: DeployRuntime
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key:
+          Ref: RuntimeArtifactKey
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-inbound
+      Handler: handlers.inbound
+      MemorySize: 256
+      Role:
+        Ref: InboundExecutionRoleArn
+      Runtime: nodejs22.x
+      Timeout: 30
+      Environment:
+        Variables:
+          BRIDGE_BINDINGS_JSON:
+            Ref: BindingsJson
+          BRIDGE_STATE_TABLE:
+            Ref: State
+          BRIDGE_SECRET_ARN:
+            Fn::If:
+            - HasExternalSecret
+            - Ref: SecretArn
+            - Ref: SigningSecret
+          MUSERELAY_BASE_URL:
+            Ref: CoreBaseUrl
+          BRIDGE_LIVE_SEND:
+            Ref: LiveSend
+          BRIDGE_DAILY_SEND_LIMIT:
+            Ref: DailySendLimit
+          BRIDGE_DAILY_INBOUND_LIMIT:
+            Ref: DailyInboundLimit
+          META_API_VERSION:
+            Ref: MetaApiVersion
+          BRIDGE_RUN_ID:
+            Ref: RunId
+          BRIDGE_RUNTIME_ENABLED:
+            Ref: ProcessingEnabled
+          BRIDGE_RECEIVE_ENABLED:
+            Ref: ReceiveEnabled
+          BRIDGE_SEND_ENABLED:
+            Ref: SendEnabled
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+      Architectures:
+      - arm64
+  InboundFunctionInput:
+    Type: AWS::Lambda::EventSourceMapping
+    Condition: DeployRuntime
+    Properties:
+      BatchSize: 1
+      Enabled:
+        Fn::If:
+        - RunInboundConsumer
+        - true
+        - false
+      EventSourceArn:
+        Fn::GetAtt:
+        - InboundQueue
+        - Arn
+      FunctionName:
+        Ref: InboundFunction
+      FunctionResponseTypes:
+      - ReportBatchItemFailures
+      ScalingConfig:
+        MaximumConcurrency: 2
+  EnqueueFunction:
+    Type: AWS::Lambda::Function
+    Condition: DeployOutboundRuntime
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key:
+          Ref: RuntimeArtifactKey
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-enqueue
+      Handler: handlers.enqueue
+      MemorySize: 256
+      Role:
+        Ref: EnqueueExecutionRoleArn
+      Runtime: nodejs22.x
+      Timeout: 30
+      Environment:
+        Variables:
+          BRIDGE_BINDINGS_JSON:
+            Ref: BindingsJson
+          BRIDGE_STATE_TABLE:
+            Ref: State
+          BRIDGE_SECRET_ARN:
+            Fn::If:
+            - HasExternalOutboundSecret
+            - Ref: OutboundSecretArn
+            - Ref: OutboundSigningSecret
+          MUSERELAY_BASE_URL:
+            Ref: CoreBaseUrl
+          BRIDGE_LIVE_SEND:
+            Ref: LiveSend
+          BRIDGE_DAILY_SEND_LIMIT:
+            Ref: DailySendLimit
+          BRIDGE_DAILY_INBOUND_LIMIT:
+            Ref: DailyInboundLimit
+          META_API_VERSION:
+            Ref: MetaApiVersion
+          BRIDGE_RUN_ID:
+            Ref: RunId
+          BRIDGE_RUNTIME_ENABLED:
+            Ref: ProcessingEnabled
+          BRIDGE_RECEIVE_ENABLED:
+            Ref: ReceiveEnabled
+          BRIDGE_SEND_ENABLED:
+            Ref: SendEnabled
+          BRIDGE_OUTBOUND_QUEUE_URL:
+            Ref: OutboundQueue
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+      ReservedConcurrentExecutions: 1
+      Architectures:
+      - arm64
+  EnqueueFunctionOutboundPermission:
+    Type: AWS::Lambda::Permission
+    Condition: DeployOutboundRuntime
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: EnqueueFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub:
+        - arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/${__Stage__}/POST/outbound
+        - __ApiId__:
+            Ref: HttpApi
+          __Stage__: '*'
+  SenderFunction:
+    Type: AWS::Lambda::Function
+    Condition: DeployOutboundRuntime
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: ArtifactBucket
+        S3Key:
+          Ref: RuntimeArtifactKey
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-sender
+      Handler: handlers.sender
+      MemorySize: 256
+      Role:
+        Ref: SenderExecutionRoleArn
+      Runtime: nodejs22.x
+      Timeout: 30
+      Environment:
+        Variables:
+          BRIDGE_BINDINGS_JSON:
+            Ref: BindingsJson
+          BRIDGE_STATE_TABLE:
+            Ref: State
+          BRIDGE_SECRET_ARN:
+            Fn::If:
+            - HasExternalSecret
+            - Ref: SecretArn
+            - Ref: SigningSecret
+          MUSERELAY_BASE_URL:
+            Ref: CoreBaseUrl
+          BRIDGE_LIVE_SEND:
+            Ref: LiveSend
+          BRIDGE_DAILY_SEND_LIMIT:
+            Ref: DailySendLimit
+          BRIDGE_DAILY_INBOUND_LIMIT:
+            Ref: DailyInboundLimit
+          META_API_VERSION:
+            Ref: MetaApiVersion
+          BRIDGE_RUN_ID:
+            Ref: RunId
+          BRIDGE_RUNTIME_ENABLED:
+            Ref: ProcessingEnabled
+          BRIDGE_RECEIVE_ENABLED:
+            Ref: ReceiveEnabled
+          BRIDGE_SEND_ENABLED:
+            Ref: SendEnabled
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+      ReservedConcurrentExecutions: 1
+      Architectures:
+      - arm64
+  SenderFunctionOutput:
+    Type: AWS::Lambda::EventSourceMapping
+    Condition: DeployOutboundRuntime
+    Properties:
+      BatchSize: 1
+      Enabled:
+        Fn::If:
+        - RunOutboundConsumer
+        - true
+        - false
+      EventSourceArn:
+        Fn::GetAtt:
+        - OutboundQueue
+        - Arn
+      FunctionName:
+        Ref: SenderFunction
+      FunctionResponseTypes:
+      - ReportBatchItemFailures
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Condition: DeployOutboundRuntime
+    Properties:
+      Body:
+        info:
+          version: '1.0'
+          title:
+            Fn::Sub: ${AWS::StackName}-outbound
+        paths:
+          /outbound:
+            Fn::If:
+            - DeployOutboundRuntime
+            - post:
+                Fn::If:
+                - DeployOutboundRuntime
+                - x-amazon-apigateway-integration:
+                    httpMethod: POST
+                    type: aws_proxy
+                    uri:
+                      Fn::If:
+                      - DeployOutboundRuntime
+                      - Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EnqueueFunction.Arn}/invocations
+                      - Ref: AWS::NoValue
+                    payloadFormatVersion: '2.0'
+                  responses: {}
+                - Ref: AWS::NoValue
+            - Ref: AWS::NoValue
+        openapi: 3.0.1
+        tags:
+        - name: Company
+          x-amazon-apigateway-tag-value: ScreenArt
+        - name: Project
+          x-amazon-apigateway-tag-value: MuseRelay
+        - name: Component
+          x-amazon-apigateway-tag-value: aws-engagement-bridge
+        - name: Environment
+          x-amazon-apigateway-tag-value: staging
+        - name: Purpose
+          x-amazon-apigateway-tag-value: hackathon
+        - name: httpapi:createdBy
+          x-amazon-apigateway-tag-value: SAM
+  HttpApiApiGatewayDefaultStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Condition: DeployOutboundRuntime
+    Properties:
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 2
+        ThrottlingRateLimit: 1
+      ApiId:
+        Ref: HttpApi
+      StageName: $default
+      Tags:
+        Company: ScreenArt
+        Project: MuseRelay
+        Component: aws-engagement-bridge
+        Environment: staging
+        Purpose: hackathon
+        httpapi:createdBy: SAM
+      AutoDeploy: true
+Outputs:
+  InboundTopicArn:
+    Value:
+      Ref: InboundTopic
+  OutboundUrl:
+    Value:
+      Fn::Sub: https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/outbound
+    Condition: DeployOutboundRuntime
+  StateTable:
+    Value:
+      Ref: State
+    Condition: DeployRuntime
+  InboundDeadLetterQueue:
+    Value:
+      Ref: InboundDlq
+  OutboundDeadLetterQueue:
+    Value:
+      Ref: OutboundDlq
+    Condition: DeployOutboundRuntime
+  SnsKeyArn:
+    Value:
+      Fn::GetAtt:
+      - SnsKey
+      - Arn
+  InboundQueueArn:
+    Value:
+      Fn::GetAtt:
+      - InboundQueue
+      - Arn
+  InboundQueueUrl:
+    Value:
+      Ref: InboundQueue
+  SubscriptionArn:
+    Value:
+      Ref: Subscription
+  SnsDeliveryDeadLetterQueue:
+    Value:
+      Ref: DeliveryDlq
+  SigningSecretArn:
+    Condition: DeployRuntime
+    Value:
+      Fn::If:
+      - HasExternalSecret
+      - Ref: SecretArn
+      - Ref: SigningSecret
+  ProcessingEnabled:
+    Value:
+      Ref: ProcessingEnabled
+  LiveSend:
+    Value:
+      Ref: LiveSend
+  ArtifactBucketName:
+    Value:
+      Ref: ArtifactBucket
+Conditions:
+  DeployRuntime:
+    Fn::Equals:
+    - Ref: DeployProcessing
+    - 'true'
+  CreateSigningSecret:
+    Fn::And:
+    - Condition: DeployRuntime
+    - Fn::Equals:
+      - Ref: SecretArn
+      - ''
+  HasExternalSecret:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: SecretArn
+      - ''
+  DeployOutboundRuntime:
+    Fn::And:
+    - Condition: DeployRuntime
+    - Fn::Equals:
+      - Ref: DeployOutbound
+      - 'true'
+  RunInboundConsumer:
+    Fn::And:
+    - Condition: DeployRuntime
+    - Fn::Equals:
+      - Ref: ProcessingEnabled
+      - 'true'
+    - Fn::Equals:
+      - Ref: ReceiveEnabled
+      - 'true'
+  RunOutboundConsumer:
+    Fn::And:
+    - Condition: DeployOutboundRuntime
+    - Fn::Equals:
+      - Ref: ProcessingEnabled
+      - 'true'
+    - Fn::Equals:
+      - Ref: SendEnabled
+      - 'true'
+    - Fn::Equals:
+      - Ref: LiveSend
+      - 'true'
+  HasExternalOutboundSecret:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: OutboundSecretArn
+      - ''
+  CreateOutboundSigningSecret:
+    Fn::And:
+    - Condition: DeployOutboundRuntime
+    - Fn::Equals:
+      - Ref: OutboundSecretArn
+      - ''

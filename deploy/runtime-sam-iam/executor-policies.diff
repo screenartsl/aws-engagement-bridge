@@ -1,0 +1,17 @@
+--- executor-policies.before.json
++++ executor-policies.after.json
+@@ -346,6 +346,14 @@
+             "s3:GetObject"
+           ],
+           "Resource": "arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/releases/*/bridge.zip"
++        },
++        {
++          "Sid": "AllowAwsSamTransformInIreland",
++          "Effect": "Allow",
++          "Action": [
++            "cloudformation:CreateChangeSet"
++          ],
++          "Resource": "arn:aws:cloudformation:eu-west-1:aws:transform/Serverless-2016-10-31"
+         }
+       ]
+     }

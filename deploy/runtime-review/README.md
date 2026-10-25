@@ -1,5 +1,7 @@
 # Runtime de recepción: conjunto UPDATE preparado, sin ejecutar
 
+**HOLD — 26/10/2026:** el propietario comunica FAILED / UNAVAILABLE en la creación del conjunto por el permiso de transformación SAM ausente. No reintentar las instrucciones siguientes ni cambiar IAM hasta revisar la [propuesta mínima y alternativa nativa](../../docs/SAM-TRANSFORM-REVIEW-2026-10-26.md). Este documento conserva la preparación previa; no es autorización para nuevos intentos.
+
 **Revisión por cuota completada localmente:** el propietario ha comunicado ConcurrentExecutions=10, UnreservedConcurrentExecutions=10 y cero funciones. No desplegar la plantilla anterior de hash `3e82e39dd7aa...` ni el draft receive-review-62dab78f: reservaban una concurrencia. La nueva plantilla elimina esa reserva para inbound y limita su mapping a dos ejecuciones, manteniéndolo deshabilitado. Los identificadores actuales se detallan debajo. No se ha cambiado AWS ni solicitado un aumento de cuota.
 
 Preparación del 25/10/2026 (Europe/Paris). El propietario comunica IAM Foundation en UPDATE_COMPLETE y las tres políticas inline de runtime verificadas, sin permisos Social/Bedrock/AdministratorAccess. También comunicó que las dos plantillas Original de IAM coincidían con las referencias revisadas antes de ejecutar. Es evidencia facilitada desde su CloudShell, no una consulta AWS realizada por este servidor. La revisión de políticas administradas adjuntas, boundaries/SCP y cuota Lambda queda pendiente.

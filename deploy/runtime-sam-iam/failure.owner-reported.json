@@ -1,0 +1,18 @@
+{
+  "kind": "OWNER_REPORTED_CHANGE_SET_CREATION_FAILURE",
+  "reportedDate": "2026-10-26",
+  "account": "365470560685",
+  "region": "eu-west-1",
+  "stack": "muserelay-aws-bridge-stage",
+  "changeSetName": "receive-runtime-review-88161733676d-82707086",
+  "status": "FAILED",
+  "executionStatus": "UNAVAILABLE",
+  "errorAsReported": "User: arn:aws:sts::365470560685/muserelay-aws-bridge-stage-cfn-execution/AWSCloudFormation is not authorized to perform: cloudformation on resource: arn:aws:cloudformation:eu-west-1:aws/Serverless-2016-10-31 because no identity-based policy allows the cloudformation action.",
+  "actionAndArnAreIncompleteInSuppliedCopy": true,
+  "proposedQualifiedActionFromOfficialAwsDocumentation": "cloudformation:CreateChangeSet",
+  "proposedResourceFromOfficialAwsDocumentation": "arn:aws:cloudformation:eu-west-1:aws:transform/Serverless-2016-10-31",
+  "newIamChangesAuthorized": false,
+  "newAttemptsAuthorized": false,
+  "cloudFormationExecuted": false,
+  "awsDirectlyReadByThisServer": false
+}

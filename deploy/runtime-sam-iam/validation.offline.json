@@ -1,0 +1,65 @@
+{
+  "kind": "OFFLINE_VALIDATION_NOT_AWS",
+  "samIamLint": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "nativeLint": {
+    "errors": 0,
+    "warnings": 9,
+    "ruleCounts": {
+      "W1030": 3,
+      "W1028": 6
+    },
+    "findings": [
+      {
+        "rule": "W1030",
+        "message": "{'Ref': 'RuntimeArtifactKey'} is shorter than 1 when 'Ref' is resolved"
+      },
+      {
+        "rule": "W1030",
+        "message": "{'Ref': 'RuntimeArtifactKey'} is shorter than 1 when 'Ref' is resolved"
+      },
+      {
+        "rule": "W1030",
+        "message": "{'Ref': 'RuntimeArtifactKey'} is shorter than 1 when 'Ref' is resolved"
+      },
+      {
+        "rule": "W1028",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'DeployOutboundRuntime' to False from current status True"
+      },
+      {
+        "rule": "W1028",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'DeployOutboundRuntime' to False from current status True"
+      },
+      {
+        "rule": "W1028",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'DeployOutboundRuntime' to False from current status True"
+      },
+      {
+        "rule": "W1028",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'DeployOutboundRuntime' to False from current status True"
+      },
+      {
+        "rule": "W1028",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'DeployOutboundRuntime' to False from current status True"
+      },
+      {
+        "rule": "W1028",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'DeployOutboundRuntime' to False from current status True"
+      }
+    ]
+  },
+  "nativeLintInvocation": "cfn-lint deploy/runtime-native/template.yaml --parameter-files deploy/runtime-native/parameters.disabled.json --format json",
+  "additionalChecks": [
+    "Offline SAM expansion equality and selected graph 17 resources, ingress 12 identical",
+    "Exact one-statement IAM delta and entire baseline restoration",
+    "Default/parameter gates closed, empty key prohibited when deploying runtime",
+    "No macro/transform at top level or nested in native template",
+    "Existing S3 code key reused, no upload"
+  ],
+  "awsCalls": 0,
+  "retryAttempted": false,
+  "iamChanged": false,
+  "productionModified": false
+}

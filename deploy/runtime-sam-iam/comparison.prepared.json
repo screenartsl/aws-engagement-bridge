@@ -1,0 +1,65 @@
+{
+  "kind": "OFFLINE_SAM_PERMISSION_AND_NATIVE_ALTERNATIVE_REVIEW",
+  "awsCalls": 0,
+  "attemptsAuthorized": false,
+  "executionAuthorized": false,
+  "iamChangeApplied": false,
+  "sourceSamTemplateSha256": "88161733676dae8d788eff092cf75c6430c5ca28860e7f7048804e5ce3f694ac",
+  "sourceIamTemplateSha256": "b2a87ec5d7d205b69250596103427fb55b8896b7f5997507b28b489b18feac3a",
+  "samFix": {
+    "iamTemplateSha256": "d60476a283b76d3dcc2babdd689bee81b1888e834364c90067621cc7ef4531cc",
+    "iamChangeSetName": "sam-transform-iam-review-d60476a283b7",
+    "retryChangeSetName": "receive-sam-review-88161733676d-82707086-fix1",
+    "addedStatements": [
+      {
+        "Sid": "AllowAwsSamTransformInIreland",
+        "Effect": "Allow",
+        "Action": [
+          "cloudformation:CreateChangeSet"
+        ],
+        "Resource": "arn:aws:cloudformation:eu-west-1:aws:transform/Serverless-2016-10-31"
+      }
+    ],
+    "modifiedResources": [
+      "StageCloudFormationRole"
+    ],
+    "addedResources": [],
+    "removedResources": [],
+    "replacement": false,
+    "oldPoliciesPreserved": true,
+    "trustAndRecoveryAndRuntimeRolesUnchanged": true,
+    "executionAndMessagingAndBedrockPermissionsAdded": false,
+    "finalRuntimeProvisioningStatementCount": 10,
+    "grantSocialSend": false
+  },
+  "nativeAlternative": {
+    "templateSha256": "975cf0b1cef670c8eae00f284234ce56f9a904e6756bf3094b13fcb2688a42ad",
+    "changeSetName": "receive-native-review-975cf0b1cef6-82707086",
+    "translatorVersion": "1.115.0",
+    "sameAsOfflineSamExpansion": true,
+    "selectedResources": 17,
+    "originalIngressResourcesIdentical": 12,
+    "nativeResourceDefinitions": 28,
+    "adds": {
+      "State": "AWS::DynamoDB::Table",
+      "InboundLogs": "AWS::Logs::LogGroup",
+      "SigningSecret": "AWS::SecretsManager::Secret",
+      "InboundFunction": "AWS::Lambda::Function",
+      "InboundFunctionInput": "AWS::Lambda::EventSourceMapping"
+    },
+    "transforms": 0,
+    "iamResources": 0,
+    "extraIamPermissions": 0,
+    "inboundReservedConcurrency": null,
+    "sqsMaximumConcurrency": 2,
+    "consumerEnabled": false,
+    "outboundResourcesSelected": 0,
+    "artifactKey": "releases/82707086af6e0597d741c3e44e7ce843c074a326/bridge.zip",
+    "zipUploadNeeded": false
+  },
+  "limitations": [
+    "Source IAM baseline and failure supplied by owner; no direct AWS inspection",
+    "Offline compiler equality is not an actual AWS change set or effective permission certification",
+    "No new IAM change, retry, resource creation, consumer or Core activation authorized"
+  ]
+}
