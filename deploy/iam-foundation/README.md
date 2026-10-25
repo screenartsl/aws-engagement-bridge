@@ -16,3 +16,7 @@ En el stack de transporte, `KmsAdministratorArn` debe coincidir con el rol de se
 El rol de ejecución **no tiene aún permisos de etapa 2** (Lambda/API/DynamoDB/Secrets Manager/roles de runtime). Revisarlos y ampliar con autorización antes de incorporar procesamiento; no adjuntar AdministratorAccess como atajo. Los roles no reciben permisos para enviar WhatsApp ni invocar Bedrock.
 
 No borrar roles retenidos mientras existan claves o pilas que los utilicen. Conservar al menos una asignación SSO autorizada. El patrón de sufijo permite recreación del rol SSO; no sustituye la conservación de los roles estables ni una recuperación administrativa de la cuenta.
+
+## Revisión posterior antes de ejecutar
+
+Véase [verificación efectiva y endurecimiento](../../docs/IAM-FOUNDATION-VERIFICATION.md). El ejecutor tiene Deny explícito para desactivar o programar el borrado de claves, y ya no recibe PutKeyPolicy por una concesión IAM basada en etiquetas. La administración de la clave propia se declara en su key policy. La ausencia de AWS CLI/perfil en este servidor impide afirmar verificación de permisos reales. El AssumeRole real se verifica tras crear los dos roles y antes de crear KMS; antes se comprueba identidad y se puede simular la política del origen. No ejecutar el change set con el YAML anterior.

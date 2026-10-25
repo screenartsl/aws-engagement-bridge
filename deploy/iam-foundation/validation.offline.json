@@ -4,7 +4,7 @@
   "awsCalls": 0,
   "iamRolesCreated": 0,
   "foundationResources": 2,
-  "foundationSha256": "5ceec36ff50a927d7f87c0a7af0d7d4f6834e1112532e70c1b7c8f9bb4720ee3",
+  "foundationSha256": "7cb30b0e0e91ee22f33bebd8cdd0dfd71552f9fdaf1dfe57ce393e2dc87b97b7",
   "checks": [
     "Template/JSON equality",
     "Stable retained roles without AdministratorAccess",
@@ -12,7 +12,9 @@
     "Wrong account/region/permission set rejected by trust pattern",
     "No runtime messaging/AI permissions",
     "KMS lockout check remains enabled",
-    "Limited account recovery and stable recovery administrator"
+    "Limited account recovery and stable recovery administrator",
+    "Executor explicitly denied DisableKey and ScheduleKeyDeletion",
+    "Executor IAM has no tag-based PutKeyPolicy grant; direct administration comes from the one-key policy"
   ],
   "limitations": [
     "Not IAM policy simulation or IAM Access Analyzer",

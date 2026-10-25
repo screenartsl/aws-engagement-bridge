@@ -78,6 +78,8 @@ The first deployment must use `enabled:false` and `LiveSend=false`. Allowed reci
 
 ## Provisioning — requires separate authorization
 
+The subsequent [effective-permission review](docs/IAM-FOUNDATION-VERIFICATION.md) removes unnecessary executor key-destruction permissions and records the actual AWS verification still pending. A recovery-role STS test happens after the IAM-only stack and before any KMS key; local validation is not proof of live access.
+
 The later [SSO/KMS administration review](docs/AWS-KMS-ADMINISTRATION.md) supersedes the earlier sole-administrator design. Use the revised templates with two stable IAM roles, a CloudFormation service role and limited account recovery. The old release YAML must not be deployed. The user reports Identity Center/MFA ready; no authenticated AWS verification or new role creation has been performed here.
 
 Use the authoritative [two-stage encrypted CloudFormation runbook](docs/CLOUDFORMATION-DEPLOYMENT.md). No deployment, AWS changes or activation is authorized by preparing these files.

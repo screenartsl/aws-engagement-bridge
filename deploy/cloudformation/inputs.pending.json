@@ -32,6 +32,13 @@
     "user": "antoni.caimari",
     "permissionSet": "AdministratorAccess",
     "mfa": "configured according to user; not API verified",
-    "roleArn": "arn:aws:iam::365470560685:role/aws-reserved/sso.amazonaws.com/eu-west-1/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256"
+    "roleArn": "arn:aws:iam::365470560685:role/aws-reserved/sso.amazonaws.com/eu-west-1/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256",
+    "stsEvidence": {
+      "source": "User-provided CloudShell STS result",
+      "Account": "365470560685",
+      "Arn": "arn:aws:sts::365470560685:assumed-role/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256/antoni.caimari",
+      "isRoot": false,
+      "executedByAgent": false
+    }
   }
 }

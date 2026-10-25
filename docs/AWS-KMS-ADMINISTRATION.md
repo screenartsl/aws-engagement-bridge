@@ -4,6 +4,8 @@ Revisión: **25-10-2026, Europe/Paris**. Preparación local, sin llamadas autent
 
 ## Decisión y corrección del diseño anterior
 
+**Revisión posterior de permisos sensibles:** [IAM-FOUNDATION-VERIFICATION.md](IAM-FOUNDATION-VERIFICATION.md) distingue lectura/simulación previa de la prueba STS posterior a crear los roles. El ejecutor ya no recibe ScheduleKeyDeletion/DisableKey y su IAM los deniega explícitamente. Se retira también la concesión IAM de administración de políticas por etiquetas; PutKeyPolicy sobre la clave propia procede de su key policy. No se han comprobado permisos efectivos en AWS desde esta sesión.
+
 **No utilizar el ARN `AWSReservedSSO_AdministratorAccess_6a3ad0308126a256` como administrador único y permanente de la clave.** La plantilla anterior lo admitía, pero no resolvía su recreación ni una recuperación independiente. Se sustituye por roles estables y una política de recuperación explícita; no se debe continuar con el YAML anterior.
 
 AWS explica que, al quitar todas las asignaciones del permission set en una cuenta, su rol puede desaparecer; al reasignarlo cambia el sufijo. Recomienda conservar una asignación y un rol IAM de respaldo. Su ejemplo de confianza usa `aws:PrincipalArn` con comodín solo para ese sufijo. [Recomendación oficial Identity Center/KMS](https://docs.aws.amazon.com/singlesignon/latest/userguide/referencingpermissionsets.html).
@@ -107,4 +109,4 @@ Esta revisión entrega configuración reproducible y validación local; no confi
 
 El presupuesto de clave de la demo no cambia y no se crea otra clave por añadir administradores. La identidad humana con AdministratorAccess sigue siendo una identidad privilegiada: no se distribuyen sus sesiones a Lambda ni a resellers. No se ha usado el usuario indicado para autenticar herramientas en este servidor.
 
-La [evidencia de esta revisión](evidence/kms-stable-administrators-preparation.json) recoge hashes y resultados. El paquete local actualizado está en `/var/tmp/aws-bridge-release-ee85cda2db20/`: `00-iam-foundation.yaml`, `01-ingress.yaml`, `02-runtime.yaml`, `bridge.zip` y `manifest.json`, fijados al commit `ee85cda2db200f9ae74d5e4709264b935de8d234`. No se ha subido a AWS. Los JSON y YAML del repositorio privado permiten revisar los mismos permisos.
+La [evidencia de esta revisión](evidence/kms-stable-administrators-preparation.json) recoge hashes y resultados. **Paquete histórico anterior al endurecimiento de permisos:** `/var/tmp/aws-bridge-release-ee85cda2db20/` contiene la entrega previa, no debe cargarse como YAML vigente. Contiene: `00-iam-foundation.yaml`, `01-ingress.yaml`, `02-runtime.yaml`, `bridge.zip` y `manifest.json`, fijados al commit `ee85cda2db200f9ae74d5e4709264b935de8d234`. No se ha subido a AWS. Los JSON y YAML del repositorio privado permiten revisar los mismos permisos.

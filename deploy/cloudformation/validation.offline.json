@@ -3,8 +3,8 @@
   "kind": "OFFLINE_PREPARATION_ONLY",
   "awsCalls": 0,
   "accountVerified": false,
-  "templateSha256": "df4343b1662c38e40ac16e0129289f91bc9f0ce7b1fbd9ea7fe6996856f8ab6a",
-  "bootstrapSha256": "bfb37312b5fa8045ccc02bd5aabd136104015a67984ca53b3fa6f3afd15ea1fb",
+  "templateSha256": "2afb6750156852a1742f70c187efc4696fe9f8613cccc2a037a7646bb6d1a1fc",
+  "bootstrapSha256": "4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb",
   "defaultRuntimeEnabled": false,
   "defaultLiveSend": false,
   "inventory": {

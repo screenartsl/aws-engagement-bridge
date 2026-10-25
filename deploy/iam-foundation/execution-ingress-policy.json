@@ -55,52 +55,6 @@
       }
     },
     {
-      "Sid": "AdministerTaggedStageKey",
-      "Effect": "Allow",
-      "Action": [
-        "kms:DescribeKey",
-        "kms:GetKeyPolicy",
-        "kms:PutKeyPolicy",
-        "kms:EnableKey",
-        "kms:DisableKey",
-        "kms:EnableKeyRotation",
-        "kms:DisableKeyRotation",
-        "kms:GetKeyRotationStatus",
-        "kms:ScheduleKeyDeletion",
-        "kms:CancelKeyDeletion",
-        "kms:ListResourceTags",
-        "kms:TagResource",
-        "kms:UntagResource",
-        "kms:UpdateKeyDescription"
-      ],
-      "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*",
-      "Condition": {
-        "StringEquals": {
-          "aws:RequestedRegion": "eu-west-1",
-          "aws:ResourceTag/Company": "ScreenArt",
-          "aws:ResourceTag/Component": "aws-engagement-bridge",
-          "aws:ResourceTag/Environment": "staging"
-        }
-      }
-    },
-    {
-      "Sid": "AliasOnTaggedKey",
-      "Effect": "Allow",
-      "Action": [
-        "kms:CreateAlias",
-        "kms:UpdateAlias"
-      ],
-      "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*",
-      "Condition": {
-        "StringEquals": {
-          "aws:RequestedRegion": "eu-west-1",
-          "aws:ResourceTag/Company": "ScreenArt",
-          "aws:ResourceTag/Component": "aws-engagement-bridge",
-          "aws:ResourceTag/Environment": "staging"
-        }
-      }
-    },
-    {
       "Sid": "NamedAliasOnly",
       "Effect": "Allow",
       "Action": [
@@ -200,6 +154,15 @@
         "s3:PutLifecycleConfiguration"
       ],
       "Resource": "arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1"
+    },
+    {
+      "Sid": "PreventKeyDestructionFromDeployment",
+      "Effect": "Deny",
+      "Action": [
+        "kms:DisableKey",
+        "kms:ScheduleKeyDeletion"
+      ],
+      "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*"
     }
   ]
 }

@@ -147,6 +147,8 @@ La reversión del Core instalado y su restauración aislada se documentaron por 
 
 ## 9. Evidencia y condiciones para continuar
 
+La revisión más reciente de permisos sensibles y la secuencia previa/posterior a crear roles se detallan en [IAM-FOUNDATION-VERIFICATION.md](IAM-FOUNDATION-VERIFICATION.md). Sustituye para esos permisos los archivos históricos de la entrega SSO inicial; no se ha verificado acceso efectivo AWS.
+
 Para la revisión posterior de roles estables/SSO y los hashes vigentes prevalece [kms-stable-administrators-preparation.json](evidence/kms-stable-administrators-preparation.json). El informe de cifrado anterior describe la entrega histórica sin estas vías adicionales de administración.
 
 [validation.offline.json](../deploy/cloudformation/validation.offline.json) registra hashes, reglas y recursos de ambos modos. El [informe de evidencias](evidence/encrypted-cloudformation-preparation.json) reúne los resultados y las limitaciones de la revisión. Validación local: cfn-lint sobre ambas plantillas; expansión SAM con el CodeUri S3 real y sin llamadas IAM; controles de identidad/flags/permisos/consistencia; pruebas de handlers apagados junto a la suite Node. Los revisores se ejecutan con red aislada. Esto no demuestra permisos efectivos, elegibilidad Meta, entrega SNS/KMS ni éxito CloudFormation en la cuenta.

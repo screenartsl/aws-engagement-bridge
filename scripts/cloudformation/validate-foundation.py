@@ -51,10 +51,16 @@ for role in resources.values():
 key=yaml.safe_load((ROOT/'template.yaml').read_text())['Resources']['SnsKey']['Properties']
 statements={s['Sid']:s for s in key['KeyPolicy']['Statement']}
 assert key['BypassPolicyLockoutSafetyCheck'] is False
+execution_statements=execution['Properties']['Policies'][0]['PolicyDocument']['Statement']
+allowed={a for s in execution_statements if s['Effect']=='Allow' for a in s['Action']}
+assert not allowed & {'kms:PutKeyPolicy','kms:DisableKey','kms:ScheduleKeyDeletion','kms:CancelKeyDeletion'}
+denied={a for s in execution_statements if s['Effect']=='Deny' for a in s['Action']}
+assert denied=={'kms:DisableKey','kms:ScheduleKeyDeletion'}
+assert not set(statements['DedicatedKeyAdministration']['Action']) & {'kms:DisableKey','kms:ScheduleKeyDeletion','kms:CancelKeyDeletion'}
 assert set(statements['AccountPolicyRecovery']['Action'])=={'kms:DescribeKey','kms:GetKeyPolicy','kms:PutKeyPolicy'}
 assert statements['DedicatedRecoveryAdministrator']['Principal']=={'AWS':{'Ref':'KmsRecoveryAdministratorArn'}}
 assert 'AWSReservedSSO_' not in json.dumps(key['KeyPolicy'])
 print(json.dumps({'result':'PASS','kind':'OFFLINE_ONLY','awsCalls':0,'iamRolesCreated':0,
     'foundationResources':2,'foundationSha256':hashlib.sha256((folder/'template.yaml').read_bytes()).hexdigest(),
-    'checks':['Template/JSON equality','Stable retained roles without AdministratorAccess','Recreated SSO suffix accepted by trust pattern','Wrong account/region/permission set rejected by trust pattern','No runtime messaging/AI permissions','KMS lockout check remains enabled','Limited account recovery and stable recovery administrator'],
+    'checks':['Template/JSON equality','Stable retained roles without AdministratorAccess','Recreated SSO suffix accepted by trust pattern','Wrong account/region/permission set rejected by trust pattern','No runtime messaging/AI permissions','KMS lockout check remains enabled','Limited account recovery and stable recovery administrator','Executor explicitly denied DisableKey and ScheduleKeyDeletion','Executor IAM has no tag-based PutKeyPolicy grant; direct administration comes from the one-key policy'],
     'limitations':['Not IAM policy simulation or IAM Access Analyzer','No authenticated AWS/SCP/boundary checks','Propagation, create/update/delete and recovery must be verified after authorization','Execution policy covers ingress only, not runtime stage 2']},indent=2))

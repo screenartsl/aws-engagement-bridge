@@ -1,0 +1,221 @@
+{
+  "kind": "OFFLINE_EFFECTIVE_PERMISSIONS_REVIEW_PREPARATION",
+  "reviewDate": "2026-10-25 Europe/Paris",
+  "authenticatedAwsCalls": 0,
+  "awsCliInstalled": false,
+  "awsProfilesFound": 0,
+  "awsCredentialEnvironmentPresent": false,
+  "newResourcesCreated": 0,
+  "productionChanged": false,
+  "changedTemplateResourceCount": false,
+  "foundationResources": 2,
+  "previousTemplateSourceCommit": "3e08c95b53f9f0c0ec5216b807154d46c178f538",
+  "checks": {
+    "cfnLint": {
+      "result": "PASS",
+      "diagnostics": 0,
+      "templates": [
+        "template.yaml",
+        "deploy/sns-bootstrap/template.yaml",
+        "deploy/iam-foundation/template.yaml"
+      ]
+    },
+    "foundation": {
+      "result": "PASS",
+      "kind": "OFFLINE_ONLY",
+      "awsCalls": 0,
+      "iamRolesCreated": 0,
+      "foundationResources": 2,
+      "foundationSha256": "7cb30b0e0e91ee22f33bebd8cdd0dfd71552f9fdaf1dfe57ce393e2dc87b97b7",
+      "checks": [
+        "Template/JSON equality",
+        "Stable retained roles without AdministratorAccess",
+        "Recreated SSO suffix accepted by trust pattern",
+        "Wrong account/region/permission set rejected by trust pattern",
+        "No runtime messaging/AI permissions",
+        "KMS lockout check remains enabled",
+        "Limited account recovery and stable recovery administrator",
+        "Executor explicitly denied DisableKey and ScheduleKeyDeletion",
+        "Executor IAM has no tag-based PutKeyPolicy grant; direct administration comes from the one-key policy"
+      ],
+      "limitations": [
+        "Not IAM policy simulation or IAM Access Analyzer",
+        "No authenticated AWS/SCP/boundary checks",
+        "Propagation, create/update/delete and recovery must be verified after authorization",
+        "Execution policy covers ingress only, not runtime stage 2"
+      ]
+    },
+    "transport": {
+      "result": "PASS",
+      "kind": "OFFLINE_PREPARATION_ONLY",
+      "awsCalls": 0,
+      "accountVerified": false,
+      "templateSha256": "2afb6750156852a1742f70c187efc4696fe9f8613cccc2a037a7646bb6d1a1fc",
+      "bootstrapSha256": "4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb",
+      "defaultRuntimeEnabled": false,
+      "defaultLiveSend": false,
+      "inventory": {
+        "ingress": {
+          "declaredResources": 12,
+          "resourceTypes": {
+            "AWS::KMS::Key": 1,
+            "AWS::KMS::Alias": 1,
+            "AWS::SNS::Topic": 1,
+            "AWS::SNS::TopicPolicy": 1,
+            "AWS::SQS::Queue": 3,
+            "AWS::SQS::QueuePolicy": 2,
+            "AWS::SNS::Subscription": 1,
+            "AWS::S3::Bucket": 1,
+            "AWS::S3::BucketPolicy": 1
+          },
+          "logicalIds": [
+            "SnsKey",
+            "SnsKeyAlias",
+            "InboundTopic",
+            "TopicPolicy",
+            "InboundDlq",
+            "InboundQueue",
+            "InboundQueuePolicy",
+            "Subscription",
+            "DeliveryDlq",
+            "DeliveryDlqPolicy",
+            "ArtifactBucket",
+            "ArtifactBucketPolicy"
+          ]
+        },
+        "runtime": {
+          "declaredResources": 26,
+          "resourceTypes": {
+            "AWS::KMS::Key": 1,
+            "AWS::KMS::Alias": 1,
+            "AWS::SNS::Topic": 1,
+            "AWS::SNS::TopicPolicy": 1,
+            "AWS::DynamoDB::Table": 1,
+            "AWS::SQS::Queue": 5,
+            "AWS::SQS::QueuePolicy": 2,
+            "AWS::SNS::Subscription": 1,
+            "AWS::Serverless::HttpApi": 1,
+            "AWS::IAM::Role": 3,
+            "AWS::Serverless::Function": 3,
+            "AWS::Logs::LogGroup": 3,
+            "AWS::SecretsManager::Secret": 1,
+            "AWS::S3::Bucket": 1,
+            "AWS::S3::BucketPolicy": 1
+          },
+          "logicalIds": [
+            "SnsKey",
+            "SnsKeyAlias",
+            "InboundTopic",
+            "TopicPolicy",
+            "State",
+            "InboundDlq",
+            "OutboundDlq",
+            "InboundQueue",
+            "OutboundQueue",
+            "InboundQueuePolicy",
+            "Subscription",
+            "HttpApi",
+            "InboundExecutionRole",
+            "EnqueueExecutionRole",
+            "SenderExecutionRole",
+            "InboundFunction",
+            "EnqueueFunction",
+            "SenderFunction",
+            "InboundLogs",
+            "EnqueueLogs",
+            "SenderLogs",
+            "DeliveryDlq",
+            "DeliveryDlqPolicy",
+            "SigningSecret",
+            "ArtifactBucket",
+            "ArtifactBucketPolicy"
+          ]
+        }
+      },
+      "limitations": [
+        "No CloudFormation service-side change set or deployment executed",
+        "IAM/SCP/quotas/Meta eligibility remain unverified",
+        "Signing secret starts without a value; private initialization required before enabling",
+        "Bedrock identity and isolated Core staging are external to this AWS transport stack"
+      ]
+    }
+  },
+  "executorIdentityPolicy": {
+    "allowedActions": [
+      "kms:CreateAlias",
+      "kms:CreateKey",
+      "kms:DeleteAlias",
+      "kms:DescribeKey",
+      "kms:GetKeyPolicy",
+      "kms:GetKeyRotationStatus",
+      "kms:ListAliases",
+      "kms:ListResourceTags",
+      "kms:TagResource",
+      "kms:UpdateAlias",
+      "s3:CreateBucket",
+      "s3:DeleteBucket",
+      "s3:DeleteBucketPolicy",
+      "s3:GetBucketAcl",
+      "s3:GetBucketLocation",
+      "s3:GetBucketOwnershipControls",
+      "s3:GetBucketPolicy",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:GetBucketTagging",
+      "s3:GetEncryptionConfiguration",
+      "s3:GetLifecycleConfiguration",
+      "s3:ListBucket",
+      "s3:PutBucketOwnershipControls",
+      "s3:PutBucketPolicy",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:PutBucketTagging",
+      "s3:PutEncryptionConfiguration",
+      "s3:PutLifecycleConfiguration",
+      "sns:CreateTopic",
+      "sns:DeleteTopic",
+      "sns:GetSubscriptionAttributes",
+      "sns:GetTopicAttributes",
+      "sns:ListSubscriptionsByTopic",
+      "sns:ListTagsForResource",
+      "sns:SetSubscriptionAttributes",
+      "sns:SetTopicAttributes",
+      "sns:Subscribe",
+      "sns:TagResource",
+      "sns:Unsubscribe",
+      "sns:UntagResource",
+      "sqs:CreateQueue",
+      "sqs:DeleteQueue",
+      "sqs:GetQueueAttributes",
+      "sqs:GetQueueUrl",
+      "sqs:ListQueueTags",
+      "sqs:SetQueueAttributes",
+      "sqs:TagQueue",
+      "sqs:UntagQueue"
+    ],
+    "explicitlyDeniedActions": [
+      "kms:DisableKey",
+      "kms:ScheduleKeyDeletion"
+    ],
+    "putKeyPolicyGrant": "Only direct own-key policy; no tag-based identity grant"
+  },
+  "awsEffectiveChecks": {
+    "sourceStsIdentity": "CONFIRMED_FROM_USER_PROVIDED_CLOUDSHELL_OUTPUT",
+    "attachedAdministratorAccessPolicy": "PENDING_REAL_READ",
+    "permissionsBoundaryAndScp": "PENDING_REAL_READ",
+    "assumeRoleSourceSimulation": "PENDING_REAL_SIMULATION",
+    "actualRecoveryRoleAssumption": "PENDING_ROLE_EXISTS_AND_AUTHORIZED_STS_CHECK",
+    "actualKeyPolicyAdministration": "PENDING_KEY_EXISTS_AND_SEPARATE_AUTHORIZATION"
+  },
+  "templateHashes": {
+    "template.yaml": "2afb6750156852a1742f70c187efc4696fe9f8613cccc2a037a7646bb6d1a1fc",
+    "deploy/sns-bootstrap/template.yaml": "4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb",
+    "deploy/iam-foundation/template.yaml": "7cb30b0e0e91ee22f33bebd8cdd0dfd71552f9fdaf1dfe57ce393e2dc87b97b7"
+  },
+  "identityEvidence": {
+    "source": "User-provided CloudShell STS result",
+    "Account": "365470560685",
+    "Arn": "arn:aws:sts::365470560685:assumed-role/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256/antoni.caimari",
+    "isRoot": false,
+    "executedByAgent": false
+  },
+  "accountAuthenticatedByAgent": false
+}
