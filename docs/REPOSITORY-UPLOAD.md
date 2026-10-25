@@ -4,7 +4,7 @@ Destination: **[`screenartsl/aws-engagement-bridge`](https://github.com/screenar
 
 GitHub authenticated the server's existing Git credential as `screenartsl`. The repository was created through the official REST API with `private:true`, `auto_init:false`, then verified as owner `screenartsl`, visibility `private`, default branch `main`. The remote was empty before upload. The credentials were supplied by Git's existing protected credential helper; no key was printed, copied to another file or embedded in a URL. GitHub CLI installation was not necessary.
 
-The latest development branch is `codex/aws-engagement-bridge-phase4`; this complete branch, rather than the earlier phase 1 branch, supplies `main`. Preserve all local phase branches as remote branches without force-push, squash or rewritten dates. Verify remote refs against local commit IDs after the push. The first phases' original dates/ancestry remain part of that history.
+The initial upload used `codex/aws-engagement-bridge-phase4`. The latest development branch is now `codex/aws-engagement-bridge-core-integration`, preserving that ancestry and the original phase branches. Upload reviewed updates to `main` and this named branch without force-push, squash or rewritten dates. Verify remote refs against local commit IDs after the push. The first phases' original dates/ancestry remain part of that history. The installed PHP release remains pinned to `01e14f26a5db24cdaf1d9b6b5d6e5e1d009380e2`; later documentation commits do not change its installed file hashes.
 
 ## Read-only review
 

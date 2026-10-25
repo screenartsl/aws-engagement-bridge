@@ -32,7 +32,7 @@ Existe además el bloqueo técnico global `MUSERELAY_EXTENSIONS_ENABLED=false`. 
 
 ## Instalación reproducible
 
-1. Backup PostgreSQL previo, privado fuera de web/Git; comprobar retorno de pg_dump, listado, lectura completa del archivo y SHA-256. La lectura del archivo no equivale a un simulacro de restauración en otra base.
+1. Backup PostgreSQL previo, privado fuera de web/Git; comprobar retorno de pg_dump, listado, lectura completa del archivo y SHA-256. La lectura del archivo no equivale a un simulacro de restauración en otra base. La restauración real posterior de este backup y la comparación del esquema quedaron verificadas: [resultado y límites](POST-INSTALL-VERIFICATION.md). Para próximas instalaciones, ensayar también la restauración antes de aplicar el código.
 2. Probar en una copia de código con PostgreSQL/Redis propios, datos ficticios y red aislada. El runner instala el paquete también por Composer únicamente en esa copia para mantener la cobertura anterior; una prueba adicional comprueba que la carpeta funciona sin instalar el paquete Composer en el Core.
 3. Comprometer la release del módulo y revisar secretos. `scripts/install-core-package.py --core <Core> --source-ref <commit>` instala solo código de un commit inmutable. En una ruta con `.env` o en producción exige `--backup-manifest <manifest privado válido>`. No habilita, ejecuta SQL, modifica `.env` ni recarga servicios; rechaza sobrescribir una release existente.
 4. Aplicar el soporte de Core y los tres hooks revisados. El catálogo permite futuras extensiones con manifiesto/provider, pero cada módulo debe respetar los controles de estado y organización en sus rutas, trabajos y herramientas; no se promete integrar cualquier paquete sin puntos de conexión adicionales.
@@ -46,3 +46,5 @@ La suite comprueba conexión/desconexión sin reiniciar instancias, revocación 
 Para retirar: desconectar, parar el trabajo dedicado cuando exista, revisar mensajes en vuelo y conservar estado/datos necesarios; después retirar únicamente el registro y la release del módulo con revisión de código. Las cinco tablas pueden conservarse para trazabilidad. No borrar mensajes, tickets, organizaciones, tablas históricas ni infraestructura compartida. Restaurar el backup completo no es el procedimiento normal de desactivación, porque podría perder cambios legítimos posteriores.
 
 Tickets y calendario actuales conservan su implementación y controles anteriores. Las nuevas herramientas pueden adoptar esta base gradualmente; no se crea ahora un marketplace, instalador web ni certificación para miles de usuarios simultáneos.
+
+Procedimiento operativo de reversión y pruebas realizadas: [CORE-ROLLBACK.md](CORE-ROLLBACK.md). La reversión ordinaria conserva las tablas aditivas y no restaura toda la base productiva.

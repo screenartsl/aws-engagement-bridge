@@ -1,0 +1,729 @@
+{
+  "result": "PASS",
+  "recordedAtUtc": "2026-10-25T00:00:08.002822+00:00",
+  "core": {
+    "result": "PASS",
+    "coreCommit": "7252eac087973d12d243299cf8d0f03569cfddc2",
+    "isolatedTestedFilesCompared": 41,
+    "testedFilesIdentical": true,
+    "missingTestedFiles": [],
+    "preinstallOriginalFilesMatchBaseline": true,
+    "preinstallOriginalFilesCompared": 7,
+    "unrelatedDirtyFilesPreserved": [
+      " M storage/geoip/GeoLite2-Country.mmdb",
+      "?? resources/views/contacts/index.blade.php.back"
+    ]
+  },
+  "installedModule": {
+    "result": "PASS",
+    "version": "0.4.0",
+    "enabled": false,
+    "storeEnabled": false,
+    "organizationIds": [],
+    "localPrerequisitesPending": [
+      "aws_endpoint_missing",
+      "demo_binding_missing"
+    ],
+    "tableCounts": {
+      "aws_bridge_bindings": 0,
+      "aws_bridge_events": 0,
+      "aws_bridge_actions": 0,
+      "aws_bridge_nonces": 0,
+      "aws_bridge_outbox": 0
+    },
+    "adminRoutesMiddleware": {
+      "superadmin.extensions.index": [
+        "web",
+        "detect.language",
+        "auth",
+        "superadmin"
+      ],
+      "superadmin.extensions.update": [
+        "web",
+        "detect.language",
+        "auth",
+        "superadmin"
+      ]
+    },
+    "releaseSourceCommit": "01e14f26a5db24cdaf1d9b6b5d6e5e1d009380e2",
+    "releaseFilesMatch": true,
+    "protectedFilesUnchanged": {
+      ".env": true,
+      "composer.json": true,
+      "composer.lock": true
+    }
+  },
+  "backupRestore": {
+    "result": "PASS",
+    "createdAtUtc": "2026-10-24T23:51:10.870002+00:00",
+    "productionConnectionUsed": false,
+    "restoreSeconds": 25.27,
+    "archiveSha256": "18cd62032beb73788cbcddb9c075765eb4513b9b4c334a490913086095727551",
+    "database": "bridge_restore_test",
+    "network": "private Unix socket; PostgreSQL in empty network namespace; no TCP listeners",
+    "archiveDataEntries": 255,
+    "servicesStopped": true,
+    "restoredTables": 255,
+    "restoredRows": 827787,
+    "schemaMatch": true
+  },
+  "nativeSchema": {
+    "result": "PASS",
+    "nativeSchema": {
+      "columns": {
+        "unchanged": true,
+        "objects": 3984,
+        "sha256": "7c0a602993ad09f68b3acfdb09956c9df81acf0c59764e52202c505d3b358bfd"
+      },
+      "constraints": {
+        "unchanged": true,
+        "objects": 764,
+        "sha256": "f5b19d2084be1601d3a11a4e6c385f00b5ba40322fa08ab742bba1ee09967f55"
+      },
+      "indexes": {
+        "unchanged": true,
+        "objects": 817,
+        "sha256": "f09f7129e15aa99333bc69d3e56fe0abe11b5d874cb9fc0879773427063122b7"
+      },
+      "triggers": {
+        "unchanged": true,
+        "objects": 3,
+        "sha256": "e4b26f1ae4384c7fe1486ff1e1095207eddac985f0cc2391ea38567b256a8de0"
+      },
+      "relations": {
+        "unchanged": true,
+        "objects": 496,
+        "sha256": "7fc3e0096aa59edb9d7f6a057fc80363d1cfcd96377b3ed57285de6de9caa994"
+      },
+      "views": {
+        "unchanged": true,
+        "objects": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "policies": {
+        "unchanged": true,
+        "objects": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "restoredTables": 255,
+    "restoredTotalRows": 827787,
+    "restoredBridgeTables": 0,
+    "productionAwsChannels": 0,
+    "liveDataCompared": false
+  },
+  "liveHttps": {
+    "result": "PASS",
+    "checkedAtUtc": "2026-10-24T23:57:06.780023+00:00",
+    "checks": [
+      {
+        "hostKind": "central",
+        "path": "/",
+        "status": 200,
+        "bytes": 103854
+      },
+      {
+        "hostKind": "central",
+        "path": "/login",
+        "status": 200,
+        "bytes": 65284
+      },
+      {
+        "hostKind": "central",
+        "path": "/dashboard",
+        "status": 302,
+        "bytes": 354,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "central",
+        "path": "/ai-agents",
+        "status": 302,
+        "bytes": 354,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "central",
+        "path": "/channels",
+        "status": 302,
+        "bytes": 354,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "central",
+        "path": "/tickets",
+        "status": 302,
+        "bytes": 354,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "central",
+        "path": "/organization/users",
+        "status": 302,
+        "bytes": 354,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "central",
+        "path": "/megadmin/dashboard",
+        "status": 302,
+        "bytes": 354,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "central",
+        "path": "/megadmin/modules",
+        "status": 302,
+        "bytes": 354,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "central",
+        "path": "/megadmin/extensions",
+        "status": 302,
+        "bytes": 354,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/login",
+        "status": 200,
+        "bytes": 42988
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/dashboard",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/ai-agents",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/channels",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/tickets",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/organization/users",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/",
+        "status": 302,
+        "bytes": 358,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/login",
+        "status": 200,
+        "bytes": 42972
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/dashboard",
+        "status": 302,
+        "bytes": 358,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/ai-agents",
+        "status": 302,
+        "bytes": 358,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/channels",
+        "status": 302,
+        "bytes": 358,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/tickets",
+        "status": 302,
+        "bytes": 358,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/organization/users",
+        "status": 302,
+        "bytes": 358,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/login",
+        "status": 200,
+        "bytes": 43098
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/dashboard",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/ai-agents",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/channels",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/tickets",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "existing-reseller",
+        "path": "/organization/users",
+        "status": 302,
+        "bytes": 366,
+        "redirectPath": "/login"
+      },
+      {
+        "hostKind": "central",
+        "path": "/api/aws-engagement-bridge/events",
+        "status": 503,
+        "disabledErrorMatches": true
+      }
+    ],
+    "existingResellerHostsChecked": 3,
+    "productionLoginUsed": false,
+    "realMessagesSent": false,
+    "network": "local Caddy HTTPS ingress with validated host certificate and SNI; PHP-FPM panel routing; no external requests"
+  },
+  "syntheticPanels": {
+    "result": "PASS",
+    "database": "bridge_panel_test",
+    "productionDataLoaded": false,
+    "network": "empty Linux network namespace",
+    "allCasesHttp200": true,
+    "cases": [
+      {
+        "tree": "installed",
+        "hostKind": "central",
+        "path": "/login",
+        "role": "guest",
+        "status": 200,
+        "htmlBytes": 47919,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "central",
+        "path": "/megadmin/dashboard",
+        "role": "superadmin",
+        "status": 200,
+        "htmlBytes": 1725724,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "central",
+        "path": "/megadmin/modules",
+        "role": "superadmin",
+        "status": 200,
+        "htmlBytes": 1758529,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "central",
+        "path": "/dashboard",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 143201,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "central",
+        "path": "/ai-agents",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 173017,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "central",
+        "path": "/tickets",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 142816,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "central",
+        "path": "/channels",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 140214,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "central",
+        "path": "/organization/users",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 140052,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "reseller",
+        "path": "/login",
+        "role": "guest",
+        "status": 200,
+        "htmlBytes": 43441,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "reseller",
+        "path": "/dashboard",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 144312,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "reseller",
+        "path": "/organization/users",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 141064,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "reseller",
+        "path": "/ai-agents",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 174051,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "reseller",
+        "path": "/tickets",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 143839,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "reseller",
+        "path": "/channels",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 141214,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "installed",
+        "hostKind": "central",
+        "path": "/megadmin/extensions",
+        "role": "superadmin",
+        "status": 200,
+        "htmlBytes": 1715016,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "central",
+        "path": "/login",
+        "role": "guest",
+        "status": 200,
+        "htmlBytes": 47919,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "central",
+        "path": "/megadmin/dashboard",
+        "role": "superadmin",
+        "status": 200,
+        "htmlBytes": 1725390,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "central",
+        "path": "/megadmin/modules",
+        "role": "superadmin",
+        "status": 200,
+        "htmlBytes": 1758029,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "central",
+        "path": "/dashboard",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 143201,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "central",
+        "path": "/ai-agents",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 173017,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "central",
+        "path": "/tickets",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 142816,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "central",
+        "path": "/channels",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 140214,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "central",
+        "path": "/organization/users",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 140052,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "reseller",
+        "path": "/login",
+        "role": "guest",
+        "status": 200,
+        "htmlBytes": 43441,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "reseller",
+        "path": "/dashboard",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 144312,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "reseller",
+        "path": "/organization/users",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 141064,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "reseller",
+        "path": "/ai-agents",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 174051,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "reseller",
+        "path": "/tickets",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 143839,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      },
+      {
+        "tree": "rollback",
+        "hostKind": "reseller",
+        "path": "/channels",
+        "role": "owner",
+        "status": 200,
+        "htmlBytes": 141214,
+        "html": "text/html; charset=UTF-8",
+        "errorFlash": false,
+        "expectedSyntheticIdentity": true
+      }
+    ]
+  },
+  "processes": {
+    "bridgeWorkerProcesses": 0,
+    "bridgeScheduledEntries": 0,
+    "newCoreSchedulerEntries": false,
+    "result": "PASS"
+  },
+  "logs": {
+    "result": "PASS",
+    "fromUtc": "2026-10-24T23:44:40.350287+00:00",
+    "untilUtc": "2026-10-25T00:00:07.951941+00:00",
+    "filesRead": 57,
+    "postInstallLevels": {
+      "WARNING": 128
+    },
+    "newErrorSignatures": 0,
+    "newWarningSignatures": 0,
+    "extensionRelatedSignals": 0,
+    "allPostInstallSignalsSeenBefore": true,
+    "rawLogsPublished": false
+  },
+  "rollback": {
+    "result": "PASS",
+    "installedCommit": "7252eac087973d12d243299cf8d0f03569cfddc2",
+    "rollbackBase": "b8e9bf8c74789689a7cebddd1856a094e380c9d9",
+    "reversePatchAppliedInPrivateCopy": true,
+    "filesCompared": 42,
+    "allAffectedFilesMatchOriginal": true,
+    "productionChangedByRehearsal": false
+  },
+  "priorIsolatedRegression": {
+    "result": "PASS",
+    "coreBase": "b8e9bf8c74789689a7cebddd1856a094e380c9d9",
+    "nodeTests": 32,
+    "phpSqliteTests": 30,
+    "phpPostgresTests": 30,
+    "phpPostgresAssertions": 170,
+    "realPostgresRedisWorkers": true,
+    "awsHttpModels": "controlled simulations",
+    "servicesStopped": true
+  },
+  "authorizationLimits": {
+    "awsResourcesCreated": false,
+    "awsSocialEnabled": false,
+    "realMessagesSent": false,
+    "paidInferenceRun": false,
+    "productionUsersImpersonated": false,
+    "sharedServicesReloadedDuringVerification": false
+  },
+  "incidents": [
+    "Backup restore rehearsal completed after the already-authorized disabled installation; future runbook requires rehearsal before installation.",
+    "Initial synthetic fiscal fixtures and wrong Octane-only reseller probe were corrected; final synthetic and actual HTTPS ingress checks pass.",
+    "Pre-existing warning signatures continue; no new signatures or ERROR entries in the observed interval."
+  ],
+  "limits": [
+    "Server-rendered HTTP checks, not an interactive browser test.",
+    "Real provider delivery and AWS/Bedrock E2E remain pending separate authorization.",
+    "Full database backup is not a complete server/media/Redis backup."
+  ]
+}
