@@ -61,6 +61,16 @@ class SecurityTests(unittest.TestCase):
         self.assertFalse(review.condition('RunOutboundConsumer',values,t['Conditions']))
         self.assertFalse(review.condition('DeployOutboundRuntime',values,t['Conditions']))
         self.assertFalse(any(r['Type']=='AWS::IAM::Role' for r in t['Resources'].values()))
+    def test_receive_uses_unreserved_capacity_and_bounds_only_its_sqs_mapping(self):
+        self.assertNotIn('ReservedConcurrentExecutions', self.runtime['Globals']['Function'])
+        inbound=self.runtime['Resources']['InboundFunction']['Properties']
+        self.assertNotIn('ReservedConcurrentExecutions', inbound)
+        sqs=inbound['Events']['Input']['Properties']
+        self.assertEqual(sqs['ScalingConfig'], {'MaximumConcurrency':2})
+        self.assertEqual(sqs['BatchSize'],1)
+        self.assertEqual(sqs['Enabled'], {'Fn::If':['RunInboundConsumer',True,False]})
+        for name in ['EnqueueFunction','SenderFunction']:
+            self.assertEqual(self.runtime['Resources'][name]['Properties']['ReservedConcurrentExecutions'],1)
     def test_sender_requires_every_gate_including_live_send(self):
         t=self.runtime;names=['DeployProcessing','DeployOutbound','ProcessingEnabled','SendEnabled','LiveSend']
         for flags in itertools.product(['false','true'],repeat=len(names)):

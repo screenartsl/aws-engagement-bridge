@@ -22,7 +22,7 @@ Two explicit provisioning exceptions need Resource="*": CreateEventSourceMapping
 
 The executor may read only `releases/*/bridge.zip` in the existing artifact bucket. Upload permissions belong to the operator, not the runtime. Foundation roles are retained. External secret ARN parameters must use the dedicated names matched by the role policies, not an arbitrary secret in this account.
 
-AWS service-side permissions, organization SCPs/boundaries, Lambda quotas and resource existence have not been tested by this local preparation. In particular the account must have capacity for one reserved execution plus the 100 unreserved concurrency minimum. Reconcile an AccessDenied with the exact CloudFormation event; do not broaden policies blindly.
+AWS service-side permissions, organization SCPs/boundaries and resource existence have not been tested by this local preparation. The owner subsequently reported account/unreserved concurrency 10 and no functions. The revised inbound no longer reserves function concurrency: it uses unreserved capacity with SQS mapping maximum concurrency two, still disabled. Deferred outbound keeps its separate reservation requirement and is not deployed in this phase. This is not an account-quota increase or live deployment certification. Reconcile an AccessDenied with the exact CloudFormation event; do not broaden policies blindly.
 
 ## Bedrock and future output
 

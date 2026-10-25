@@ -7,6 +7,8 @@ Local development location: `/var/www/vhosts/muserelay.com/modules-develop/aws-e
 
 ## Receive-first preparation (2026-10-25)
 
+Quota correction in preparation: the owner reports Lambda total/unreserved concurrency 10, functions 0 in Ireland. The earlier receive template SHA256 `3e82e39dd7aa...` and its review request must NOT be deployed: they reserve one function execution. The revised inbound uses unreserved capacity and a maximum of two concurrent invocations from its SQS mapping, still disabled. The previous private draft release is marked SUPERSEDED. No quota increase or AWS change is performed; revised pinned artifacts follow the local validation.
+
 Development connector **0.5.1 is prepared, not installed**; production remains the disabled 0.4.0 connector. Reception, agent and send are separate opt-ins, all false by default. A dormant, organization-scoped activation can validate installation before connecting a binding or signing key; it is not connected messaging. Receiving still requires its own control, binding and authentication. The receive-first runtime does not create outbound infrastructure. IAM roles now belong to a separately reviewed foundation update; the limited runtime executor cannot rewrite IAM. The [native inbox staging](docs/NATIVE-INBOX-STAGING.md) reuses the actual Core views/controllers in an isolated copy; final judges access is planned in existing MuseRelay under an owner-created demo account, not a second inbox. See [current delivery and controls](docs/RECEIVE-FIRST-DELIVERY.md) and [current IAM/runtime review](deploy/runtime-iam/README.md). These documents supersede older all-in-one runtime/secret/activation instructions below. No local change constitutes an AWS deployment or activation. Inbound/sender use only the Core-direction signing secret; the future outbound enqueuer uses a separate outbound-direction secret.
 
 Next console step: [pinned IAM UPDATE, exact expected resources and copyable GPT prompt](docs/CONSOLE-IAM-RUNTIME-REVIEW-2026-10-25.md). Use `deploy/runtime-iam/template.yaml`, GrantSocialSend=false, and review the change set without executing. [Final 0.5.1 local validation](docs/RELEASE-0.5.1-REVIEW.md) distinguishes isolated tests from live AWS operation.
@@ -76,7 +78,7 @@ Tests use synthetic identities and an in-process SDK HTTP transport. They do not
 
 For the additional PHP connector tests, use `integration/muserelay/phpunit.xml` with the explicit dependency/source variables documented in `docs/STAGING.md`. They build **SQLite in-memory fixtures by default**, or a guarded private PostgreSQL test database under the staging runner, never load production `.env` or `bootstrap/app.php`, and include live-class regression checks for the existing Meta/Telnyx configuration branches. The separate staging suite exercises native models, workers and agent/tool execution.
 
-`package-lock.json` pins the resolved dependencies. Runtime artifacts are produced in `build/`; they are not committed. The SAM template deploys Node 22 arm64 functions with one reserved execution each.
+`package-lock.json` pins the resolved dependencies. Runtime artifacts are produced in `build/`; they are not committed. The SAM template uses Node 22 arm64. Inbound uses unreserved capacity and an SQS mapping maximum concurrency of two; its mapping stays disabled until authorized. Deferred outbound functions retain their separate reservation requirement and are not selected for receive-only deployment.
 
 ## Configuration and secrets
 

@@ -1,5 +1,7 @@
 # Runtime de recepción: conjunto UPDATE preparado, sin ejecutar
 
+**Revisión por cuota en curso:** el propietario ha comunicado ConcurrentExecutions=10, UnreservedConcurrentExecutions=10 y cero funciones. No desplegar la plantilla anterior de hash `3e82e39dd7aa...` ni el draft receive-review-62dab78f: reservaban una concurrencia. La revisión elimina esa reserva para inbound y limita su mapping a dos ejecuciones, manteniéndolo deshabilitado. Los identificadores del paquete que aparecen más abajo son históricos hasta completar la regeneración de este documento. No se ha cambiado AWS.
+
 Preparación del 25/10/2026 (Europe/Paris). El propietario comunica IAM Foundation en UPDATE_COMPLETE y las tres políticas inline de runtime verificadas, sin permisos Social/Bedrock/AdministratorAccess. También comunicó que las dos plantillas Original de IAM coincidían con las referencias revisadas antes de ejecutar. Es evidencia facilitada desde su CloudShell, no una consulta AWS realizada por este servidor. La revisión de políticas administradas adjuntas, boundaries/SCP y cuota Lambda queda pendiente.
 
 **Estado de esta entrega:** solicitud completa preparada localmente, cero llamadas AWS, sin upload S3, sin conjunto creado en AWS, sin despliegue ni cambios de MuseRelay. La solicitud propone recursos para revisión; no es autorización para crearlos. El ZIP y la plantilla conservan los hashes revisados. No se cambia el YAML raíz ni la plantilla IAM ya desplegada.
