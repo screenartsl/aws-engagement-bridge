@@ -175,5 +175,32 @@
     "State (if deployed)",
     "SigningSecret (if created by stack)"
   ],
-  "estimatesAreNotSpendingAuthorization": true
+  "estimatesAreNotSpendingAuthorization": true,
+  "localRelease": {
+    "kind": "LOCAL_ONLY_NOT_UPLOADED",
+    "sourceCommit": "f34cd4105b1698c620a7e465d9cc19e964adb734",
+    "artifactKey": "releases/f34cd4105b1698c620a7e465d9cc19e964adb734/bridge.zip",
+    "sha256": {
+      "02-runtime.yaml": "84ca5697816144f9704dd2e78ce5f9f95fbd0b2714231abffdd4f7bf1a1a9d8d",
+      "01-ingress.yaml": "93e3487a12a212c66ad5a4d672fcfb2e774e573323a6af5922de5a8d81cdd727",
+      "bridge.zip": "b1f56f7f790aa254aa40214109a74a0fba5ba5ecd2e88290b8716c703ea94a08"
+    },
+    "awsCalls": 0,
+    "containsSecrets": false,
+    "privatePermissionsVerified": true,
+    "zipContains": [
+      "handlers.mjs"
+    ],
+    "handlerExportsSmokeCheck": "PASS; imported only, never invoked",
+    "uploaded": false
+  },
+  "coreGitReadOnlyCheck": {
+    "head": "7252eac087973d12d243299cf8d0f03569cfddc2",
+    "matchesPreviousInstallationHead": true,
+    "existingUnrelatedWorkingFilesPreserved": [
+      "storage/geoip/GeoLite2-Country.mmdb",
+      "resources/views/contacts/index.blade.php.back"
+    ],
+    "applicationBootstrapped": false
+  }
 }
