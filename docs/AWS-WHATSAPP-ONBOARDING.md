@@ -177,6 +177,8 @@ Fuente: [AWS Social: temas cifrados y permisos de clave](https://docs.aws.amazon
 
 ## 9. IAM, acceso y separación de responsabilidades
 
+Véase [costes KMS y acceso AWS](AWS-ACCESS-AND-KMS-COSTS.md) para el procedimiento propuesto de identidad no-root, MFA, ejecutor CloudFormation y estado pendiente. Documentarlo no configura Identity Center ni autoriza cambios IAM.
+
 - Operador de lectura: comprobar identidad STS y cuenta antes de listar temas/atributos/suscripciones, metadatos de cola, stack y demo Social. Sin root AWS, valores de secretos, cuerpos de mensajes ni invocaciones.
 - Operador de despliegue: permisos revisados sobre recursos concretos, después de autorización. La sesión del usuario en el navegador no configura credenciales en este servidor. Que aquí falten perfiles no demuestra que su cuenta carezca de permisos.
 - Publicación Social → SNS: política de recurso de la sección 7 y KMS si procede. No requiere crear un rol Lambda para que Social publique.

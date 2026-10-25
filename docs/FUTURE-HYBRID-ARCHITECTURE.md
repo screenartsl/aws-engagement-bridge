@@ -122,6 +122,8 @@ No distribuir claves AWS permanentes ni firmas compartidas del backend dentro de
 
 ## 8. Costes: transporte, espera e historial son conceptos distintos
 
+La [nota adicional de costes KMS y acceso](AWS-ACCESS-AND-KMS-COSTS.md) explica el coste base por clave frente a solicitudes facturables, el ejemplo de cuatro días y la separación entre acceso root excepcional, identidad administrativa y runtime. No se calcula una clave por teléfono ni se solicita crear accesos durante esta documentación.
+
 La tarifa Social/Meta no compra almacenamiento indefinido ni sincronización automática. El diseño futuro tendrá que presupuestar por separado transporte, publicaciones, operaciones de cola, relay/API, base de datos/objetos, cifrado, logs, copias, salida de datos, autenticación y procesamiento IA; en Connect habría además su propio modelo de uso. Más dispositivos pueden multiplicar sincronizaciones, notificaciones y copias aunque no haya más mensajes WhatsApp.
 
 No se da aquí un precio Desktop/Enterprise: faltan volumen, número de operadores/dispositivos, periodo offline, tamaño multimedia, región, disponibilidad y proveedor IA. El presupuesto pequeño de la demo y el precio de una clave KMS **no son una tarifa comercial por cliente**. Las estimaciones actuales del ensayo están únicamente en [CLOUDFORMATION-DEPLOYMENT.md](CLOUDFORMATION-DEPLOYMENT.md); no se amplían recursos ni gasto por registrar estas ideas.

@@ -113,6 +113,8 @@ El endpoint de staging, PostgreSQL/Redis, organización, agente Bedrock y buzón
 
 ## 7. Coste orientativo y límites
 
+La [nota de costes KMS y acceso AWS](AWS-ACCESS-AND-KMS-COSTS.md) distingue permanencia de la clave, solicitudes criptográficas y transporte WhatsApp; también registra el acceso no-root/MFA pendiente. Los USD 0,13 siguientes corresponden aproximadamente a mantener una clave cuatro días, no a cuatro operaciones.
+
 Estimación sin free tier, créditos ni impuestos; tarifas consultadas el 25-10-2026. No es presupuesto automático ni techo de gasto.
 
 | Concepto | Estimación / condición |

@@ -15,6 +15,8 @@ The AWS transport currently supports text and selected delivery states, and deli
 
 Future product ideas are recorded in [Connect and personal/business/hybrid deployment concepts](docs/FUTURE-HYBRID-ARCHITECTURE.md). Desktop, Mobile, offline synchronization, private hosting and BYO AWS remain proposals, outside the first live demonstration; no new functionality is implemented by that document.
 
+[KMS costs and AWS access](docs/AWS-ACCESS-AND-KMS-COSTS.md) separates key storage, billable operations and messaging costs, and records the pending non-root execution identity/MFA checks. It does not configure access or authorize deployment.
+
 Implemented locally: official AWS Social Messaging SDK adapter, text/status event normalization, explicitly scoped channel bindings, HMAC transport, DynamoDB idempotency/leases/nonces/demo budgets, SQS handlers, isolated infrastructure template and PHP/Node signature interoperability.
 
 Phase 2 adds the Laravel package under `integration/muserelay/`: authenticated controllers, opt-in organization/channel binding, encrypted durable inbox/outbox, worker, native agent/inbox adapter and transactional ticket-action checkpoint. The three Core changes are maintained in `core-hooks.patch`; trusted module support is in `core-extension-support.patch`. Release 0.4.0 includes the authorized, disabled Core installation. See `docs/PHASE-2.md` and `docs/STAGING.md` for the original phase scope and test limitations.
