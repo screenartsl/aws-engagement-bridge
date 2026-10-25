@@ -1,0 +1,53 @@
+{
+  "kind": "OFFICIAL_DOCUMENTATION_AND_OFFLINE_TEMPLATE_REVIEW",
+  "reviewDate": "2026-10-25 Europe/Paris",
+  "sourceCommitBeforeDocumentation": "97848c72411ed0b18479ad03f33c7dfbdef03482",
+  "ingressTemplateSourceCommit": "5f563ea4387c9694782943566614e38b9463168a",
+  "ingressTemplateSha256": "4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb",
+  "sources": [
+    "https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-event-destinations-add.html",
+    "https://docs.aws.amazon.com/sns/latest/dg/sns-key-management.html",
+    "https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html",
+    "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-kms-key.html",
+    "https://docs.aws.amazon.com/kms/latest/developerguide/determining-access-key-policy.html",
+    "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html"
+  ],
+  "socialGrantMatchesDocumentedPrincipalActionsAndConditions": true,
+  "requiredAdditionalSnsServicePrincipalGrantForThisSnsKey": false,
+  "templateCorrectionRequired": false,
+  "newChangeSetRequiredForThisQuestion": false,
+  "cloudFormationExecutionRoleMustEqualKmsAdministratorArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution",
+  "preparedRequestRoleAndParameterMatch": true,
+  "callerGrantedPutKeyPolicyDirectlyOnKey": true,
+  "bypassPolicyLockoutSafetyCheck": false,
+  "createKeyConditionsMatchPropertiesAndTags": true,
+  "recoveryRoleGrantRetained": true,
+  "accountPolicyRecoveryGrantRetained": true,
+  "executorExplicitDenials": [
+    "kms:DisableKey",
+    "kms:ScheduleKeyDeletion"
+  ],
+  "queueEncryption": "SSE-SQS, not this customer-managed KMS key",
+  "foundationValidator": "PASS_OFFLINE",
+  "transportValidator": "PASS_OFFLINE",
+  "awsChangeSetEvidence": {
+    "source": "User-provided CloudFormation review",
+    "name": "ingress-review-4bc773772e50",
+    "status": "CREATE_COMPLETE",
+    "executionStatus": "AVAILABLE",
+    "addActions": 12,
+    "executed": false
+  },
+  "authenticatedAwsCallsByAgent": 0,
+  "awsWritesByAgent": 0,
+  "productionChanged": false,
+  "liveCreateKeyVerified": false,
+  "liveSocialPublishVerified": false,
+  "executionAuthorization": false,
+  "limitations": [
+    "Actual remote change-set RoleARN not returned to agent; verify console uses the reviewed execution role",
+    "No independent audit of live role policy, SCP, boundary, session restrictions or IAM propagation",
+    "Review demonstrates configuration compatibility; AWS must accept actual creation after separate authorization",
+    "Real event delivery and real key recovery operation remain untested"
+  ]
+}

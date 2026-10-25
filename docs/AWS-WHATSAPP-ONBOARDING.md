@@ -289,3 +289,7 @@ El usuario facilita CREATE_COMPLETE de IAM Foundation, los dos ARN estables espe
 ### Verificación posterior del UPDATE IAM
 
 El usuario confirma UPDATE_COMPLETE de IAM Foundation, ARN sin cambios, nuevas acciones SNS/S3 presentes y Deny DisableKey/ScheduleKeyDeletion conservados, mediante CloudShell. Evidencia registrada en `evidence/iam-foundation-update-user-evidence.json`. Siguiente paso: preparar desde consola el change set CREATE de `muserelay-aws-bridge-stage`, usando `deploy/sns-bootstrap/template.yaml` y el rol actualizado, sin ejecutar. El YAML de ingreso no cambia. No existe aún un ARN SNS real verificado ni autorización de despliegue o asociación WABA.
+
+### Conjunto de ingreso y revisión del principal KMS
+
+El usuario confirma el change set `ingress-review-4bc773772e50` disponible, doce Add y configuración prevista, todavía sin ejecutar. La [revisión oficial de compatibilidad](SNS-KMS-COMPATIBILITY.md) confirma el principal Social y las condiciones de cuenta/origen Social; no es necesaria una concesión adicional a SNS en esta clave. Se comprobó localmente el acceso PutKeyPolicy del ejecutor y BypassPolicyLockoutSafetyCheck=false, sin creación real de clave. El YAML no cambia y no se genera un conjunto nuevo por esta cuestión. No se ha asociado WABA ni enviado mensajes.

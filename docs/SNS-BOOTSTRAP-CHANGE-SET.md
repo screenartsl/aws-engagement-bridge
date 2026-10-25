@@ -2,6 +2,10 @@
 
 **GO para preparar y revisar; ejecución pendiente de autorización separada.** No se ha creado un conjunto de cambios desde este servidor: no dispone de identidad AWS utilizable. Los archivos JSON son solicitudes preparadas localmente, no identificadores de conjuntos existentes en AWS. No se ha modificado MuseRelay ni se ha llamado a AWS.
 
+## Estado posterior: conjunto de ingreso preparado y revisión de KMS
+
+El usuario confirma `ingress-review-4bc773772e50` en CREATE_COMPLETE/AVAILABLE con doce Add, sin ejecución. La [revisión específica de Social/SNS/KMS y bloqueo administrativo](SNS-KMS-COMPATIBILITY.md) confirma que no hace falta añadir sns.amazonaws.com a la política de esta clave ni sustituir el conjunto por ese motivo. El YAML y sus hashes no cambian. La compatibilidad documental y el análisis local no son pruebas de creación KMS o entrega en AWS. Mantener el conjunto sin ejecutar hasta autorización separada.
+
 ## Estado posterior: IAM actualizado y siguiente paso desde consola
 
 El usuario comunica UPDATE_COMPLETE de IAM Foundation, ARN sin cambios, acciones SNS/S3 previstas presentes y denegaciones DisableKey/ScheduleKeyDeletion conservadas, comprobado desde CloudShell. Se registra como [evidencia facilitada](evidence/iam-foundation-update-user-evidence.json); no es una lectura AWS del agente. No repetir el UPDATE IAM. El apartado de ampliación IAM y sus comandos de preparación más abajo queda como historial del requisito ya completado según esa verificación. La fuente YAML de ingreso permanece idéntica al commit `5f563ea4387c9694782943566614e38b9463168a`, SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`.
