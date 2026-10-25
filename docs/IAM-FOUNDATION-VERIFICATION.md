@@ -79,7 +79,8 @@ No intentar asumir como persona el rol de ejecución: su confianza es solo Cloud
 | --- | --- |
 | Configuración y consistencia local | Preparadas y verificables offline. |
 | Identidad SSO en AWS | Confirmada por la salida CloudShell facilitada: cuenta `365470560685`, sesión `AWSReservedSSO_AdministratorAccess_6a3ad0308126a256/antoni.caimari`; no root. |
-| Política adjunta, boundary/SCP y simulación de permiso fuente | Pendientes de los resultados reales correspondientes. |
+| Simulación de permiso fuente | Usuario facilita `allowed` y `MissingContext=[]` para sts:AssumeRole sobre el ARN de recuperación previsto. |
+| Políticas adjuntas / restricciones fuera del alcance de la simulación | No auditadas independientemente por el arquitecto; no se presenta el resultado como prueba total de la cuenta. |
 | Asunción efectiva del rol de recuperación | Pendiente de que exista el rol y se ejecute STS autorizado. |
 | Capacidad de leer/corregir la política de la clave real | Pendiente de su creación posterior autorizada y revisión efectiva; no probada mediante una escritura. |
 | Creación/eliminación real de recursos por CloudFormation | No ejecutada; no se presenta el lint como prueba funcional. |
@@ -89,3 +90,7 @@ Si falla la fase C, detenerse **antes de crear la clave** y conservar la evidenc
 ## Salida STS facilitada y versión a utilizar
 
 El usuario comunica `Account=365470560685` y `Arn=arn:aws:sts::365470560685:assumed-role/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256/antoni.caimari`. Coincide con la identidad de origen prevista. El conjunto de cambios anterior conserva el YAML antiguo: no ejecutarlo. Preparar otro CREATE con el archivo reducido y revisar exactamente dos adiciones de tipo AWS::IAM::Role antes de confirmar. No se ha creado ni ejecutado un change set desde esta sesión. La [evidencia actualizada](evidence/kms-effective-permissions-review.json) distingue identidad recibida, verificaciones offline y pruebas AWS pendientes.
+
+## Resultado posterior de la simulación de origen
+
+El usuario facilita desde CloudShell `Decision=allowed` y `MissingContext=[]` para `sts:AssumeRole`, origen `AWSReservedSSO_AdministratorAccess_6a3ad0308126a256`, destino `muserelay-aws-bridge-kms-recovery`. Se registra como evidencia suministrada por el usuario; no una llamada del servidor. Con la revisión local completada, el YAML reducido queda preparado para **generar y revisar un nuevo conjunto de cambios**, sin ejecutar el antiguo ni el nuevo todavía. La asunción real queda pendiente de que existan los roles; la administración de la clave requiere la etapa KMS posterior autorizada.

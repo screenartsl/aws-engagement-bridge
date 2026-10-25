@@ -39,6 +39,15 @@
       "Arn": "arn:aws:sts::365470560685:assumed-role/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256/antoni.caimari",
       "isRoot": false,
       "executedByAgent": false
+    },
+    "assumeRoleSourceSimulationEvidence": {
+      "source": "User-provided AWS CloudShell iam simulate-principal-policy result",
+      "sourceRoleArn": "arn:aws:iam::365470560685:role/aws-reserved/sso.amazonaws.com/eu-west-1/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256",
+      "action": "sts:AssumeRole",
+      "resourceArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery",
+      "Decision": "allowed",
+      "MissingContext": [],
+      "executedByAgent": false
     }
   }
 }

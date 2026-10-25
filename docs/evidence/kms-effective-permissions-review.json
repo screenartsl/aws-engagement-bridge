@@ -201,7 +201,7 @@
     "sourceStsIdentity": "CONFIRMED_FROM_USER_PROVIDED_CLOUDSHELL_OUTPUT",
     "attachedAdministratorAccessPolicy": "PENDING_REAL_READ",
     "permissionsBoundaryAndScp": "PENDING_REAL_READ",
-    "assumeRoleSourceSimulation": "PENDING_REAL_SIMULATION",
+    "assumeRoleSourceSimulation": "CONFIRMED_FROM_USER_PROVIDED_CLOUDSHELL_SIMULATION_ALLOWED_NO_MISSING_CONTEXT",
     "actualRecoveryRoleAssumption": "PENDING_ROLE_EXISTS_AND_AUTHORIZED_STS_CHECK",
     "actualKeyPolicyAdministration": "PENDING_KEY_EXISTS_AND_SEPARATE_AUTHORIZATION"
   },
@@ -217,5 +217,16 @@
     "isRoot": false,
     "executedByAgent": false
   },
-  "accountAuthenticatedByAgent": false
+  "accountAuthenticatedByAgent": false,
+  "sourcePermissionSimulationEvidence": {
+    "source": "User-provided AWS CloudShell iam simulate-principal-policy result",
+    "sourceRoleArn": "arn:aws:iam::365470560685:role/aws-reserved/sso.amazonaws.com/eu-west-1/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256",
+    "action": "sts:AssumeRole",
+    "resourceArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery",
+    "Decision": "allowed",
+    "MissingContext": [],
+    "executedByAgent": false
+  },
+  "readyToGenerateNewChangeSet": true,
+  "authorizedToExecuteChangeSet": false
 }
