@@ -99,5 +99,7 @@
     "Inbound redrive target ARN literal",
     "Processing DLQ RedriveAllowPolicy literal",
     "S3 multipart-abort lifecycle value"
-  ]
+  ],
+  "subsequentAssociationEvidence": "social-linked-ingress-user-evidence.json",
+  "snapshotIsHistoricalBeforeAssociation": true
 }

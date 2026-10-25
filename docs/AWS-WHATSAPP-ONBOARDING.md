@@ -1,5 +1,7 @@
 # Incorporación de WhatsApp mediante AWS End User Messaging Social
 
+> Estado posterior 25-10-2026: el usuario comunica WABA y número demo vinculados/activos, destino SNS habilitado y dos elementos visibles en la cola de entrada, sin lectura/borrado/procesamiento. La [inspección puntual redactada](INBOUND-SAMPLE-INSPECTION.md) está preparada, no ejecutada y requiere autorización específica por sus efectos ReceiveMessage. La asociación ya se ha realizado por el usuario; no repetir el alta o el guardado siguiendo instrucciones históricas de abajo.
+
 > Estado actual 25-10-2026: el usuario confirma ingreso CREATE_COMPLETE, ARN SNS real y verificación parcial CloudShell de KMS/SNS. La [verificación posterior y guía de asociación](INGRESS-POST-DEPLOYMENT.md) prevalece sobre los pendientes históricos. El usuario ya confirma las lecturas SQS/S3/RawMessageDelivery y ausencia de mappings Lambda, conformes al diseño; el destino Social no está configurado ni autorizado todavía.
 
 Documento técnico y de producto. Revisado el **25 de octubre de 2026, Europe/Paris**. Describe el proceso de demostración y las decisiones pendientes para clientes/resellers. No constituye autorización para crear recursos, registrar activos, modificar permisos, activar organizaciones ni enviar mensajes. La revisión actual prepara documentación e infraestructura local; no modifica AWS ni producción.
@@ -307,3 +309,9 @@ Faltan atributos reales de la suscripción, colas y bucket, y mappings Lambda fi
 El usuario confirma desde CloudShell RawMessageDelivery=false, suscripción autenticada y DLQ de entrega, SSE-SQS en las tres colas, retenciones 4/14 días, maxReceiveCount=5, políticas SNS restringidas, contadores aproximados cero, mappings Lambda vacíos y configuración privada/cifrada S3 con ciclo a 30 días y etiquetas previstas. No hubo AccessDenied ni mensajes publicados/recibidos/consumidos en la auditoría. Son resúmenes facilitados, no JSON bruto inspeccionado por el agente.
 
 La [guía posterior](INGRESS-POST-DEPLOYMENT.md) queda preparada para revisar la WABA AWS vinculada, su registro, sus números y destino actual. Después se prepararía Amazon SNS con el ARN real, deteniéndose antes de Guardar. Este cierre documental no autoriza cambiar el destino, completar un alta, activar consumidores/agentes/runtime ni enviar pruebas.
+
+## Vinculación completada e inspección preparada
+
+Según el usuario, la WABA Meta `29207063275646749` y el número de demo están conectados, y el destino SNS staging está activo. Su instantánea SQS indica dos visibles en entrada, cero en ambas DLQ, cero en procesamiento y cero retrasados. No se han inspeccionado contenidos; no afirmar que esos elementos sean dos textos de usuario. [Evidencia recibida](evidence/social-linked-ingress-user-evidence.json).
+
+El siguiente paso preparado es un único muestreo de hasta dos eventos, con salida de estructura/tipos redactada, sin guardar cuerpos ni borrar mensajes. ReceiveMessage cambia contador/visibilidad aunque no elimine: la herramienta por defecto solo muestra un plan local y la ejecución necesita autorización separada. No se ha activado Bridge, Core, agentes, consumidores o envíos. Los contadores aproximados no certifican entrega ni conversación extremo a extremo.

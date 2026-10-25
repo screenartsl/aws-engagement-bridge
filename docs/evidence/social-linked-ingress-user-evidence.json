@@ -1,0 +1,38 @@
+{
+  "kind": "USER_PROVIDED_POST_LINK_VERIFICATION_SUMMARY",
+  "recordedDate": "2026-10-25 Europe/Paris",
+  "Account": "365470560685",
+  "Region": "eu-west-1",
+  "metaWabaId": "29207063275646749",
+  "wabaReportedLinkedAndActive": true,
+  "demoPhoneReportedConnected": true,
+  "eventDestinationReportedEnabled": true,
+  "eventDestinationArn": "arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound",
+  "reportedQueueSnapshot": {
+    "inboundVisibleApproximate": 2,
+    "inboundDlqVisibleApproximate": 0,
+    "snsDeliveryDlqVisibleApproximate": 0,
+    "inFlightApproximate": 0,
+    "delayedApproximate": 0
+  },
+  "userReportsMessagesReadDeletedOrProcessed": false,
+  "rawPayloadProvidedToAgent": false,
+  "eventCategoriesIdentified": false,
+  "awsLinkedWabaAndPhoneArnLiteralsProvided": false,
+  "changesPerformedByAgent": false,
+  "authenticatedAwsCallsByAgent": 0,
+  "sampleInspectionPrepared": true,
+  "receiveMessageExecutedByAgent": false,
+  "receiveMessageExecutionAuthorized": false,
+  "coreRuntimeConsumersAgentsOrSendActivatedByAgent": false,
+  "nextStep": "Review and separately authorize one ReceiveMessage of at most two items, 30-second per-message visibility, redacted output and no deletion",
+  "localPreparationChecks": {
+    "privacyAndSafetyTests": 12,
+    "result": "PASS_SYNTHETIC_NETWORK_ISOLATED",
+    "defaultPlanAwsCalls": 0,
+    "inspectorSha256": "3c4727d791082f6e242c5a710d1c74fbc415b0f1dda313971b11ab533c1d2f34",
+    "runtimeOrTemplateChanged": false
+  },
+  "demoPhoneReference": "Dedicated demo number documented in AWS-WHATSAPP-ONBOARDING.md",
+  "demoPhoneLastFour": "9169"
+}

@@ -1,5 +1,7 @@
 # Verificación posterior del ingreso y preparación del destino WhatsApp
 
+> Actualización posterior: el usuario comunica asociación WhatsApp/SNS ya completada y dos elementos visibles en la entrada. Las instrucciones de asociación de este documento describen la etapa anterior; no repetirlas ni alterar el destino actual. Véase [INBOUND-SAMPLE-INSPECTION.md](INBOUND-SAMPLE-INSPECTION.md): inspección redactada preparada, sin ejecución ni activación del runtime.
+
 Fecha: 25-10-2026, Europe/Paris. Cuenta Screen Art `365470560685`, región `eu-west-1`. **Solo lectura y preparación: no autoriza cambios AWS, conexión de WABA, consumidores, agentes, envíos ni runtime.**
 
 ## Estado y procedencia de la evidencia
@@ -19,8 +21,8 @@ El usuario comunica la pila `muserelay-aws-bridge-stage` en CREATE_COMPLETE y ap
 | SQS: cifrado, políticas, retención y redrive | Usuario confirma SSE-SQS en las tres colas; entrada 4 días, DLQ 14 días; maxReceiveCount=5; políticas SNS restringidas a tema/cuenta y contadores aproximados cero. |
 | S3: bloqueo público, cifrado, propietario y política | Usuario confirma cuatro bloqueos públicos, AES256, BucketOwnerEnforced, RequireTls, Irlanda, expiración a 30 días y etiquetas previstas. |
 | Mappings Lambda sobre las tres colas | Usuario confirma [] en las tres lecturas filtradas. No excluye un poller externo distinto de Lambda. |
-| Destino Social/WABA | Usuario confirma que no se ha configurado; IDs AWS de WABA/teléfono pendientes de identificar. |
-| Pruebas de eventos, envíos y agentes | No realizadas. No autorizadas por este procedimiento. |
+| Destino Social/WABA | Posteriormente el usuario confirma WABA/número demo activos y destino staging habilitado. Los identificadores AWS literales de WABA/teléfono no se han facilitado al agente. |
+| Ingreso de eventos | Usuario informa de dos elementos visibles, sin inspección de contenido. Envíos, agentes y runtime siguen sin probar/activar por este procedimiento. |
 
 **Resultado de las lecturas comunicadas:** configuración coincidente con el diseño, sin AccessDenied ni pruebas de mensajes. GO para preparar la asociación Social; guardarla sigue sin autorizar. El usuario no ha transcrito individualmente VisibilityTimeout, ARN literal de redrive de entrada, RedriveAllowPolicy de DLQ y regla multipart; se conserva ese límite del resumen, sin presentarlos como verificaciones independientes del agente.
 
