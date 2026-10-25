@@ -2,6 +2,8 @@
 
 25/10/2026, Europe/Paris. Se mantiene el alcance de recepción primero. No se interpretan «vamos a conectarlo todo» ni la creación del usuario demo como autorización para desplegar recursos, modificar producción o consumir/envíar mensajes reales.
 
+Actualización: el propietario autorizó específicamente la subida de bridge.zip y comunica que ya se completó, con tamaño/checksum/AES256 coincidentes y sin sobrescritura. Caducidad prevista comunicada: 25/11/2026, regla ExpireDemoArtifacts. [Evidencia con procedencia](../deploy/runtime-review/evidence.s3-upload.owner-reported.json). No repetir esa escritura ni considerar que autoriza el despliegue. El siguiente paso de consola es crear/revisar el conjunto deshabilitado.
+
 ## Qué prepara el arquitecto
 
 - Runtime de recepción compatible con la cuota comunicada (10 total/10 no reservadas): sin reserva de función inbound y máximo dos invocaciones de su mapping SQS, que permanece deshabilitado. No aumentar cuotas ni cambiar la fundación IAM.
@@ -35,9 +37,9 @@ IAM Foundation está UPDATE_COMPLETE. Lambda GetAccountSettings devuelve cuota t
 
 Descargaremos del nuevo draft PRIVADO de screenartsl/aws-engagement-bridge los archivos bridge.zip, bridge.zip.sha256, runtime.template.yaml y parameters.disabled.json. Si no puedes acceder a GitHub privado, pídeme esos archivos; no pidas tokens ni inventes parámetros.
 
-Primero revisaremos las lecturas IAM pendientes. La subida del ZIP a S3 requiere mi autorización específica. Una vez autorizado, usaremos únicamente el bucket y clave del manifiesto vigente, con privacidad y cifrado existentes, y comprobaremos el checksum. No crear buckets ni cambiar políticas/IAM.
+La subida específica del ZIP a S3 ya fue autorizada y realizada. Se verificaron 274324 bytes, checksum SHA256 njd/eYAYquRKp6qTpunrOIfZkaE0e4eyotCnJYJnR9s=, AES256 y ninguna sobrescritura. No repetir la subida, crear buckets ni cambiar políticas/IAM. Completaremos las lecturas IAM pendientes.
 
-Después prepararemos, sin ejecutar, un conjunto UPDATE de la pila existente muserelay-aws-bridge-stage. Usaremos el rol muserelay-aws-bridge-stage-cfn-execution. DeployProcessing=true solo para proponer los recursos; DeployOutbound, ProcessingEnabled, ReceiveEnabled, SendEnabled y LiveSend permanecen false, binding disabled y destinatarios vacíos.
+Ahora prepararemos, sin ejecutar, el conjunto receive-runtime-review-88161733676d-82707086, UPDATE de la pila existente muserelay-aws-bridge-stage. La plantilla nueva tiene SHA256 88161733676dae8d788eff092cf75c6430c5ca28860e7f7048804e5ce3f694ac y el paquete está en releases/82707086af6e0597d741c3e44e7ce843c074a326/bridge.zip del bucket muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1. Usaremos el rol muserelay-aws-bridge-stage-cfn-execution. DeployProcessing=true solo para proponer los recursos; DeployOutbound, ProcessingEnabled, ReceiveEnabled, SendEnabled y LiveSend permanecen false, binding disabled y destinatarios vacíos.
 
 Esperamos cinco Add: State, InboundFunction, InboundLogs, SigningSecret e InboundFunctionInput. Ningún cambio del ingreso existente, ninguna eliminación/sustitución y ningún rol IAM nuevo. Detenerse si difiere. Compartiremos el conjunto completo con el arquitecto antes de autorizar su ejecución. No modificar MuseRelay, inicializar secretos, consumir SQS, invocar Lambda/Bedrock ni enviar WhatsApp.
 ```

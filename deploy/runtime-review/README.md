@@ -6,6 +6,8 @@ Preparación del 25/10/2026 (Europe/Paris). El propietario comunica IAM Foundati
 
 **Estado de esta entrega:** solicitud completa preparada localmente, cero llamadas AWS, sin upload S3, sin conjunto creado en AWS, sin despliegue ni cambios de MuseRelay. La solicitud propone recursos para revisión; no es autorización para crearlos. El ZIP y la plantilla conservan los hashes revisados. No se cambia el YAML raíz ni la plantilla IAM ya desplegada.
 
+**Evidencia posterior del propietario:** la subida específica autorizada ya se completó en S3. Comunicó 274324 bytes, checksum SHA256 base64 `njd/eYAYquRKp6qTpunrOIfZkaE0e4eyotCnJYJnR9s=`, AES256 y ausencia de sobrescritura para la clave vigente. Coincide con el paquete local revisado. Se conserva el [registro con procedencia y alcance](evidence.s3-upload.owner-reported.json); no es una consulta AWS directa de este servidor. El manifiesto `manifest.prepared.json` se conserva como snapshot anterior a esa subida. Sigue sin autorizarse la ejecución del runtime, consumidores, secretos o cambios de MuseRelay. El siguiente paso es crear/revisar el conjunto, sin ejecutarlo.
+
 ## Archivos y versión
 
 - YAML: [`template.yaml` de la raíz](../../template.yaml), fijado al commit `82707086af6e0597d741c3e44e7ce843c074a326`.
@@ -15,7 +17,7 @@ Preparación del 25/10/2026 (Europe/Paris). El propietario comunica IAM Foundati
 - [Manifiesto de alcance y requisitos pendientes](manifest.prepared.json).
 - [Validación SAM offline con estos parámetros](validation.offline.json).
 
-La solicitud anteriormente tenía un marcador de artefacto pendiente. Ahora referencia un paquete **real, local y fijado**. Eso no significa que el objeto exista ya en S3. No subirlo ni reconstruir una alternativa como InlineCode sin autorización.
+La solicitud referencia el paquete fijado cuya subida a S3 ha confirmado el propietario. No volver a subirlo, sobrescribirlo ni reconstruir una alternativa como InlineCode. Su existencia/checksum se acreditan mediante la evidencia posterior indicada arriba, no por el mero contenido de la solicitud.
 
 | Identificador | Valor |
 | --- | --- |
@@ -104,13 +106,15 @@ Se esperan políticas administradas adjuntas vacías en esos roles y ninguna bou
 
 La función inbound ya no configura ReservedConcurrentExecutions. Usa el pool no reservado y su mapping SQS tiene MaximumConcurrency=2 (mínimo admitido para este control), sin pollers provisionados. Es una configuración compatible a nivel de plantilla con el dato comunicado de 10 unidades no reservadas; no certifica permisos ni despliegue. MaximumConcurrency limita este origen SQS, no las invocaciones manuales ni toda la cuenta, y no impone orden entre mensajes. Cuando se active, las entregas pueden duplicarse y concurrir: mantener idempotencia y serialización por conversación en Core. Este ajuste desactiva la optimización de polling de baja actividad y puede aumentar las peticiones SQS al activar el mapping. Las funciones outbound futuras conservan su reserva 1, pero no se seleccionan ahora y requieren otra revisión de cuota. No solicitar aumento ni modificar otras funciones para esta propuesta de recepción.
 
-El objeto S3 aún no ha sido subido por esta preparación. Solo si se comunica una subida autorizada, comprobar su existencia/checksum sin descargar ni ejecutar código:
+El propietario ya ha comunicado la subida autorizada y su checksum. Esta es la lectura para una comprobación futura si hace falta confirmar de nuevo disponibilidad antes de ejecutar, sin descargar ni ejecutar código:
 
 ```sh
 aws s3api head-object --region eu-west-1 --bucket muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1 --key releases/82707086af6e0597d741c3e44e7ce843c074a326/bridge.zip --expected-bucket-owner 365470560685 --checksum-mode ENABLED --query '{Bytes:ContentLength,ChecksumSHA256:ChecksumSHA256,ChecksumType:ChecksumType,Metadata:Metadata}' --output json --no-cli-pager
 ```
 
-No interpretar un 403 como prueba de inexistencia. El checksum SHA256 S3 se expresa en base64; debe convertirse el hash hexadecimal esperado o calcularse sobre el ZIP original para compararlo. Un ETag o un campo de metadata no sustituyen esa comprobación criptográfica. La subida futura debería almacenar checksum SHA256 completo; si no está disponible, revisar un método de verificación antes de ejecutar. No usar un ZIP de otro commit bajo esta misma clave.
+No interpretar un 403 como prueba de inexistencia. El checksum SHA256 S3 se expresa en base64; debe convertirse el hash hexadecimal esperado o calcularse sobre el ZIP original para compararlo. Un ETag o un campo de metadata no sustituyen esa comprobación criptográfica. Las subidas futuras deberían almacenar checksum SHA256 completo; si no está disponible, revisar un método de verificación antes de ejecutar. No usar un ZIP de otro commit bajo esta misma clave.
+
+El propietario comunica caducidad prevista **25/11/2026** por `ExpireDemoArtifacts`, sin hora/zona especificada. No afecta a la preparación de la demo de octubre. Sí limita futuras creaciones, actualizaciones o reversiones que necesiten leer de nuevo esa clave después de su eliminación. Con el almacenamiento Lambda COPY predeterminado, Lambda conserva su copia al desplegar; la eliminación del ZIP de origen no equivale a borrar automáticamente una función ya creada. Conservar el paquete fijado y su hash en el draft privado para recuperación. No prolongar la regla, reponer objetos ni cambiar el bucket sin autorización.
 
 ## Preparación desde consola, sin ejecutar
 
@@ -119,7 +123,7 @@ No interpretar un 403 como prueba de inexistencia. El checksum SHA256 S3 se expr
 3. Nombre `receive-runtime-review-88161733676d-82707086`. Copiar todos los valores de `parameters.disabled.json`; no reutilizar valores vacíos de DeployProcessing del bootstrap. Confirmar los cinco controles false y DeployOutbound=false. DeployProcessing=true únicamente describe los recursos propuestos.
 4. Permisos: conservar/seleccionar el rol `muserelay-aws-bridge-stage-cfn-execution`. A diferencia de la actualización IAM anterior, **esta pila sí usa ese rol**. No usar los roles de ejecución Lambda como rol de CloudFormation.
 5. Revisar la transformación SAM. La solicitud JSON reconoce CAPABILITY_AUTO_EXPAND; no incorpora CAPABILITY_NAMED_IAM ni crea roles. Una solicitud que use Capabilities no debe añadir simultáneamente ResourceTypes. Conservar etiquetas/opciones de pila. Si la consola plantea capacidades/recursos distintos, revisar antes de avanzar.
-6. Crear únicamente el conjunto para revisión. Se referencia la clave S3 prevista, pero el objeto no está verificado ni subido: si AWS rechaza la preparación por esa ausencia, detenerse, compartir el error y solicitar autorización específica para subir el artefacto. No improvisar otra fuente de código. En todo caso el ZIP debe existir y estar verificado antes de cualquier ejecución.
+6. Crear únicamente el conjunto para revisión. Usar la clave exacta cuya subida/checksum ha confirmado el propietario. Si AWS no puede leerla, detenerse y compartir el error; no volver a subirla ni ampliar permisos como reacción automática. No improvisar otra fuente de código. Antes de una ejecución futura, comprobar que el objeto siga disponible y que no haya vencido su regla de lifecycle.
 7. Esperar CREATE_COMPLETE / AVAILABLE. Revisar cinco Add y los nombres/tipos previstos; **Enabled=false** en el mapping; rol inbound correcto; entorno BRIDGE_RUNTIME_ENABLED/BRIDGE_RECEIVE_ENABLED/BRIDGE_SEND_ENABLED/BRIDGE_LIVE_SEND todos false; secreto sin valor; ninguna sustitución, modificación ni eliminación del ingreso.
 8. Si una propiedad aparece truncada, obtener GetTemplate Original y Processed del conjunto por su nombre y pila para comparar. No basarse solo en el contador de cambios.
 9. Compartir estado, nombre/ARN completo, cambios y parámetros. **No pulsar Ejecutar**. La ejecución del runtime requiere autorización separada después de cerrar artefacto, cuota y permisos.
