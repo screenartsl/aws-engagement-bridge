@@ -68,6 +68,8 @@ final class CoreTest extends TestCase
             $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]);
         }
         $this->capsule->setAsGlobal(); $this->capsule->bootEloquent();
+        $app->instance('db', $this->capsule->getDatabaseManager());
+        $app->bind('db.schema', fn () => $this->capsule->getConnection()->getSchemaBuilder());
         $db = $this->capsule->getConnection();
         self::assertSame($pgSocket ? 'pgsql' : 'sqlite', $db->getPdo()->getAttribute(PDO::ATTR_DRIVER_NAME));
         if ($pgSocket) {
@@ -209,6 +211,35 @@ final class CoreTest extends TestCase
         self::assertSame(202, $controller->events($r)->getStatusCode());
         self::assertSame(409, $controller->events($r)->getStatusCode());
         self::assertSame(200, $controller->events($this->request($this->event()))->getStatusCode());
+    }
+    public function testDormantActivationNeedsNoBindingOrAwsSecretAndRejectsCallbacksBeforeNonceWrites(): void
+    {
+        $this->controls=['receive'=>false,'agent'=>false,'send'=>false];
+        $this->store->db->table('aws_bridge_bindings')->delete();
+        self::assertTrue($this->store->isEnabled());
+        self::assertSame([], (new \MuseRelay\AwsEngagementBridge\Core\CoreReadiness())->problems());
+        $response=$this->controller()->events($this->request($this->event()));
+        self::assertSame(503,$response->getStatusCode());
+        self::assertSame('bridge_receive_disabled',$response->getData(true)['error']);
+        self::assertSame(0,$this->store->db->table('aws_bridge_nonces')->count());
+        self::assertSame(0,$this->store->db->table('aws_bridge_events')->count());
+    }
+    public function testReceiveReadinessStillRequiresBinding(): void
+    {
+        config(['aws_bridge.receive_enabled'=>true]);
+        $this->store->db->table('aws_bridge_bindings')->delete();
+        self::assertSame(['demo_binding_missing'], (new \MuseRelay\AwsEngagementBridge\Core\CoreReadiness())->problems());
+    }
+    public function testReceiveReadinessStillRequiresSigningKey(): void
+    {
+        config(['aws_bridge.receive_enabled'=>true, 'aws_bridge.signing_keys_file'=>'']);
+        $this->store->db->table('aws_bridge_bindings')->update(['account_id'=>'365470560685']);
+        self::assertSame(['signing_keys_missing'], (new \MuseRelay\AwsEngagementBridge\Core\CoreReadiness())->problems());
+    }
+    public function testDormantReadinessStillRequiresInstalledSchema(): void
+    {
+        $this->store->db->getSchemaBuilder()->drop('aws_bridge_outbox');
+        self::assertSame(['bridge_schema_missing'], (new \MuseRelay\AwsEngagementBridge\Core\CoreReadiness())->problems());
     }
     public function testBadHttpSignatureCannotCreateAnEvent(): void
     {

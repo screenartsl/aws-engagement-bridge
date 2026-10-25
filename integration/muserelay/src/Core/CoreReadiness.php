@@ -11,6 +11,10 @@ final class CoreReadiness
         foreach (['aws_bridge_bindings','aws_bridge_events','aws_bridge_actions','aws_bridge_nonces','aws_bridge_outbox'] as $table) {
             if (!\Illuminate\Support\Facades\Schema::hasTable($table)) return ['bridge_schema_missing'];
         }
+        // A scoped, dormant extension can be enabled before connecting any AWS channel.
+        // This validates installation only; it must not be advertised as connected messaging.
+        if (config('aws_bridge.receive_enabled',false)!==true && config('aws_bridge.agent_enabled',false)!==true
+            && config('aws_bridge.send_enabled',false)!==true) return [];
         $send=config('aws_bridge.send_enabled',false)===true;
         $url=(string)config('aws_bridge.outbound_url','');
         if ($send && !preg_match('~^https://[a-z0-9]+\.execute-api\.eu-west-1\.amazonaws\.com/outbound$~D',$url)) $problems[]='aws_endpoint_missing';

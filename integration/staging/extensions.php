@@ -29,7 +29,7 @@ $config['modules']['outside-control']=['name'=>'Outside control','path'=>$root.'
 $app['config']->set('extensions',$config);
 $provider=new ExtensionServiceProvider($app);$provider->register();$provider->boot();
 $manager=$app->make(ExtensionManager::class);
-extensionCheck($manager->manifest('aws-engagement-bridge')['version']==='0.5.0','installed module manifest and API version resolved');
+extensionCheck($manager->manifest('aws-engagement-bridge')['version']==='0.5.1','installed module manifest and API version resolved');
 extensionCheck(!$manager->enabled('aws-engagement-bridge'),'Bridge stays off without any stored opt-in');
 extensionCheck($manager->problems('broken-control')===['extension_register_failed'],'bad provider fails closed');
 extensionCheck($manager->problems('outside-control')===['extension_register_failed'],'outside module path rejected');

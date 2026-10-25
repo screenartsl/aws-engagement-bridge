@@ -14,6 +14,7 @@ final class Controller
     private function receive(Request $request, bool $receipt): JsonResponse
     {
         try {
+            if (!$receipt) $this->store->requireOperation('receive');
             $raw = $request->getContent();
             if (strlen($raw) > 20000) throw new BridgeException('payload_too_large', 413);
             $id = (string) $request->header('x-bridge-binding', '');
