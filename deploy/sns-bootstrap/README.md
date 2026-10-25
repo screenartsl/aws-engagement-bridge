@@ -1,6 +1,8 @@
-# Etapa 1: ingreso SNS/SQS cifrado — NO desplegado
+# Etapa 1: ingreso desplegado según evidencia del usuario; auditoría parcial
 
-Revisión vigente: [SNS-BOOTSTRAP-CHANGE-SET.md](../../docs/SNS-BOOTSTRAP-CHANGE-SET.md). IAM Foundation está creada según salidas facilitadas por el usuario. `parameters.stage.json`, `change-set.create.prepared.json` y `review-manifest.json` preparan la revisión; no existe un change set AWS creado desde esta sesión. El usuario ya confirma UPDATE_COMPLETE y verificación de la política ampliada del ejecutor. Preparar ahora únicamente el change set de ingreso; su ejecución sigue requiriendo autorización separada.
+Actualización posterior: el usuario comunica CREATE_COMPLETE y el ARN SNS real, KMS habilitado con política prevista y una suscripción SQS confirmada. Faltan lecturas de atributos de suscripción, colas y S3. Véase la [auditoría posterior y asociación Social preparada](../../docs/INGRESS-POST-DEPLOYMENT.md). **No repetir CREATE ni ejecutar los archivos de preparación para recrear esta pila.** El YAML no cambia; conectar la WABA y activar runtime/envíos requieren autorización separada.
+
+Revisión histórica de preparación: [SNS-BOOTSTRAP-CHANGE-SET.md](../../docs/SNS-BOOTSTRAP-CHANGE-SET.md). IAM Foundation está creada según salidas facilitadas por el usuario. `parameters.stage.json`, `change-set.create.prepared.json` y `review-manifest.json` preparan la revisión; no existe un change set AWS creado desde esta sesión. El usuario ya confirma UPDATE_COMPLETE y verificación de la política ampliada del ejecutor. Preparar ahora únicamente el change set de ingreso; su ejecución sigue requiriendo autorización separada.
 
 Cuenta Screen Art `365470560685`, región `eu-west-1`, pila exacta **`muserelay-aws-bridge-stage`**. El usuario informa de una lista SNS vacía y de avanzar en el alta Meta; no hay inventario AWS independiente desde esta sesión. No crear recursos ni copiar un ARN supuesto al formulario sin autorización y verificación.
 

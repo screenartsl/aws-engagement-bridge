@@ -1,5 +1,7 @@
 # Revisión de Social → SNS SSE-KMS y protección administrativa
 
+> Actualización posterior: el usuario comunica CREATE_COMPLETE y clave KMS habilitada con las cuatro declaraciones previstas, comprobadas desde CloudShell. Véase [verificación posterior](INGRESS-POST-DEPLOYMENT.md). El análisis previo de diseño siguiente es histórico; no se ha probado entrega de eventos ni realizado una escritura de recuperación KMS.
+
 Fecha: 25-10-2026, Europe/Paris. **No requiere corregir el YAML ni generar otro change set por esta cuestión. No autoriza ejecutar el conjunto existente.**
 
 Fuente revisada: `deploy/sns-bootstrap/template.yaml` del commit `5f563ea4387c9694782943566614e38b9463168a`, SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`. La documentación posterior conserva ese contenido. El usuario confirma el conjunto `ingress-review-4bc773772e50` en CREATE_COMPLETE/AVAILABLE con doce Add y las propiedades previstas; es evidencia facilitada, no una consulta AWS del agente.

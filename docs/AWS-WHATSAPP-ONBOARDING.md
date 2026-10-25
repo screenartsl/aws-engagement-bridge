@@ -1,5 +1,7 @@
 # Incorporación de WhatsApp mediante AWS End User Messaging Social
 
+> Estado actual 25-10-2026: el usuario confirma ingreso CREATE_COMPLETE, ARN SNS real y verificación parcial CloudShell de KMS/SNS. La [verificación posterior y guía de asociación](INGRESS-POST-DEPLOYMENT.md) prevalece sobre los pendientes históricos. SQS/S3/RawMessageDelivery siguen pendientes de lectura; el destino Social no está configurado ni autorizado todavía.
+
 Documento técnico y de producto. Revisado el **25 de octubre de 2026, Europe/Paris**. Describe el proceso de demostración y las decisiones pendientes para clientes/resellers. No constituye autorización para crear recursos, registrar activos, modificar permisos, activar organizaciones ni enviar mensajes. La revisión actual prepara documentación e infraestructura local; no modifica AWS ni producción.
 
 ## 1. Qué está disponible y qué es una propuesta
@@ -293,3 +295,9 @@ El usuario confirma UPDATE_COMPLETE de IAM Foundation, ARN sin cambios, nuevas a
 ### Conjunto de ingreso y revisión del principal KMS
 
 El usuario confirma el change set `ingress-review-4bc773772e50` disponible, doce Add y configuración prevista, todavía sin ejecutar. La [revisión oficial de compatibilidad](SNS-KMS-COMPATIBILITY.md) confirma el principal Social y las condiciones de cuenta/origen Social; no es necesaria una concesión adicional a SNS en esta clave. Se comprobó localmente el acceso PutKeyPolicy del ejecutor y BypassPolicyLockoutSafetyCheck=false, sin creación real de clave. El YAML no cambia y no se genera un conjunto nuevo por esta cuestión. No se ha asociado WABA ni enviado mensajes.
+
+## Ingreso desplegado y revisión posterior
+
+El usuario informa de CREATE_COMPLETE de `muserelay-aws-bridge-stage`, tema SNS real `arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound`, clave dedicada `d712bd69-6b20-48b2-918a-fea097f7241a` habilitada con configuración y política previstas, y una suscripción SQS confirmada al destino de entrada. Son resúmenes de comprobaciones CloudShell proporcionados por el usuario; el agente no ha leído AWS directamente.
+
+Faltan atributos reales de la suscripción, colas y bucket, y mappings Lambda filtrados. Se prepara un recolector solo de metadatos, sin dependencias adicionales, con guardia de identidad y lista cerrada de lecturas; no certifica automáticamente políticas ni entrega. La guía nueva distingue preparación de autorización para guardar el destino. La asociación afecta a todos los números de la WABA e iniciaría potencialmente ingreso SNS/SQS aunque el runtime permanezca apagado. No se han enviado pruebas ni modificado la configuración AWS desde esta sesión.

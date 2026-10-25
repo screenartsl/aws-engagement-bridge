@@ -1,0 +1,58 @@
+{
+  "kind": "USER_PROVIDED_AWS_CLOUDSHELL_VERIFICATION_SUMMARIES",
+  "recordedDate": "2026-10-25 Europe/Paris",
+  "Account": "365470560685",
+  "Region": "eu-west-1",
+  "StackName": "muserelay-aws-bridge-stage",
+  "StackStatus": "CREATE_COMPLETE",
+  "serviceRoleReported": "muserelay-aws-bridge-stage-cfn-execution",
+  "kmsParametersReportedCorrect": true,
+  "InboundTopicArn": "arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound",
+  "kmsKeyIdReported": "d712bd69-6b20-48b2-918a-fea097f7241a",
+  "sns": {
+    "socialPublishPrincipalAndSourceConditionsReportedCorrect": true,
+    "SubscriptionsConfirmed": 1,
+    "SubscriptionsPending": 0
+  },
+  "kms": {
+    "KeyState": "Enabled",
+    "Enabled": true,
+    "KeySpec": "SYMMETRIC_DEFAULT",
+    "KeyUsage": "ENCRYPT_DECRYPT",
+    "KeyManager": "CUSTOMER",
+    "Origin": "AWS_KMS",
+    "MultiRegion": false,
+    "reportedPolicyStatementSids": [
+      "DedicatedKeyAdministration",
+      "DedicatedRecoveryAdministrator",
+      "AccountPolicyRecovery",
+      "AllowScreenArtSocialPublishEncryption"
+    ],
+    "principalsActionsAndSourceConditionsReportedMatchingReviewedTemplate": true
+  },
+  "subscription": {
+    "Protocol": "sqs",
+    "Endpoint": "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue",
+    "subscriptionArnReportedMatchingCloudFormationOutput": true,
+    "subscriptionArnLiteralNotProvided": true,
+    "RawMessageDeliveryPostDeployment": "PENDING",
+    "RedrivePolicyPostDeployment": "PENDING"
+  },
+  "pending": [
+    "Actual SQS encryption, queue resource policies, retention and redrive attributes",
+    "Actual subscription RawMessageDelivery and RedrivePolicy",
+    "Actual S3 block public access, encryption, ownership, policy and lifecycle",
+    "Lambda mappings filtered to each queue; non-Lambda pollers not observable via that API",
+    "AWS-linked demo WABA/phone identifiers and registration status"
+  ],
+  "rawPolicyJsonProvidedToAgent": false,
+  "authenticatedAwsCallsByAgent": 0,
+  "awsWritesByAgent": 0,
+  "serverAwsCliOrCredentialsAvailable": false,
+  "whatsappEventDestinationReportedConfigured": false,
+  "testMessagesReportedPublished": false,
+  "associationAuthorized": false,
+  "runtimeActivationAuthorized": false,
+  "liveSendAuthorized": false,
+  "decision": "PARTIAL_VERIFICATION_FROM_USER_EVIDENCE_REMAINING_READS_REQUIRED"
+}
