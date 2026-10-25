@@ -34,5 +34,7 @@
     "runtimeOrTemplateChanged": false
   },
   "demoPhoneReference": "Dedicated demo number documented in AWS-WHATSAPP-ONBOARDING.md",
-  "demoPhoneLastFour": "9169"
+  "demoPhoneLastFour": "9169",
+  "subsequentConditionalAuthorizationAndCodeReview": "inspection-pinned-code-review.json",
+  "snapshotBeforeConditionalAuthorization": true
 }

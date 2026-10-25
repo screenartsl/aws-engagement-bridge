@@ -1,5 +1,7 @@
 # Inspección puntual de eventos recibidos — preparada, no ejecutada
 
+> Actualización posterior: el usuario da GO condicionado, limitado a una recepción, y pide revisión del commit fijado y simulación antes de cualquier ReceiveMessage. El [procedimiento exacto de descarga e integridad](CLOUDSHELL-INSPECTION-PINNED.md) cubre esta fase. El código del commit `55e5437c2b39ff42a391c2e46e03267e8ebd335c` se ha revisado y permanece sin cambios; no se ha realizado ninguna recepción.
+
 Fecha: 25-10-2026, Europe/Paris. Cuenta Screen Art `365470560685`, región `eu-west-1`. No cambia la infraestructura ni activa el Core, workers, agentes, Bedrock o envíos. **La ejecución del muestreo requiere autorización específica: ReceiveMessage afecta al estado de recepción SQS.**
 
 ## Evidencia nueva recibida

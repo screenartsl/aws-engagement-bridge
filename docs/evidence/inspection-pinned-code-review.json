@@ -1,0 +1,66 @@
+{
+  "reviewDate": "2026-10-25 Europe/Paris",
+  "pinnedCommit": "55e5437c2b39ff42a391c2e46e03267e8ebd335c",
+  "scriptSha256": "3c4727d791082f6e242c5a710d1c74fbc415b0f1dda313971b11ab533c1d2f34",
+  "localFileEqualsPinnedBlob": true,
+  "sourceReviewed": true,
+  "tests": "12 PASS, pinned files in disposable directory with network isolated",
+  "defaultMainCalledSubprocesses": 0,
+  "defaultModePlan": {
+    "mode": "PREPARED_NOT_EXECUTED",
+    "awsCalls": 0,
+    "account": "365470560685",
+    "region": "eu-west-1",
+    "queue": "muserelay-aws-bridge-stage-inbound-queue",
+    "receiveCalls": 1,
+    "maximumMessages": 2,
+    "waitTimeSeconds": 0,
+    "visibilitySeconds": 30,
+    "receiveCountIncrements": true,
+    "automaticSdkRetries": false,
+    "deletes": false,
+    "visibilityResetCalls": false,
+    "persistentWorkers": false,
+    "rawPayloadPrintedOrSaved": false,
+    "coreOrRuntimeActivation": false,
+    "authorization": "Separate express authorization required before --receive-once"
+  },
+  "codeChanged": false,
+  "authenticatedAwsCalls": 0,
+  "receiveMessageExecuted": false,
+  "reviewScope": [
+    "Single receive call in inspect after identity/queue/inflight/mapping guards",
+    "MaxNumberOfMessages=2, VisibilityTimeout=30, WaitTimeSeconds=0",
+    "No deletion, visibility-reset, send, worker or runtime operations",
+    "AWS_MAX_ATTEMPTS=1; no receive loop or automatic retry",
+    "Fixed allowlist for all payload-derived output fields",
+    "CLI history guard before AWS requests; captured stdout, no debug or raw payload files"
+  ],
+  "limitations": [
+    "Simulation does not run AWS preflight checks",
+    "One call may return zero, one or two items; do not rerun deliberately",
+    "Receiving still increments receive count and changes temporary visibility",
+    "Script does not prevent a separate manual second invocation",
+    "No actual receipt, routing, SNS signature or Core behavior tested"
+  ],
+  "conditionalUserAuthorization": {
+    "granted": true,
+    "source": "Latest user message",
+    "scope": {
+      "receiveCallsTotal": 1,
+      "maximumMessages": 2,
+      "visibilitySeconds": 30,
+      "deletes": false,
+      "deliberateRepeatReceives": false,
+      "rawPersonalDataOrMessageIdentifiersDisplayed": false,
+      "persistentConsumersRuntimeAgentsOrSendsActivated": false
+    },
+    "conditions": [
+      "Review pinned script from commit 55e5437c2b39ff42a391c2e46e03267e8ebd335c",
+      "Download exact bytes and verify SHA-256",
+      "Execute and review local simulation first"
+    ],
+    "currentInstruction": "No ReceiveMessage now; download/integrity verification/simulation only",
+    "receiveExecuted": false
+  }
+}
