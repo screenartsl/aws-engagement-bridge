@@ -1,0 +1,22 @@
+{
+  "kind": "USER_PROVIDED_AWS_CLOUDSHELL_VERIFICATION",
+  "recordedDate": "2026-10-25 Europe/Paris",
+  "Account": "365470560685",
+  "Region": "eu-west-1",
+  "StackName": "muserelay-aws-bridge-iam-foundation",
+  "StackStatus": "UPDATE_COMPLETE",
+  "executedChangeSetName": "ingress-metadata-review-3c280bc43c60",
+  "templateSourceCommit": "5f563ea4387c9694782943566614e38b9463168a",
+  "roleArnsReportedUnchanged": true,
+  "executorInlinePolicy": "bridge-stage-scoped",
+  "newSnsS3ActionsReportedPresent": true,
+  "explicitDeniesReportedPresent": [
+    "kms:DisableKey",
+    "kms:ScheduleKeyDeletion"
+  ],
+  "verificationSource": "User reports direct CloudShell verification; raw policy response not provided to agent",
+  "executedByAgent": false,
+  "authenticatedAwsCallsByAgent": 0,
+  "snsIngressExecutionAuthorized": false,
+  "snsIngressExecutedByAgent": false
+}

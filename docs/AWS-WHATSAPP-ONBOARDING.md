@@ -285,3 +285,7 @@ El número de demo comunicado se conserva como objetivo del alta. No se necesita
 ## Actualización IAM e ingreso — 25-10-2026
 
 El usuario facilita CREATE_COMPLETE de IAM Foundation, los dos ARN estables esperados y éxito de asumir realmente el rol de recuperación KMS. No implica que exista todavía el tema SNS ni que el destino de la WABA esté asociado. La [revisión de la siguiente etapa](SNS-BOOTSTRAP-CHANGE-SET.md) fija la plantilla de doce recursos, parámetros definitivos, políticas, coste y retirada, con solicitudes locales de change set sin ejecución. Se detectó y preparó una ampliación acotada de lecturas de configuración/etiquetado del ejecutor; debe revisarse antes de ejecutar ingreso. No se ha realizado cambio AWS, activación de Bridge ni envío desde esta sesión.
+
+### Verificación posterior del UPDATE IAM
+
+El usuario confirma UPDATE_COMPLETE de IAM Foundation, ARN sin cambios, nuevas acciones SNS/S3 presentes y Deny DisableKey/ScheduleKeyDeletion conservados, mediante CloudShell. Evidencia registrada en `evidence/iam-foundation-update-user-evidence.json`. Siguiente paso: preparar desde consola el change set CREATE de `muserelay-aws-bridge-stage`, usando `deploy/sns-bootstrap/template.yaml` y el rol actualizado, sin ejecutar. El YAML de ingreso no cambia. No existe aún un ARN SNS real verificado ni autorización de despliegue o asociación WABA.

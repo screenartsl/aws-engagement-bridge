@@ -20,5 +20,6 @@
   "actualDeployedInlinePoliciesReadByAgent": false,
   "snsIngressDeployed": false,
   "snsIngressDeploymentStatusSource": "No ingress execution reported or performed in this task",
-  "newLocalIamMetadataPatchDeployed": false
+  "newLocalIamMetadataPatchDeployed": false,
+  "subsequentUpdateEvidence": "iam-foundation-update-user-evidence.json"
 }

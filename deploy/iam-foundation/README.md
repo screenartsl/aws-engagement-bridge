@@ -1,6 +1,6 @@
 # Roles estables de administración — base desplegada según evidencia facilitada
 
-Actualización 25-10-2026: el usuario facilita CREATE_COMPLETE, los dos ARN de Outputs y éxito de STS AssumeRole real de recuperación. Evidencia: [resultado recibido](../../docs/evidence/iam-foundation-deployed-user-evidence.json). **El YAML local incorpora ahora una ampliación de metadatos/etiquetado aún NO aplicada**: revisar el UPDATE preparado, sin recrear los roles. Instrucciones vigentes: [siguiente conjunto de cambios](../../docs/SNS-BOOTSTRAP-CHANGE-SET.md). Las instrucciones de creación siguientes describen el bootstrap original.
+Actualización 25-10-2026: el usuario facilita CREATE_COMPLETE, los dos ARN de Outputs y éxito de STS AssumeRole real de recuperación. Evidencia: [resultado recibido](../../docs/evidence/iam-foundation-deployed-user-evidence.json). **Actualización posterior confirmada por el usuario:** UPDATE_COMPLETE, ARN conservados, acciones SNS/S3 presentes y denegaciones KMS conservadas; véase la [verificación comunicada](../../docs/evidence/iam-foundation-update-user-evidence.json). No repetir el UPDATE ni recrear los roles. Instrucciones vigentes: [siguiente conjunto de cambios](../../docs/SNS-BOOTSTRAP-CHANGE-SET.md). Las instrucciones de creación siguientes describen el bootstrap original.
 
 Procedimiento y decisiones: [AWS-KMS-ADMINISTRATION.md](../../docs/AWS-KMS-ADMINISTRATION.md).
 

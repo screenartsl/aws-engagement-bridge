@@ -1,6 +1,22 @@
 # Revisión de ingreso SNS/KMS/SQS — 25 de octubre de 2026
 
-**GO para preparar y revisar; NO-GO para ejecutar todavía.** No se ha creado un conjunto de cambios desde este servidor: no dispone de identidad AWS utilizable. Los archivos JSON son solicitudes preparadas localmente, no identificadores de conjuntos existentes en AWS. No se ha modificado MuseRelay ni se ha llamado a AWS.
+**GO para preparar y revisar; ejecución pendiente de autorización separada.** No se ha creado un conjunto de cambios desde este servidor: no dispone de identidad AWS utilizable. Los archivos JSON son solicitudes preparadas localmente, no identificadores de conjuntos existentes en AWS. No se ha modificado MuseRelay ni se ha llamado a AWS.
+
+## Estado posterior: IAM actualizado y siguiente paso desde consola
+
+El usuario comunica UPDATE_COMPLETE de IAM Foundation, ARN sin cambios, acciones SNS/S3 previstas presentes y denegaciones DisableKey/ScheduleKeyDeletion conservadas, comprobado desde CloudShell. Se registra como [evidencia facilitada](evidence/iam-foundation-update-user-evidence.json); no es una lectura AWS del agente. No repetir el UPDATE IAM. El apartado de ampliación IAM y sus comandos de preparación más abajo queda como historial del requisito ya completado según esa verificación. La fuente YAML de ingreso permanece idéntica al commit `5f563ea4387c9694782943566614e38b9463168a`, SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`.
+
+### Preparación de ingreso desde consola, sin CloudShell
+
+1. En Screen Art `365470560685`, Irlanda, sesión SSO AdministratorAccess, comprobar si existe `muserelay-aws-bridge-stage`. Si ya existe, revisar su estado y change sets antes de continuar; no recrear, borrar ni escoger UPDATE automáticamente.
+2. Si no existe, CloudFormation → Crear pila → Con nuevos recursos (estándar). Elegir plantilla existente y cargar **deploy/sns-bootstrap/template.yaml**, no la plantilla IAM ni el SAM completo. La carga de consola almacena el YAML en S3 y puede crear un bucket auxiliar de plantillas; no son los doce recursos de ingreso.
+3. Nombre de pila exacto: `muserelay-aws-bridge-stage`. Introducir los dos parámetros del apartado siguiente. No se solicitan todavía WABA, número, secreto ni endpoint MuseRelay.
+4. En Opciones → Permisos, seleccionar **muserelay-aws-bridge-stage-cfn-execution**, el rol actualizado. No seleccionar recuperación ni el rol SSO. En esta pila sí se usa el ejecutor, a diferencia del UPDATE IAM anterior.
+5. Conservar rollback predeterminado y no añadir notificaciones SNS, nuevos roles ni opciones de despliegue rápido. Los cinco tags están definidos en los recursos de la plantilla; si se añaden en la pila, usar los mismos pares Company/Project/Component/Environment/Purpose. No hay recursos IAM ni transformación SAM que requieran capacidades IAM/SAM.
+6. En la pantalla final de revisión, elegir **Crear conjunto de cambios**, nombre `ingress-review-4bc773772e50`. No pulsar Enviar/Crear pila como operación directa de despliegue ni Ejecutar conjunto de cambios.
+7. Revisar el resultado: change set CREATE_COMPLETE/AVAILABLE, pila REVIEW_IN_PROGRESS, rol de servicio correcto, parámetros exactos y las doce adiciones del manifiesto. Sin Modify, Remove ni recursos de procesamiento. Revisar políticas SNS/KMS/SQS, Retain de clave/bucket y advertencias de validación. Detenerse para autorización independiente.
+
+[Procedimiento oficial de previsualización de una pila nueva](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html#cfn-console-create-stack-changesets). Crear correctamente el change set no prueba entrega de eventos ni garantiza el despliegue posterior. Si la consola no ofrece la opción de crear solo el conjunto, detenerse antes del botón de despliegue directo y revisar la pantalla.
 
 ## Evidencia recibida y versiones
 

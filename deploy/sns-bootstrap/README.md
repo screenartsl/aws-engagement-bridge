@@ -1,6 +1,6 @@
 # Etapa 1: ingreso SNS/SQS cifrado — NO desplegado
 
-Revisión vigente: [SNS-BOOTSTRAP-CHANGE-SET.md](../../docs/SNS-BOOTSTRAP-CHANGE-SET.md). IAM Foundation está creada según salidas facilitadas por el usuario. `parameters.stage.json`, `change-set.create.prepared.json` y `review-manifest.json` preparan la revisión; no existe un change set AWS creado desde esta sesión. Antes de ejecutar ingreso, revisar y autorizar la actualización acotada de metadatos/etiquetado del ejecutor; su JSON UPDATE está en `../iam-foundation/`.
+Revisión vigente: [SNS-BOOTSTRAP-CHANGE-SET.md](../../docs/SNS-BOOTSTRAP-CHANGE-SET.md). IAM Foundation está creada según salidas facilitadas por el usuario. `parameters.stage.json`, `change-set.create.prepared.json` y `review-manifest.json` preparan la revisión; no existe un change set AWS creado desde esta sesión. El usuario ya confirma UPDATE_COMPLETE y verificación de la política ampliada del ejecutor. Preparar ahora únicamente el change set de ingreso; su ejecución sigue requiriendo autorización separada.
 
 Cuenta Screen Art `365470560685`, región `eu-west-1`, pila exacta **`muserelay-aws-bridge-stage`**. El usuario informa de una lista SNS vacía y de avanzar en el alta Meta; no hay inventario AWS independiente desde esta sesión. No crear recursos ni copiar un ARN supuesto al formulario sin autorización y verificación.
 
