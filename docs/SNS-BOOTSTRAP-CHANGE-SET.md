@@ -1,6 +1,6 @@
 # Revisión de ingreso SNS/KMS/SQS — 25 de octubre de 2026
 
-> Estado posterior: el usuario comunica la pila de ingreso CREATE_COMPLETE y comprobaciones parciales reales desde CloudShell. Prevalece [INGRESS-POST-DEPLOYMENT.md](INGRESS-POST-DEPLOYMENT.md). Las instrucciones de creación siguientes son historial; no repetir el CREATE ni ejecutar otra vez el conjunto. La asociación de eventos Social sigue sin autorizar ni realizar.
+> Estado posterior: el usuario comunica la pila de ingreso CREATE_COMPLETE y comprobaciones de configuración comunicadas como conformes desde CloudShell. Prevalece [INGRESS-POST-DEPLOYMENT.md](INGRESS-POST-DEPLOYMENT.md). Las instrucciones de creación siguientes son historial; no repetir el CREATE ni ejecutar otra vez el conjunto. La asociación de eventos Social sigue sin autorizar ni realizar.
 
 **GO para preparar y revisar; ejecución pendiente de autorización separada.** No se ha creado un conjunto de cambios desde este servidor: no dispone de identidad AWS utilizable. Los archivos JSON son solicitudes preparadas localmente, no identificadores de conjuntos existentes en AWS. No se ha modificado MuseRelay ni se ha llamado a AWS.
 

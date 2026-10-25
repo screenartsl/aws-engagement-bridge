@@ -35,15 +35,15 @@
     "Endpoint": "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue",
     "subscriptionArnReportedMatchingCloudFormationOutput": true,
     "subscriptionArnLiteralNotProvided": true,
-    "RawMessageDeliveryPostDeployment": "PENDING",
-    "RedrivePolicyPostDeployment": "PENDING"
+    "RawMessageDeliveryPostDeployment": false,
+    "RedrivePolicyPostDeployment": "USER_CONFIRMS_SNS_DELIVERY_DLQ",
+    "authenticatedConfirmationReported": true
   },
   "pending": [
-    "Actual SQS encryption, queue resource policies, retention and redrive attributes",
-    "Actual subscription RawMessageDelivery and RedrivePolicy",
-    "Actual S3 block public access, encryption, ownership, policy and lifecycle",
-    "Lambda mappings filtered to each queue; non-Lambda pollers not observable via that API",
-    "AWS-linked demo WABA/phone identifiers and registration status"
+    "AWS-linked demo WABA/phone identifiers, registration status, all WABA numbers and existing destination",
+    "Separate express authorization before saving any Social destination or completing registration",
+    "Real event delivery and runtime processing are untested and not authorized",
+    "Non-Lambda pollers outside the stack are not excluded by empty Lambda mapping lists"
   ],
   "rawPolicyJsonProvidedToAgent": false,
   "authenticatedAwsCallsByAgent": 0,
@@ -54,5 +54,50 @@
   "associationAuthorized": false,
   "runtimeActivationAuthorized": false,
   "liveSendAuthorized": false,
-  "decision": "PARTIAL_VERIFICATION_FROM_USER_EVIDENCE_REMAINING_READS_REQUIRED"
+  "decision": "CONFIGURATION_READS_REPORTED_CONSISTENT_GO_PREPARE_SOCIAL_DESTINATION_NO_AUTHORIZATION_TO_SAVE",
+  "sqs": {
+    "allThreeSqsManagedSseEnabled": true,
+    "inboundRetentionSeconds": 345600,
+    "processingDlqRetentionSeconds": 1209600,
+    "snsDeliveryDlqRetentionSeconds": 1209600,
+    "inboundMaxReceiveCount": 5,
+    "snsDeliveryPoliciesReportedRestrictedToExpectedTopicAndAccount": true,
+    "approximateMessageCountersReportedZero": true,
+    "reportedConfigurationMatchesReviewedDesign": true
+  },
+  "lambda": {
+    "eventSourceMappingsByQueue": {
+      "inbound-queue": [],
+      "inbound-dlq": [],
+      "sns-delivery-dlq": []
+    },
+    "nonLambdaPollersVerified": false
+  },
+  "s3": {
+    "allFourPublicAccessBlocksReportedEnabled": true,
+    "SSEAlgorithm": "AES256",
+    "ObjectOwnership": "BucketOwnerEnforced",
+    "policyReported": "RequireTls",
+    "region": "eu-west-1",
+    "objectExpirationDays": 30,
+    "tagsReported": [
+      "Screen Art",
+      "MuseRelay",
+      "staging",
+      "hackathon"
+    ],
+    "reportedConfigurationMatchesReviewedDesign": true
+  },
+  "finalReadSummary": {
+    "source": "User-provided summary of direct CloudShell reads for SNS subscription, three SQS queues, filtered Lambda mappings and S3 configuration",
+    "AccessDeniedReported": false,
+    "configurationReportedMatchingReviewedDesign": true,
+    "messagesReportedPublishedReceivedOrConsumedDuringAudit": false
+  },
+  "notIndividuallyTranscribedInUserSummary": [
+    "Inbound VisibilityTimeout value",
+    "Inbound redrive target ARN literal",
+    "Processing DLQ RedriveAllowPolicy literal",
+    "S3 multipart-abort lifecycle value"
+  ]
 }

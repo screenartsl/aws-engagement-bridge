@@ -4,7 +4,7 @@ Fecha: 25-10-2026, Europe/Paris. Cuenta Screen Art `365470560685`, región `eu-w
 
 ## Estado y procedencia de la evidencia
 
-El usuario comunica la pila `muserelay-aws-bridge-stage` en CREATE_COMPLETE y aporta el ARN SNS real. Posteriormente comunica comprobaciones realizadas desde su CloudShell sobre CloudFormation, SNS, KMS y suscripción. El agente no dispone de AWS CLI, perfil, variables de credenciales ni conector AWS: **no ha realizado consultas autenticadas AWS**. Se registran los resultados recibidos sin presentarlos como inspección independiente. Las respuestas se han facilitado como resumen, no como JSON bruto de las políticas.
+El usuario comunica la pila `muserelay-aws-bridge-stage` en CREATE_COMPLETE y aporta el ARN SNS real. Posteriormente comunica comprobaciones realizadas desde su CloudShell sobre CloudFormation, SNS, KMS, suscripción, SQS, mappings Lambda y S3. El agente no dispone de AWS CLI, perfil, variables de credenciales ni conector AWS: **no ha realizado consultas autenticadas AWS**. Se registran los resultados recibidos sin presentarlos como inspección independiente. Las respuestas se han facilitado como resumen, no como JSON bruto de las políticas.
 
 | Comprobación | Estado actual |
 | --- | --- |
@@ -15,12 +15,14 @@ El usuario comunica la pila `muserelay-aws-bridge-stage` en CREATE_COMPLETE y ap
 | KMS | Usuario confirma Enabled/true, SYMMETRIC_DEFAULT, ENCRYPT_DECRYPT, CUSTOMER, AWS_KMS y MultiRegion=false. |
 | Política KMS real | Usuario confirma las cuatro declaraciones, principales, acciones y condiciones coincidentes con el YAML revisado. |
 | Suscripción SNS | Una confirmada, cero pendientes; protocolo sqs, destino de entrada correcto y ARN coincidente con CloudFormation. |
-| RawMessageDelivery y redrive de suscripción | **Pendientes de lectura posterior al despliegue.** |
-| SQS: cifrado, políticas, retención y redrive | **Pendientes de lectura posterior al despliegue.** |
-| S3: bloqueo público, cifrado, propietario y política | **Pendientes de lectura posterior al despliegue.** |
-| Ausencia de mappings Lambda sobre las tres colas | **Pendiente.** El YAML de ingreso no declara runtime; revisar también mappings externos a la pila. |
+| RawMessageDelivery y redrive de suscripción | Usuario confirma false, suscripción autenticada y DLQ de entrega configurada. |
+| SQS: cifrado, políticas, retención y redrive | Usuario confirma SSE-SQS en las tres colas; entrada 4 días, DLQ 14 días; maxReceiveCount=5; políticas SNS restringidas a tema/cuenta y contadores aproximados cero. |
+| S3: bloqueo público, cifrado, propietario y política | Usuario confirma cuatro bloqueos públicos, AES256, BucketOwnerEnforced, RequireTls, Irlanda, expiración a 30 días y etiquetas previstas. |
+| Mappings Lambda sobre las tres colas | Usuario confirma [] en las tres lecturas filtradas. No excluye un poller externo distinto de Lambda. |
 | Destino Social/WABA | Usuario confirma que no se ha configurado; IDs AWS de WABA/teléfono pendientes de identificar. |
 | Pruebas de eventos, envíos y agentes | No realizadas. No autorizadas por este procedimiento. |
+
+**Resultado de las lecturas comunicadas:** configuración coincidente con el diseño, sin AccessDenied ni pruebas de mensajes. GO para preparar la asociación Social; guardarla sigue sin autorizar. El usuario no ha transcrito individualmente VisibilityTimeout, ARN literal de redrive de entrada, RedriveAllowPolicy de DLQ y regla multipart; se conserva ese límite del resumen, sin presentarlos como verificaciones independientes del agente.
 
 [Registro de evidencia recibida](evidence/ingress-deployment-user-evidence.json). El YAML no cambia: commit de referencia `5f563ea4387c9694782943566614e38b9463168a`, SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`.
 
@@ -59,7 +61,7 @@ Los atributos de SNS/SQS pueden contener JSON serializado dentro de cadenas; rev
 
 Lecturas oficiales: [SNS atributos](https://docs.aws.amazon.com/cli/latest/reference/sns/get-topic-attributes.html), [SQS atributos](https://docs.aws.amazon.com/cli/latest/reference/sqs/get-queue-attributes.html), [KMS política](https://docs.aws.amazon.com/cli/latest/reference/kms/get-key-policy.html), [mappings Lambda](https://docs.aws.amazon.com/cli/latest/reference/lambda/list-event-source-mappings.html). La compatibilidad de principal y condiciones se revisó en [SNS-KMS-COMPATIBILITY.md](SNS-KMS-COMPATIBILITY.md).
 
-**Punto de control:** completar SQS/S3/atributos de suscripción antes de aprobar la conexión operativa. Una discrepancia requiere revisar evidencia y, si procede, un nuevo cambio autorizado por infraestructura como código; no editar políticas directamente ni reenviar mensajes para diagnosticar.
+**Punto de control:** las lecturas SQS/S3/atributos de suscripción han sido comunicadas como completadas y coincidentes con el diseño. Continuar con identificación y revisión de WABA/números/destino actual, manteniendo pendiente la autorización para guardar. Una discrepancia requiere revisar evidencia y, si procede, un nuevo cambio autorizado por infraestructura como código; no editar políticas directamente ni reenviar mensajes para diagnosticar.
 
 ## Guía preparada para asociar el destino Social — detenerse antes de guardar
 
