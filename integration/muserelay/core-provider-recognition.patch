@@ -1,0 +1,18 @@
+--- a/app/Models/Channel.php
++++ b/app/Models/Channel.php
+@@ -558,6 +558,15 @@
+ 
+     public function isConfigured(): bool
+     {
++        // AWS transport has an owned Bridge binding, not a Meta access token.
++        if ($this->type === 'whatsapp' && $this->managed_provider === 'aws_social') {
++            try {
++                $store = \MuseRelay\AwsEngagementBridge\Core\Store::class;
++                if (!app()->bound($store)) return false;
++                app($store)->bindingForChannel((int) $this->id);
++                return true;
++            } catch (\Throwable) { return false; }
++        }
+         if (empty($this->configuration)) {
+             return false;
+         }

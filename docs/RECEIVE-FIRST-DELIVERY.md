@@ -39,7 +39,7 @@ The business sender is not the recipient allowlist. The tester's authorized rece
 2. Production remains the installed old release, disabled; changes to this development folder do not install it.
 3. Future separate authorizations: install isolated staging, deploy disabled runtime, then enable only demo reception. Record source commits, real stack change set, artifacts, costs and rollback before approval.
 4. Disable the inbound event-source mapping and PHP receive gate/binding to stop reception. Disable sender mapping, send gates and LiveSend to stop output independently. No production-wide database restore or shared-service reload is required to disconnect.
-5. Source rollback: revert the identified delivery commit, re-run isolated checks, and install only after separate approval. New controls default false on older configuration; review explicit settings before reactivation. Preserve event/outbox records for reconciliation.
+5. Source rollback: FIRST disable the master extension, clear organization opt-in, disable bindings and both AWS mappings; then revert the identified delivery commit, re-run isolated checks, and install only after separate approval. Never downgrade an enabled receive-only configuration to 0.4.0: that release does not have the independent gates. New controls default false on older configuration; review explicit settings before reactivation. Preserve event/outbox records for reconciliation.
 
 ## Deferred security roadmap
 
@@ -48,3 +48,9 @@ Do not change the current Core Bedrock authentication, providers or encrypted Po
 The operator reports a Screen Art Vault integrated with Google services. No access or configuration was audited here. A future encryption design must study bootstrap authentication, availability/cache limits, recovery and break-glass, compatibility with existing Laravel ciphertext, old-key access during rotation, rollback and key backup. Fetching a different APP_KEY is not a migration strategy. Do not implement or store Vault credentials in this module.
 
 Commercial third-party onboarding, managed-AWS resale, Marketplace, calendar enablement and large-scale capacity are deferred. BYO preparation is a connection/identity boundary, not a claim of delivered commercial onboarding.
+
+## Product clarification from the owner
+
+The judges must ultimately use an evaluator user manually created by the owner in the existing MuseRelay installation, limited to Screen Art Demo / its workspace and AWS channel. The native inbox, contacts, conversations and messages are reused. The temporary source copy is an internal isolation test, not a second product, a replacement inbox, or the planned commercial entry point. No evaluator user is created in production by this preparation.
+
+A future reviewed WhatsApp channel form should offer AWS End User Messaging Social only to the authorized demo scope, configuring an owned connection (account/region/role reference/WABA/phone/topic metadata). It must not request permanent AWS access keys, automatically reuse Bedrock credentials or expose signing keys. The user will create the evaluator manually. Neither this form nor a production activation is implemented by the local staging work. Review user/workspace permissions in addition to organization opt-in; a hidden menu alone is not authorization.

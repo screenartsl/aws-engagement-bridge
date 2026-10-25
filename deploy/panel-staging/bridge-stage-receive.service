@@ -1,0 +1,27 @@
+[Unit]
+Description=PREPARED ONLY - one bounded receive-only SQL inbox drain
+After=bridge-stage-postgresql.service bridge-stage-redis.service
+Requires=bridge-stage-postgresql.service bridge-stage-redis.service
+[Service]
+Type=oneshot
+User=muserelay-aws-stage
+Group=muserelay-aws-stage
+ExecStart=/usr/bin/php /srv/muserelay-aws-stage/bridge/integration/panel-staging/console.php drain
+Environment=APP_ENV=bridge-staging
+Environment=APP_CONFIG_CACHE=/var/lib/muserelay-aws-stage/cache/config.php
+Environment=APP_SERVICES_CACHE=/var/lib/muserelay-aws-stage/cache/services.php
+Environment=APP_PACKAGES_CACHE=/var/lib/muserelay-aws-stage/cache/packages.php
+Environment=APP_ROUTES_CACHE=/var/lib/muserelay-aws-stage/cache/routes.php
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+InaccessiblePaths=/var/www/vhosts
+ReadWritePaths=/var/lib/muserelay-aws-stage /run/muserelay-aws-stage
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+MemoryMax=256M
+CPUQuota=25%
+TimeoutStartSec=30
+StandardOutput=null
+StandardError=null

@@ -1,13 +1,13 @@
 # MuseRelay AWS Engagement Bridge
 
-Private development module for Screen Art S.L.'s AWS CDS Agentic AI Partner Hackathon project.
+Permanent MuseRelay AWS transport extension under development for Screen Art S.L.; its first milestone is a real AWS CDS Agentic AI Partner Hackathon demonstration.
 Created on 2026-10-24. This repository contains new bridge code, not a copy of the proprietary MuseRelay application.
 
 Local development location: `/var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge` (moved from `.codex/projects/` on 2026-10-24 at the user's request). See the parent `modules-develop/README.md` and `AGENTS.md` for discovery and working rules. This is not an installed extension loader: MuseRelay does not automatically load code from this directory. The existing lsyncd scope includes this location; file replication is not deployment or activation.
 
 ## Receive-first preparation (2026-10-25)
 
-Development release **0.5.0 is local only**; production remains the disabled 0.4.0 connector. Reception, agent and send are separate opt-ins, all false by default. The receive-first runtime does not create outbound infrastructure. IAM roles now belong to a separately reviewed foundation update; the limited runtime executor cannot rewrite IAM. See [current delivery and controls](docs/RECEIVE-FIRST-DELIVERY.md) and [current IAM/runtime review](deploy/runtime-iam/README.md). These documents supersede older all-in-one runtime/secret/activation instructions below. No local change constitutes an AWS deployment or activation. Inbound/sender use only the Core-direction signing secret; the future outbound enqueuer uses a separate outbound-direction secret.
+Development release **0.5.0 is local only**; production remains the disabled 0.4.0 connector. Reception, agent and send are separate opt-ins, all false by default. The receive-first runtime does not create outbound infrastructure. IAM roles now belong to a separately reviewed foundation update; the limited runtime executor cannot rewrite IAM. The [native inbox staging](docs/NATIVE-INBOX-STAGING.md) reuses the actual Core views/controllers in an isolated copy; final judges access is planned in existing MuseRelay under an owner-created demo account, not a second inbox. See [current delivery and controls](docs/RECEIVE-FIRST-DELIVERY.md) and [current IAM/runtime review](deploy/runtime-iam/README.md). These documents supersede older all-in-one runtime/secret/activation instructions below. No local change constitutes an AWS deployment or activation. Inbound/sender use only the Core-direction signing secret; the future outbound enqueuer uses a separate outbound-direction secret.
 
 ## Current status — Core connector DISABLED; Social linked; ingress inspection prepared
 

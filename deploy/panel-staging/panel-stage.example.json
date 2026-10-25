@@ -1,0 +1,15 @@
+{
+  "hostname": "aws-bridge-staging.muserelay.com",
+  "organizationId": 97101,
+  "workspaceId": 10,
+  "channelId": 20,
+  "userId": 97101,
+  "enabled": false,
+  "receiveEnabled": false,
+  "agentEnabled": false,
+  "sendEnabled": false,
+  "expiresAt": 0,
+  "appKey": "<GENERATE_FRESH_32_BYTES_BASE64_OUTSIDE_GIT>",
+  "messagesKey": "<GENERATE_FRESH_32_BYTES_BASE64_OUTSIDE_GIT>",
+  "indexKey": "<GENERATE_FRESH_32_BYTES_BASE64_OUTSIDE_GIT>"
+}

@@ -1,0 +1,23 @@
+[Unit]
+Description=PREPARED ONLY - temporary native MuseRelay inbox FPM
+After=bridge-stage-postgresql.service bridge-stage-redis.service
+Requires=bridge-stage-postgresql.service bridge-stage-redis.service
+[Service]
+User=muserelay-aws-stage
+Group=caddy
+SupplementaryGroups=muserelay-aws-stage
+ExecStart=/usr/sbin/php-fpm8.4 --nodaemonize --fpm-config /srv/muserelay-aws-stage/bridge/deploy/panel-staging/php-fpm.conf
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+InaccessiblePaths=/var/www/vhosts
+ReadWritePaths=/var/lib/muserelay-aws-stage /run/muserelay-aws-stage
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+MemoryMax=384M
+CPUQuota=50%
+TasksMax=32
+StandardOutput=null
+StandardError=null
+# No [Install] section: do not auto-enable this prepared service.

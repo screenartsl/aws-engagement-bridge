@@ -1,0 +1,44 @@
+# REVIEW ONLY: documentation IP 192.0.2.10 must be replaced with an approved evaluator/admin IP.
+# This temporary test endpoint is NOT the final judges/customer panel. Do not import/reload now.
+aws-bridge-staging.muserelay.com {
+    log {
+        output discard
+    }
+    request_body {
+        max_size 20KB
+    }
+    @bridge {
+        method POST
+        path /api/aws-engagement-bridge/events /api/aws-engagement-bridge/receipts
+    }
+    handle @bridge {
+        reverse_proxy unix//run/muserelay-aws-stage/fpm.sock {
+            transport fastcgi {
+                root /srv/muserelay-aws-stage/bridge/integration/panel-staging/public
+                env SCRIPT_FILENAME /srv/muserelay-aws-stage/bridge/integration/panel-staging/public/index.php
+            }
+        }
+    }
+    @assets {
+        remote_ip 192.0.2.10
+        method GET HEAD
+        path /assets/*
+    }
+    handle @assets {
+        root * /srv/muserelay-aws-stage/core/public
+        file_server
+    }
+    @evaluation {
+        remote_ip 192.0.2.10
+        path /login /logout /session/status /conversations /conversations/* /messages/api/*
+    }
+    handle @evaluation {
+        reverse_proxy unix//run/muserelay-aws-stage/fpm.sock {
+            transport fastcgi {
+                root /srv/muserelay-aws-stage/bridge/integration/panel-staging/public
+                env SCRIPT_FILENAME /srv/muserelay-aws-stage/bridge/integration/panel-staging/public/index.php
+            }
+        }
+    }
+    respond 404
+}
