@@ -18,6 +18,8 @@ No pegarlo como ARN existente hasta que `GetTopicAttributes` o la consola confir
 
 El tema no configura una clave KMS propia, igual que la plantilla principal. No afirmar que tiene SSE-KMS activado. Si se exige cifrado SNS con KMS, revisar antes la clave simétrica y los permisos `kms:GenerateDataKey*`/`kms:Decrypt` del servicio Social. No usar una clave existente ni cambiar su política sin autorización.
 
+La revisión posterior del formulario recomienda SSE-KMS con clave simétrica dedicada **antes de tráfico real**: [guía de incorporación, decisión y permisos](../../docs/AWS-WHATSAPP-ONBOARDING.md). Esa mejora todavía no está incorporada a estas plantillas. No considerar este bootstrap sin modificar como despliegue cifrado aprobado; hace falta revisión IaC, clave/política y autorización específicas.
+
 No hay Lambda, IAM, Secrets Manager, Bedrock, API Gateway, envíos, workers ni conexión al Core en este bootstrap. Tras su futura creación autorizada la cola puede recibir eventos de demo y conservarlos sin procesarlos; no enviar mensajes hasta preparar el consumidor. Crear solo un tema sin una suscripción no conserva un historial para un consumidor futuro.
 
 ## Evolución sin duplicar recursos
