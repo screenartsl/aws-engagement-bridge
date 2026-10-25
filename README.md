@@ -5,7 +5,9 @@ Created on 2026-10-24. This repository contains new bridge code, not a copy of t
 
 Local development location: `/var/www/vhosts/muserelay.com/modules-develop/aws-engagement-bridge` (moved from `.codex/projects/` on 2026-10-24 at the user's request). See the parent `modules-develop/README.md` and `AGENTS.md` for discovery and working rules. This is not an installed extension loader: MuseRelay does not automatically load code from this directory. The existing lsyncd scope includes this location; file replication is not deployment or activation.
 
-## Current status — Core connector 0.4.0 installed and DISABLED; AWS not deployed
+## Current status — Core connector 0.4.0 DISABLED; IAM foundation reported deployed; ingress pending
+
+Current AWS update (2026-10-25): the user supplies CloudShell evidence that IAM Foundation is CREATE_COMPLETE, with the two expected stable role ARNs and a successful real recovery-role assumption. SNS/KMS/SQS ingress is not deployed. The [next change-set review](docs/SNS-BOOTSTRAP-CHANGE-SET.md) records this evidence and prepares a limited executor metadata/tagging policy update before ingress execution. Local review files do not create AWS change sets or authorize execution.
 
 Following the user's separate authorization, the trusted module loader and PHP release are installed in the existing MuseRelay Core. Runtime state is **disabled, zero authorized organizations, zero AWS channels and five empty Bridge tables**. No AWS resources, real messages or paid model calls were created by this work. See the [post-install verification and exact commits](docs/POST-INSTALL-VERIFICATION.md), [rollback procedure](docs/CORE-ROLLBACK.md) and [module architecture](docs/CORE-EXTENSIONS.md). Earlier phase reports describe their historical state.
 
@@ -78,7 +80,7 @@ The first deployment must use `enabled:false` and `LiveSend=false`. Allowed reci
 
 ## Provisioning — requires separate authorization
 
-The subsequent [effective-permission review](docs/IAM-FOUNDATION-VERIFICATION.md) removes unnecessary executor key-destruction permissions and records the actual AWS verification still pending. A recovery-role STS test happens after the IAM-only stack and before any KMS key; local validation is not proof of live access.
+The current [ingress change-set review](docs/SNS-BOOTSTRAP-CHANGE-SET.md) supersedes pending IAM deployment statements below. The subsequent [effective-permission review](docs/IAM-FOUNDATION-VERIFICATION.md) removes unnecessary executor key-destruction permissions and records the actual AWS verification still pending. A recovery-role STS test happens after the IAM-only stack and before any KMS key; local validation is not proof of live access.
 
 The later [SSO/KMS administration review](docs/AWS-KMS-ADMINISTRATION.md) supersedes the earlier sole-administrator design. Use the revised templates with two stable IAM roles, a CloudFormation service role and limited account recovery. The old release YAML must not be deployed. The user reports Identity Center/MFA ready; no authenticated AWS verification or new role creation has been performed here.
 
@@ -118,7 +120,7 @@ Also test invalid HMAC, replay, cross-binding requests, duplicate SNS events, re
 
 ## Originality, judging and repository access
 
-See `docs/PROVENANCE.md`. The requested destination is **private `screenartsl/aws-engagement-bridge`**. A local origin is configured, but its remote existence/privacy have not been authenticated here. The latest phase 3 instruction puts publication on hold pending specific authorization. No creation, push or judge invitation was performed in this phase. `docs/REPOSITORY-UPLOAD.md` describes review and later authorized upload while preserving original commits. Provide authorized judges the bridge source and a working isolated MuseRelay evaluation instance; do not publish the entire legacy SaaS. A simulator cannot replace final live acceptance.
+See `docs/PROVENANCE.md`. The requested destination is **private `screenartsl/aws-engagement-bridge`**. The later user authorization and private publication recorded above supersede the phase 3 publication hold. No public release or judge invitation is authorized. `docs/REPOSITORY-UPLOAD.md` describes review and later authorized upload while preserving original commits. Provide authorized judges the bridge source and a working isolated MuseRelay evaluation instance; do not publish the entire legacy SaaS. A simulator cannot replace final live acceptance.
 
 README, diagram, setup, limits, source versions, test instructions, video script and required APN/ACE submission details should accompany the final submission. See `docs/DEMO.md`. BYO AWS/STS, SES, UI onboarding and Marketplace are not implemented or claimed by this phase.
 

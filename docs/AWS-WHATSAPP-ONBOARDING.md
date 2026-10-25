@@ -281,3 +281,7 @@ Se abandona la creación manual del tema. El usuario confirma IaC y está explor
 El primer YAML se podrá cargar desde consola después de aprobarlo. La segunda etapa necesita además el ZIP Lambda privado en S3; la consola puede desplegar el YAML completo con esa referencia sin SAM CLI. La carga de un YAML al asistente puede escribir en un bucket S3 de plantillas antes de crear la pila. No afirmar que todos los pasos previos al botón final son de solo lectura. El ARN se copiará del output real y se contrastará con SNS; no usar el previsto como si estuviera creado.
 
 El número de demo comunicado se conserva como objetivo del alta. No se necesita otro por dividir la infraestructura en etapas, aunque reanudar una sesión caducada puede requerir pasos interactivos Meta/AWS. El registro efectivo, PIN configurado, destino y IDs AWS siguen pendientes de comprobación.
+
+## Actualización IAM e ingreso — 25-10-2026
+
+El usuario facilita CREATE_COMPLETE de IAM Foundation, los dos ARN estables esperados y éxito de asumir realmente el rol de recuperación KMS. No implica que exista todavía el tema SNS ni que el destino de la WABA esté asociado. La [revisión de la siguiente etapa](SNS-BOOTSTRAP-CHANGE-SET.md) fija la plantilla de doce recursos, parámetros definitivos, políticas, coste y retirada, con solicitudes locales de change set sin ejecución. Se detectó y preparó una ampliación acotada de lecturas de configuración/etiquetado del ejecutor; debe revisarse antes de ejecutar ingreso. No se ha realizado cambio AWS, activación de Bridge ni envío desde esta sesión.

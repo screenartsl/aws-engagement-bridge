@@ -97,7 +97,8 @@
         "sns:Unsubscribe",
         "sns:GetSubscriptionAttributes",
         "sns:SetSubscriptionAttributes",
-        "sns:ListSubscriptionsByTopic"
+        "sns:ListSubscriptionsByTopic",
+        "sns:GetDataProtectionPolicy"
       ],
       "Resource": "arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound",
       "Condition": {
@@ -151,7 +152,24 @@
         "s3:PutBucketPolicy",
         "s3:DeleteBucketPolicy",
         "s3:GetLifecycleConfiguration",
-        "s3:PutLifecycleConfiguration"
+        "s3:PutLifecycleConfiguration",
+        "s3:GetAccelerateConfiguration",
+        "s3:GetAnalyticsConfiguration",
+        "s3:GetBucketAbac",
+        "s3:GetBucketCORS",
+        "s3:GetBucketLogging",
+        "s3:GetBucketMetadataTableConfiguration",
+        "s3:GetBucketNotification",
+        "s3:GetBucketObjectLockConfiguration",
+        "s3:GetBucketVersioning",
+        "s3:GetBucketWebsite",
+        "s3:GetIntelligentTieringConfiguration",
+        "s3:GetInventoryConfiguration",
+        "s3:GetMetricsConfiguration",
+        "s3:GetReplicationConfiguration",
+        "s3:ListTagsForResource",
+        "s3:TagResource",
+        "s3:UntagResource"
       ],
       "Resource": "arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1"
     },

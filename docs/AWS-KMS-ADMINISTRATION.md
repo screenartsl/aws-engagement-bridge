@@ -1,5 +1,7 @@
 # Administración KMS estable: Identity Center, CloudFormation y recuperación
 
+> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
+
 Revisión: **25-10-2026, Europe/Paris**. Preparación local, sin llamadas autenticadas AWS ni cambios IAM. El usuario comunica Identity Center operativo, usuario `antoni.caimari`, permission set `AdministratorAccess`, MFA funcionando, cuenta `365470560685` y región `eu-west-1`. No equivale a un inventario API ni confirma el MFA del usuario root.
 
 ## Decisión y corrección del diseño anterior

@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "KmsAdministratorArn",
+    "ParameterValue": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution"
+  },
+  {
+    "ParameterKey": "KmsRecoveryAdministratorArn",
+    "ParameterValue": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery"
+  }
+]

@@ -1,0 +1,72 @@
+{
+  "kind": "OFFLINE_PROVIDER_SCHEMA_REVIEW",
+  "source": "cfn-lint 1.58.0 bundled eu-west-1 provider schemas; not a live DescribeType response",
+  "reviewDate": "2026-10-25",
+  "priorFoundationTemplateSha256": "7cb30b0e0e91ee22f33bebd8cdd0dfd71552f9fdaf1dfe57ce393e2dc87b97b7",
+  "priorExecutorPolicySha256": "f35d02dd9337a2ade0d948879f3df6c84d64fdc69d93fb6afad124563901c3c0",
+  "providers": {
+    "AWS::S3::Bucket": {
+      "schemaSha256": "929ffc06164ef26d7b2a0ea022e3d38b4263c67ece0bbd6580ba3570e8bcc69f",
+      "readHandlerPermissions": [
+        "s3:GetAccelerateConfiguration",
+        "s3:GetLifecycleConfiguration",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetAnalyticsConfiguration",
+        "s3:GetBucketCORS",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetInventoryConfiguration",
+        "s3:GetBucketLogging",
+        "s3:GetMetricsConfiguration",
+        "s3:GetBucketNotification",
+        "s3:GetBucketVersioning",
+        "s3:GetReplicationConfiguration",
+        "s3:GetBucketWebsite",
+        "s3:GetBucketObjectLockConfiguration",
+        "s3:GetBucketTagging",
+        "s3:ListTagsForResource",
+        "s3:GetBucketAbac",
+        "s3:GetBucketOwnershipControls",
+        "s3:GetIntelligentTieringConfiguration",
+        "s3:GetBucketMetadataTableConfiguration",
+        "s3:ListBucket"
+      ]
+    },
+    "AWS::SNS::Topic": {
+      "schemaSha256": "7a66160f34b0847b2421a51674187b5ff3636ae07990266431e086a9dab58f64",
+      "readHandlerPermissions": [
+        "sns:GetTopicAttributes",
+        "sns:ListTagsForResource",
+        "sns:ListSubscriptionsByTopic",
+        "sns:GetDataProtectionPolicy"
+      ]
+    }
+  },
+  "additionalActions": {
+    "sns": [
+      "sns:GetDataProtectionPolicy"
+    ],
+    "s3": [
+      "s3:GetAccelerateConfiguration",
+      "s3:GetAnalyticsConfiguration",
+      "s3:GetBucketAbac",
+      "s3:GetBucketCORS",
+      "s3:GetBucketLogging",
+      "s3:GetBucketMetadataTableConfiguration",
+      "s3:GetBucketNotification",
+      "s3:GetBucketObjectLockConfiguration",
+      "s3:GetBucketVersioning",
+      "s3:GetBucketWebsite",
+      "s3:GetIntelligentTieringConfiguration",
+      "s3:GetInventoryConfiguration",
+      "s3:GetMetricsConfiguration",
+      "s3:GetReplicationConfiguration",
+      "s3:ListTagsForResource",
+      "s3:TagResource",
+      "s3:UntagResource"
+    ]
+  },
+  "additionalActionsCount": 18,
+  "scope": "Existing exact staging topic and artifact bucket only. No object read/write, no message actions, no runtime IAM or key-destruction permission",
+  "awsPolicyUpdated": false,
+  "liveProviderSchemaAndPolicyVerificationPending": true
+}

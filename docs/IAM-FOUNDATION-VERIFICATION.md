@@ -1,5 +1,7 @@
 # Verificación de permisos antes y después de la pila IAM
 
+> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
+
 Revisión: 25-10-2026, Europe/Paris. **No ejecutada en AWS desde esta sesión.** No hay AWS CLI, perfiles ni credenciales AWS de entorno en el usuario operativo del servidor. El usuario ha facilitado una salida STS de CloudShell que confirma cuenta y sesión SSO; se registra su procedencia, sin atribuir esa llamada a las herramientas del arquitecto. Las políticas adjuntas, boundaries/SCP y la asunción del rol nuevo siguen pendientes de comprobación efectiva.
 
 ## Qué se puede verificar antes de crear los roles
@@ -81,7 +83,7 @@ No intentar asumir como persona el rol de ejecución: su confianza es solo Cloud
 | Identidad SSO en AWS | Confirmada por la salida CloudShell facilitada: cuenta `365470560685`, sesión `AWSReservedSSO_AdministratorAccess_6a3ad0308126a256/antoni.caimari`; no root. |
 | Simulación de permiso fuente | Usuario facilita `allowed` y `MissingContext=[]` para sts:AssumeRole sobre el ARN de recuperación previsto. |
 | Políticas adjuntas / restricciones fuera del alcance de la simulación | No auditadas independientemente por el arquitecto; no se presenta el resultado como prueba total de la cuenta. |
-| Asunción efectiva del rol de recuperación | Pendiente de que exista el rol y se ejecute STS autorizado. |
+| Asunción efectiva del rol de recuperación | Usuario confirma éxito real de STS tras CREATE_COMPLETE; no se han compartido credenciales. |
 | Capacidad de leer/corregir la política de la clave real | Pendiente de su creación posterior autorizada y revisión efectiva; no probada mediante una escritura. |
 | Creación/eliminación real de recursos por CloudFormation | No ejecutada; no se presenta el lint como prueba funcional. |
 

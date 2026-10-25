@@ -1,0 +1,55 @@
+{
+  "result": "PASS_OFFLINE_ONLY",
+  "reviewDate": "2026-10-25",
+  "authenticatedAwsCalls": 0,
+  "awsChangesExecuted": false,
+  "productionChanged": false,
+  "sourceCommitBeforeReview": "a0a45257f47ef25d086cdcac98b3b55413f15b95",
+  "validation": {
+    "cfnLintVersion": "1.58.0",
+    "region": "eu-west-1",
+    "cfnLintAllThreeTemplates": "PASS_NO_DIAGNOSTICS_NETWORK_ISOLATED",
+    "foundationConsistencyAndTrust": "PASS",
+    "ingressFullTemplateConsistencyAndSafetyRules": "PASS",
+    "preparedRequestsReproducibility": "PASS",
+    "diffOnlyAdds18ScopedMetadataAndTaggingActions": "PASS",
+    "providerReadPermissionCoverage": "PASS_BUNDLED_SCHEMA_ONLY",
+    "templateBodiesWithin51200ByteLimit": "PASS"
+  },
+  "iamAddedActions": {
+    "StageTopicAndSubscriptionOnly": [
+      "sns:GetDataProtectionPolicy"
+    ],
+    "PrivateArtifactBucketOnly": [
+      "s3:GetAccelerateConfiguration",
+      "s3:GetAnalyticsConfiguration",
+      "s3:GetBucketAbac",
+      "s3:GetBucketCORS",
+      "s3:GetBucketLogging",
+      "s3:GetBucketMetadataTableConfiguration",
+      "s3:GetBucketNotification",
+      "s3:GetBucketObjectLockConfiguration",
+      "s3:GetBucketVersioning",
+      "s3:GetBucketWebsite",
+      "s3:GetIntelligentTieringConfiguration",
+      "s3:GetInventoryConfiguration",
+      "s3:GetMetricsConfiguration",
+      "s3:GetReplicationConfiguration",
+      "s3:ListTagsForResource",
+      "s3:TagResource",
+      "s3:UntagResource"
+    ]
+  },
+  "executorAllowActions": 66,
+  "ingressTemplateSha256": "4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb",
+  "foundationTemplateSha256": "3c280bc43c60d68d6b5e5c186574e34bdbc7cfcd6e879dcaa6c3361faa8e8260",
+  "remainingAwsChecks": [
+    "Actual deployed role policies, trust and boundaries",
+    "Live provider schemas, SCP and service restrictions",
+    "Resource-name collisions",
+    "AWS-generated change set contents",
+    "Create/update/rollback and Social delivery after separate authorization"
+  ],
+  "changeSetsCreatedInAws": false,
+  "decision": "GO_PREPARE_REVIEW_NO_GO_EXECUTE_UNTIL_IAM_PATCH_AND_EXPRESS_AUTHORIZATION"
+}

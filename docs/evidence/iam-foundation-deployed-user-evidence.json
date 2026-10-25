@@ -1,0 +1,24 @@
+{
+  "kind": "USER_PROVIDED_AWS_CLOUDSHELL_EVIDENCE",
+  "recordedDate": "2026-10-25",
+  "Account": "365470560685",
+  "Region": "eu-west-1",
+  "StackName": "muserelay-aws-bridge-iam-foundation",
+  "StackStatus": "CREATE_COMPLETE",
+  "Outputs": {
+    "CloudFormationExecutionRoleArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution",
+    "KmsRecoveryRoleArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery"
+  },
+  "recoveryAssumeRole": {
+    "reportedResult": "SUCCESS",
+    "reportedReturnedArnMatchesExpected": true,
+    "credentialsRecorded": false
+  },
+  "performedByAgent": false,
+  "authenticatedAwsCallsByAgent": 0,
+  "actualDeployedTemplateReadByAgent": false,
+  "actualDeployedInlinePoliciesReadByAgent": false,
+  "snsIngressDeployed": false,
+  "snsIngressDeploymentStatusSource": "No ingress execution reported or performed in this task",
+  "newLocalIamMetadataPatchDeployed": false
+}

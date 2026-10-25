@@ -202,7 +202,7 @@
     "attachedAdministratorAccessPolicy": "PENDING_REAL_READ",
     "permissionsBoundaryAndScp": "PENDING_REAL_READ",
     "assumeRoleSourceSimulation": "CONFIRMED_FROM_USER_PROVIDED_CLOUDSHELL_SIMULATION_ALLOWED_NO_MISSING_CONTEXT",
-    "actualRecoveryRoleAssumption": "PENDING_ROLE_EXISTS_AND_AUTHORIZED_STS_CHECK",
+    "actualRecoveryRoleAssumption": "CONFIRMED_FROM_USER_PROVIDED_SUCCESSFUL_REAL_STS_ASSUMPTION",
     "actualKeyPolicyAdministration": "PENDING_KEY_EXISTS_AND_SEPARATE_AUTHORIZATION"
   },
   "templateHashes": {
@@ -228,5 +228,7 @@
     "executedByAgent": false
   },
   "readyToGenerateNewChangeSet": true,
-  "authorizedToExecuteChangeSet": false
+  "authorizedToExecuteChangeSet": false,
+  "foundationDeploymentEvidence": "iam-foundation-deployed-user-evidence.json",
+  "supersededForNextDeploymentBy": "ingress-provider-permission-review.json and ../../deploy/sns-bootstrap/review-manifest.json"
 }

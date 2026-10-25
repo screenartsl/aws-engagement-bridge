@@ -1,5 +1,7 @@
 # CloudFormation cifrado en dos etapas — preparado, NO desplegado
 
+> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
+
 Revisión: 25-10-2026. **GO para revisión offline; NO-GO para ejecutar sin autorización y preflight real.** Cuenta prevista Screen Art S.L. `365470560685`, región `eu-west-1`. No se ha contactado la cuenta mediante API, creado recursos, cambiado IAM, finalizado el alta Social ni enviado mensajes. La lista SNS vacía y el progreso Meta son datos comunicados por el usuario, no inventario independiente.
 
 Esta guía sustituye las instrucciones AWS de los informes históricos de fase 4. La instalación/retirada de staging MuseRelay continúa descrita en [PHASE-4-RUNBOOK.md](PHASE-4-RUNBOOK.md); ninguna de esas acciones queda autorizada por preparar esta plantilla. El Core instalado permanece desactivado, sin autorizaciones ni canales AWS según la última revisión; no se ha vuelto a instalar ni modificado durante esta tarea.

@@ -1,5 +1,7 @@
 # Costes KMS y acceso AWS para el Bridge
 
+> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
+
 Revisión documental: **25-10-2026, Europe/Paris**. Recoge la explicación aportada por el usuario y sus matices para futuros presupuestos. No crea claves, identidades, MFA, permisos ni recursos. Cuenta prevista: Screen Art S.L. `365470560685`, Irlanda `eu-west-1`.
 
 **Actualización posterior del usuario:** Identity Center operativo, usuario `antoni.caimari`, AdministratorAccess y MFA SSO funcionando. No comprobado por API desde aquí. La decisión actual sobre roles estables, clave y recuperación prevalece en [AWS-KMS-ADMINISTRATION.md](AWS-KMS-ADMINISTRATION.md); MFA root continúa sin confirmar.
