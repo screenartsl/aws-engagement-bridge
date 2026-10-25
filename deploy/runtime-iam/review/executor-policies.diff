@@ -1,0 +1,170 @@
+--- executor-policies.before.json
++++ executor-policies.after.json
+@@ -187,5 +187,167 @@
+         }
+       ]
+     }
++  },
++  {
++    "PolicyName": "bridge-runtime-receive-provisioning",
++    "PolicyDocument": {
++      "Version": "2012-10-17",
++      "Statement": [
++        {
++          "Sid": "PassOnlyInboundRuntime",
++          "Effect": "Allow",
++          "Action": [
++            "iam:PassRole"
++          ],
++          "Resource": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime",
++          "Condition": {
++            "StringEquals": {
++              "iam:PassedToService": "lambda.amazonaws.com"
++            }
++          }
++        },
++        {
++          "Sid": "InboundFunctionProvisioning",
++          "Effect": "Allow",
++          "Action": [
++            "lambda:CreateFunction",
++            "lambda:GetFunction",
++            "lambda:GetFunctionConfiguration",
++            "lambda:GetFunctionCodeSigningConfig",
++            "lambda:GetFunctionConcurrency",
++            "lambda:UpdateFunctionCode",
++            "lambda:UpdateFunctionConfiguration",
++            "lambda:DeleteFunction",
++            "lambda:PutFunctionConcurrency",
++            "lambda:DeleteFunctionConcurrency",
++            "lambda:TagResource",
++            "lambda:UntagResource",
++            "lambda:ListTags"
++          ],
++          "Resource": "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound",
++          "Condition": {
++            "StringEquals": {
++              "aws:RequestedRegion": "eu-west-1"
++            }
++          }
++        },
++        {
++          "Sid": "CreateOnlyInboundMapping",
++          "Effect": "Allow",
++          "Action": [
++            "lambda:CreateEventSourceMapping"
++          ],
++          "Resource": "*",
++          "Condition": {
++            "StringEquals": {
++              "aws:RequestedRegion": "eu-west-1"
++            },
++            "ArnEquals": {
++              "lambda:FunctionArn": "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound"
++            }
++          }
++        },
++        {
++          "Sid": "ManageOnlyInboundMapping",
++          "Effect": "Allow",
++          "Action": [
++            "lambda:GetEventSourceMapping",
++            "lambda:UpdateEventSourceMapping",
++            "lambda:DeleteEventSourceMapping"
++          ],
++          "Resource": "arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*",
++          "Condition": {
++            "StringEquals": {
++              "aws:RequestedRegion": "eu-west-1"
++            },
++            "ArnEquals": {
++              "lambda:FunctionArn": "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound"
++            }
++          }
++        },
++        {
++          "Sid": "OwnStateTableProvisioning",
++          "Effect": "Allow",
++          "Action": [
++            "dynamodb:CreateTable",
++            "dynamodb:DeleteTable",
++            "dynamodb:DescribeTable",
++            "dynamodb:UpdateTable",
++            "dynamodb:UpdateTimeToLive",
++            "dynamodb:DescribeTimeToLive",
++            "dynamodb:TagResource",
++            "dynamodb:UntagResource",
++            "dynamodb:ListTagsOfResource"
++          ],
++          "Resource": "arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state",
++          "Condition": {
++            "StringEquals": {
++              "aws:RequestedRegion": "eu-west-1"
++            }
++          }
++        },
++        {
++          "Sid": "EmptySigningSecretMetadata",
++          "Effect": "Allow",
++          "Action": [
++            "secretsmanager:CreateSecret",
++            "secretsmanager:DescribeSecret",
++            "secretsmanager:TagResource",
++            "secretsmanager:UntagResource",
++            "secretsmanager:ListSecretVersionIds",
++            "secretsmanager:GetResourcePolicy"
++          ],
++          "Resource": "arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-??????",
++          "Condition": {
++            "StringEquals": {
++              "aws:RequestedRegion": "eu-west-1"
++            }
++          }
++        },
++        {
++          "Sid": "OwnLogGroupProvisioning",
++          "Effect": "Allow",
++          "Action": [
++            "logs:CreateLogGroup",
++            "logs:DeleteLogGroup",
++            "logs:PutRetentionPolicy",
++            "logs:DeleteRetentionPolicy",
++            "logs:TagResource",
++            "logs:UntagResource",
++            "logs:ListTagsForResource"
++          ],
++          "Resource": [
++            "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound",
++            "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound:*"
++          ],
++          "Condition": {
++            "StringEquals": {
++              "aws:RequestedRegion": "eu-west-1"
++            }
++          }
++        },
++        {
++          "Sid": "RegionalLogGroupMetadata",
++          "Effect": "Allow",
++          "Action": [
++            "logs:DescribeLogGroups"
++          ],
++          "Resource": "*",
++          "Condition": {
++            "StringEquals": {
++              "aws:RequestedRegion": "eu-west-1"
++            }
++          }
++        },
++        {
++          "Sid": "ReadReviewedArtifact",
++          "Effect": "Allow",
++          "Action": [
++            "s3:GetObject"
++          ],
++          "Resource": "arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/releases/*/bridge.zip"
++        }
++      ]
++    }
+   }
+ ]

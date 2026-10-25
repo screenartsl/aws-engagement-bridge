@@ -1,0 +1,77 @@
+{
+  "kind": "PUBLISHED_TEMPLATE_COMPARISON_NOT_AWS_EFFECTIVE_PERMISSION_AUDIT",
+  "reviewDate": "2026-10-25",
+  "repository": "screenartsl/aws-engagement-bridge",
+  "repositoryPrivateVerified": true,
+  "publishedSourceCommit": "401728d1a66f577481936e07f2630a559144efb9",
+  "publishedFilesVerifiedAgainstGitHub": true,
+  "previousTemplate": {
+    "path": "deploy/iam-foundation/template.yaml",
+    "sha256": "3c280bc43c60d68d6b5e5c186574e34bdbc7cfcd6e879dcaa6c3361faa8e8260"
+  },
+  "proposedTemplate": {
+    "path": "deploy/runtime-iam/template.yaml",
+    "sha256": "b2a87ec5d7d205b69250596103427fb55b8896b7f5997507b28b489b18feac3a"
+  },
+  "comparison": {
+    "oldPolicyNames": [
+      "bridge-stage-scoped"
+    ],
+    "newPolicyNames": [
+      "bridge-stage-scoped",
+      "bridge-runtime-receive-provisioning"
+    ],
+    "oldPolicyStructurallyIdentical": true,
+    "oldPolicyCanonicalJsonSha256Before": "5173b81dfd8e2deda4136014a3b6d9243751eb4ebb6ea45490d4c2287a08bedb",
+    "oldPolicyCanonicalJsonSha256After": "5173b81dfd8e2deda4136014a3b6d9243751eb4ebb6ea45490d4c2287a08bedb",
+    "executorOtherFieldsUnchanged": true,
+    "recoveryRoleEntirelyUnchanged": true,
+    "addedPolicyStatementCount": 9,
+    "keyDestructionDenyPreserved": {
+      "Sid": "PreventKeyDestructionFromDeployment",
+      "Effect": "Deny",
+      "Action": [
+        "kms:DisableKey",
+        "kms:ScheduleKeyDeletion"
+      ],
+      "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*"
+    },
+    "expectedAdd": [
+      "InboundExecutionRole",
+      "EnqueueExecutionRole",
+      "SenderExecutionRole"
+    ],
+    "expectedModify": [
+      "StageCloudFormationRole"
+    ],
+    "expectedRemove": []
+  },
+  "parameterEvaluation": {
+    "GrantSocialSend": "false",
+    "source": "operator-reported change-set parameter; false default verified in published template",
+    "condition": false,
+    "senderSocialSendStatementRemoved": true
+  },
+  "runtimeRoleTrust": "lambda.amazonaws.com only; no per-function ARN condition",
+  "runtimeRoleRetention": "DeletionPolicy=Retain and UpdateReplacePolicy=Retain for all three",
+  "runtimeRoleManagedPolicies": [],
+  "runtimeRolePermissionsBoundary": null,
+  "awsActualOldTemplateObtained": false,
+  "awsActualChangeSetTemplateObtained": false,
+  "awsEffectivePermissionsVerified": false,
+  "awsWrites": 0,
+  "runtimeTemplateModified": false,
+  "artifacts": {
+    "executor-policies.before.json": "7062dbec11e4d1a39ccc36b8778a5373ee9b8e51d807ffae6208fe808bcce6db",
+    "executor-policies.after.json": "9d476e55d062b508dd8d0a1c30e66ecf2085e8404fd535013f42af649d792f5b",
+    "runtime-roles.send-disabled.json": "d68e59fbdd52cecbce7f5c3ab67d100138d9a5a43dfd1d2eb3b51231e4b095b4",
+    "executor-policies.diff": "8255b613f185fb6e80d9b6ad42a80b2941ce3b7850413fa3609e3ad959c4e26f"
+  },
+  "limitations": [
+    "Published baseline is not an export of the current AWS stack; out-of-band IAM drift not verified",
+    "Full original template of the pending change set and current stack still required to replace truncated console evidence",
+    "SCP/RCP/resource-policy/session/boundary effects and actual Lambda execution not verified",
+    "No role or consumer deployed; false removes a grant, it is not an explicit deny against future external grants",
+    "Retain preserves resources and attached permissions; it does not revoke access"
+  ]
+}

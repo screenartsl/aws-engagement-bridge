@@ -29,6 +29,8 @@ Actualizar la pila existente `muserelay-aws-bridge-iam-foundation`, cuenta `3654
 
 La comparación local con la fundación anterior confirma que la confianza del ejecutor, sus políticas anteriores y las denegaciones explícitas de `kms:DisableKey` / `kms:ScheduleKeyDeletion` permanecen iguales. Se conservan ambos ARN existentes y Retain. Los tres roles nuevos también tienen Retain. La autorización efectiva y las diferencias frente a la pila **real** deben contrastarse en el conjunto de cambios, no se deducen de esta comparación local.
 
+Si CloudFormation muestra `(Truncated-Signature)` en Policies, consultar la [comparación íntegra, hashes y extracción de plantillas sin ejecutar](IAM-POLICIES-COMPARISON-2026-10-25.md). No dar por verificada la plantilla real del conjunto solo por su resumen de recursos.
+
 Parámetro único: **`GrantSocialSend=false`**. Reconocer `CAPABILITY_NAMED_IAM` porque se crean roles con nombres explícitos. No adjuntar AdministratorAccess a los roles nuevos.
 
 Los roles de runtime confían en `lambda.amazonaws.com`; Lambda los asume automáticamente. No se crean usuarios IAM ni claves permanentes. Tampoco autorizan al servidor web a asumirlos ni proporcionan credenciales a Laravel. Bedrock conserva su autenticación actual, y la futura identidad de inferencia queda fuera de esta actualización.

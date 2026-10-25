@@ -1,0 +1,191 @@
+[
+  {
+    "PolicyName": "bridge-stage-scoped",
+    "PolicyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "CreateOnlySymmetricDemoKey",
+          "Effect": "Allow",
+          "Action": [
+            "kms:CreateKey"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1",
+              "kms:KeySpec": "SYMMETRIC_DEFAULT",
+              "kms:KeyUsage": "ENCRYPT_DECRYPT",
+              "aws:RequestTag/Company": "ScreenArt",
+              "aws:RequestTag/Component": "aws-engagement-bridge",
+              "aws:RequestTag/Environment": "staging"
+            },
+            "Bool": {
+              "kms:BypassPolicyLockoutSafetyCheck": "false"
+            }
+          }
+        },
+        {
+          "Sid": "TagKeyAtCreation",
+          "Effect": "Allow",
+          "Action": [
+            "kms:TagResource"
+          ],
+          "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1",
+              "aws:RequestTag/Company": "ScreenArt",
+              "aws:RequestTag/Component": "aws-engagement-bridge",
+              "aws:RequestTag/Environment": "staging"
+            }
+          }
+        },
+        {
+          "Sid": "ReadRegionalKeyMetadata",
+          "Effect": "Allow",
+          "Action": [
+            "kms:DescribeKey",
+            "kms:GetKeyPolicy",
+            "kms:GetKeyRotationStatus",
+            "kms:ListResourceTags"
+          ],
+          "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "NamedAliasOnly",
+          "Effect": "Allow",
+          "Action": [
+            "kms:CreateAlias",
+            "kms:UpdateAlias",
+            "kms:DeleteAlias"
+          ],
+          "Resource": "arn:aws:kms:eu-west-1:365470560685:alias/muserelay-aws-bridge-stage-sns",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "ReadAliasRegistry",
+          "Effect": "Allow",
+          "Action": [
+            "kms:ListAliases"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "StageTopicAndSubscriptionOnly",
+          "Effect": "Allow",
+          "Action": [
+            "sns:CreateTopic",
+            "sns:DeleteTopic",
+            "sns:GetTopicAttributes",
+            "sns:SetTopicAttributes",
+            "sns:TagResource",
+            "sns:UntagResource",
+            "sns:ListTagsForResource",
+            "sns:Subscribe",
+            "sns:Unsubscribe",
+            "sns:GetSubscriptionAttributes",
+            "sns:SetSubscriptionAttributes",
+            "sns:ListSubscriptionsByTopic",
+            "sns:GetDataProtectionPolicy"
+          ],
+          "Resource": "arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "StageQueuesOnly",
+          "Effect": "Allow",
+          "Action": [
+            "sqs:CreateQueue",
+            "sqs:DeleteQueue",
+            "sqs:GetQueueUrl",
+            "sqs:GetQueueAttributes",
+            "sqs:SetQueueAttributes",
+            "sqs:TagQueue",
+            "sqs:UntagQueue",
+            "sqs:ListQueueTags"
+          ],
+          "Resource": [
+            "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue",
+            "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-dlq",
+            "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-sns-delivery-dlq"
+          ],
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "PrivateArtifactBucketOnly",
+          "Effect": "Allow",
+          "Action": [
+            "s3:CreateBucket",
+            "s3:DeleteBucket",
+            "s3:GetBucketLocation",
+            "s3:ListBucket",
+            "s3:GetBucketAcl",
+            "s3:GetEncryptionConfiguration",
+            "s3:PutEncryptionConfiguration",
+            "s3:GetBucketPublicAccessBlock",
+            "s3:PutBucketPublicAccessBlock",
+            "s3:GetBucketOwnershipControls",
+            "s3:PutBucketOwnershipControls",
+            "s3:GetBucketTagging",
+            "s3:PutBucketTagging",
+            "s3:GetBucketPolicy",
+            "s3:PutBucketPolicy",
+            "s3:DeleteBucketPolicy",
+            "s3:GetLifecycleConfiguration",
+            "s3:PutLifecycleConfiguration",
+            "s3:GetAccelerateConfiguration",
+            "s3:GetAnalyticsConfiguration",
+            "s3:GetBucketAbac",
+            "s3:GetBucketCORS",
+            "s3:GetBucketLogging",
+            "s3:GetBucketMetadataTableConfiguration",
+            "s3:GetBucketNotification",
+            "s3:GetBucketObjectLockConfiguration",
+            "s3:GetBucketVersioning",
+            "s3:GetBucketWebsite",
+            "s3:GetIntelligentTieringConfiguration",
+            "s3:GetInventoryConfiguration",
+            "s3:GetMetricsConfiguration",
+            "s3:GetReplicationConfiguration",
+            "s3:ListTagsForResource",
+            "s3:TagResource",
+            "s3:UntagResource"
+          ],
+          "Resource": "arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1"
+        },
+        {
+          "Sid": "PreventKeyDestructionFromDeployment",
+          "Effect": "Deny",
+          "Action": [
+            "kms:DisableKey",
+            "kms:ScheduleKeyDeletion"
+          ],
+          "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*"
+        }
+      ]
+    }
+  }
+]

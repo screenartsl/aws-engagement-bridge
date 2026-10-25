@@ -1,0 +1,270 @@
+{
+  "InboundExecutionRole": {
+    "Type": "AWS::IAM::Role",
+    "DeletionPolicy": "Retain",
+    "UpdateReplacePolicy": "Retain",
+    "Properties": {
+      "RoleName": "muserelay-aws-bridge-stage-inbound-runtime",
+      "MaxSessionDuration": 3600,
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      },
+      "Policies": [
+        {
+          "PolicyName": "bridge-runtime",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "OwnState",
+                "Effect": "Allow",
+                "Action": [
+                  "dynamodb:GetItem",
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem",
+                  "dynamodb:DeleteItem"
+                ],
+                "Resource": "arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state"
+              },
+              {
+                "Sid": "OwnSigningSecret",
+                "Effect": "Allow",
+                "Action": [
+                  "secretsmanager:GetSecretValue"
+                ],
+                "Resource": "arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-??????"
+              },
+              {
+                "Sid": "OwnLogs",
+                "Effect": "Allow",
+                "Action": [
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound:*"
+              },
+              {
+                "Sid": "OwnQueue",
+                "Effect": "Allow",
+                "Action": [
+                  "sqs:ReceiveMessage",
+                  "sqs:DeleteMessage",
+                  "sqs:GetQueueAttributes"
+                ],
+                "Resource": "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue"
+              }
+            ]
+          }
+        }
+      ],
+      "Tags": [
+        {
+          "Key": "Company",
+          "Value": "ScreenArt"
+        },
+        {
+          "Key": "Project",
+          "Value": "MuseRelay"
+        },
+        {
+          "Key": "Component",
+          "Value": "aws-engagement-bridge"
+        },
+        {
+          "Key": "Environment",
+          "Value": "staging"
+        },
+        {
+          "Key": "Purpose",
+          "Value": "hackathon"
+        }
+      ]
+    }
+  },
+  "EnqueueExecutionRole": {
+    "Type": "AWS::IAM::Role",
+    "DeletionPolicy": "Retain",
+    "UpdateReplacePolicy": "Retain",
+    "Properties": {
+      "RoleName": "muserelay-aws-bridge-stage-enqueue-runtime",
+      "MaxSessionDuration": 3600,
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      },
+      "Policies": [
+        {
+          "PolicyName": "bridge-runtime",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "OwnState",
+                "Effect": "Allow",
+                "Action": [
+                  "dynamodb:PutItem"
+                ],
+                "Resource": "arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state"
+              },
+              {
+                "Sid": "OwnSigningSecret",
+                "Effect": "Allow",
+                "Action": [
+                  "secretsmanager:GetSecretValue"
+                ],
+                "Resource": "arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-outbound-??????"
+              },
+              {
+                "Sid": "OwnLogs",
+                "Effect": "Allow",
+                "Action": [
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-enqueue:*"
+              },
+              {
+                "Sid": "OwnOutboundQueue",
+                "Effect": "Allow",
+                "Action": [
+                  "sqs:SendMessage"
+                ],
+                "Resource": "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-queue"
+              }
+            ]
+          }
+        }
+      ],
+      "Tags": [
+        {
+          "Key": "Company",
+          "Value": "ScreenArt"
+        },
+        {
+          "Key": "Project",
+          "Value": "MuseRelay"
+        },
+        {
+          "Key": "Component",
+          "Value": "aws-engagement-bridge"
+        },
+        {
+          "Key": "Environment",
+          "Value": "staging"
+        },
+        {
+          "Key": "Purpose",
+          "Value": "hackathon"
+        }
+      ]
+    }
+  },
+  "SenderExecutionRole": {
+    "Type": "AWS::IAM::Role",
+    "DeletionPolicy": "Retain",
+    "UpdateReplacePolicy": "Retain",
+    "Properties": {
+      "RoleName": "muserelay-aws-bridge-stage-sender-runtime",
+      "MaxSessionDuration": 3600,
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      },
+      "Policies": [
+        {
+          "PolicyName": "bridge-runtime",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "OwnState",
+                "Effect": "Allow",
+                "Action": [
+                  "dynamodb:GetItem",
+                  "dynamodb:PutItem",
+                  "dynamodb:UpdateItem",
+                  "dynamodb:DeleteItem"
+                ],
+                "Resource": "arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state"
+              },
+              {
+                "Sid": "OwnSigningSecret",
+                "Effect": "Allow",
+                "Action": [
+                  "secretsmanager:GetSecretValue"
+                ],
+                "Resource": "arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-??????"
+              },
+              {
+                "Sid": "OwnLogs",
+                "Effect": "Allow",
+                "Action": [
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-sender:*"
+              },
+              {
+                "Sid": "OwnQueue",
+                "Effect": "Allow",
+                "Action": [
+                  "sqs:ReceiveMessage",
+                  "sqs:DeleteMessage",
+                  "sqs:GetQueueAttributes"
+                ],
+                "Resource": "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-queue"
+              }
+            ]
+          }
+        }
+      ],
+      "Tags": [
+        {
+          "Key": "Company",
+          "Value": "ScreenArt"
+        },
+        {
+          "Key": "Project",
+          "Value": "MuseRelay"
+        },
+        {
+          "Key": "Component",
+          "Value": "aws-engagement-bridge"
+        },
+        {
+          "Key": "Environment",
+          "Value": "staging"
+        },
+        {
+          "Key": "Purpose",
+          "Value": "hackathon"
+        }
+      ]
+    }
+  }
+}
