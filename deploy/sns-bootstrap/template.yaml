@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Prepared only - Screen Art demo Social ingress; no Lambda, IAM, model calls or sends
+Rules:
+  IrelandOnly:
+    Assertions:
+      - Assert: !Equals [!Ref 'AWS::Region', eu-west-1]
+        AssertDescription: Use eu-west-1 for the approved Screen Art demonstration.
+Resources:
+  InboundTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${AWS::StackName}-inbound'
+  TopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [!Ref InboundTopic]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: social-messaging.amazonaws.com}
+            Action: sns:Publish
+            Resource: !Ref InboundTopic
+            Condition:
+              StringEquals: {'aws:SourceAccount': !Ref 'AWS::AccountId'}
+              ArnLike: {'aws:SourceArn': !Sub 'arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*'}
+  InboundDlq:
+    Type: AWS::SQS::Queue
+    Properties: {MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+  InboundQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy: {deadLetterTargetArn: !GetAtt InboundDlq.Arn, maxReceiveCount: 5}
+  InboundQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref InboundQueue]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: sns.amazonaws.com}
+            Action: sqs:SendMessage
+            Resource: !GetAtt InboundQueue.Arn
+            Condition:
+              ArnEquals: {'aws:SourceArn': !Ref InboundTopic}
+              StringEquals: {'aws:SourceAccount': !Ref 'AWS::AccountId'}
+  Subscription:
+    Type: AWS::SNS::Subscription
+    DependsOn: InboundQueuePolicy
+    Properties:
+      TopicArn: !Ref InboundTopic
+      Protocol: sqs
+      Endpoint: !GetAtt InboundQueue.Arn
+      RawMessageDelivery: false
+
+Outputs:
+  InboundTopicArn: {Value: !Ref InboundTopic}
+  InboundQueueArn: {Value: !GetAtt InboundQueue.Arn}
+  InboundQueueUrl: {Value: !Ref InboundQueue}
+  InboundDeadLetterQueue: {Value: !Ref InboundDlq}

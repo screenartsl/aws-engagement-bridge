@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowScreenArtSocialPublish",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "social-messaging.amazonaws.com"
+      },
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound",
+      "Condition": {
+        "StringEquals": {
+          "aws:SourceAccount": "365470560685"
+        },
+        "ArnLike": {
+          "aws:SourceArn": "arn:aws:social-messaging:eu-west-1:365470560685:*"
+        }
+      }
+    }
+  ]
+}
