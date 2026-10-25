@@ -11,6 +11,8 @@ Development connector **0.5.1 is prepared, not installed**; production remains t
 
 Next console step: [pinned IAM UPDATE, exact expected resources and copyable GPT prompt](docs/CONSOLE-IAM-RUNTIME-REVIEW-2026-10-25.md). Use `deploy/runtime-iam/template.yaml`, GrantSocialSend=false, and review the change set without executing. [Final 0.5.1 local validation](docs/RELEASE-0.5.1-REVIEW.md) distinguishes isolated tests from live AWS operation.
 
+Latest operator update: IAM Foundation is reported UPDATE_COMPLETE and its three runtime inline policies verified. Next is the [disabled receive-runtime UPDATE review](deploy/runtime-review/README.md), with a pinned local ZIP, complete parameter set and five expected additions. No runtime change set has been created by this server; ZIP upload, AWS execution and Core activation remain separately authorized steps. Earlier IAM preparation documents record the historical review.
+
 ## Current status — Core connector DISABLED; Social linked; ingress inspection prepared
 
 Current AWS update (2026-10-25): the user reports the dedicated demo WABA/phone linked and active, the staging SNS destination enabled, and two visible inbound SQS items with zero DLQ/inflight/delayed counts. Earlier CloudShell configuration checks were reported consistent. These are user-supplied snapshots, not direct AWS calls or proof of user-message contents. A [controlled, redacted sample inspection](docs/INBOUND-SAMPLE-INSPECTION.md) is prepared and tested locally; it has not been executed. ReceiveMessage would increment receive counts and temporarily hide up to two items for 30 seconds, so execution needs separate authorization. No Core/runtime/worker/agent/send activation was performed. The metadata collector remains strictly read-only.

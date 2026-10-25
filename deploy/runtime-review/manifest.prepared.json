@@ -1,0 +1,84 @@
+{
+  "kind": "LOCAL_RECEIVE_REVIEW_NOT_AN_AWS_CHANGE_SET",
+  "account": "365470560685",
+  "region": "eu-west-1",
+  "stack": "muserelay-aws-bridge-stage",
+  "changeSetName": "receive-runtime-review-3e82e39dd7aa-62dab78f",
+  "templatePath": "template.yaml",
+  "templateSha256": "3e82e39dd7aa0ea4db5eb4833b33eca653596fd8aeff5d84d264b3140820041b",
+  "artifactSourceCommit": "62dab78f458e1b31c108be0601d745cb0c8880fc",
+  "artifactBucket": "muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1",
+  "artifactKey": "releases/62dab78f458e1b31c108be0601d745cb0c8880fc/bridge.zip",
+  "artifactSha256": "9e377f798018aae44aa7aa93a6e9eb3887d991a1347b87b2a2d0a725826747db",
+  "artifactChecksumSHA256Base64": "njd/eYAYquRKp6qTpunrOIfZkaE0e4eyotCnJYJnR9s=",
+  "artifactUploadedByThisPreparation": false,
+  "artifactExistenceInAwsVerified": false,
+  "iamFoundationState": "UPDATE_COMPLETE reported by owner; no direct AWS verification",
+  "managedPoliciesAndBoundariesVerified": false,
+  "lambdaQuotaVerified": false,
+  "awsCalls": 0,
+  "changeSetCreatedInAws": false,
+  "executionAuthorized": false,
+  "expectedAdds": [
+    {
+      "LogicalResourceId": "State",
+      "ResourceType": "AWS::DynamoDB::Table",
+      "Action": "Add"
+    },
+    {
+      "LogicalResourceId": "InboundFunction",
+      "ResourceType": "AWS::Lambda::Function",
+      "Action": "Add"
+    },
+    {
+      "LogicalResourceId": "InboundFunctionInput",
+      "ResourceType": "AWS::Lambda::EventSourceMapping",
+      "Action": "Add"
+    },
+    {
+      "LogicalResourceId": "InboundLogs",
+      "ResourceType": "AWS::Logs::LogGroup",
+      "Action": "Add"
+    },
+    {
+      "LogicalResourceId": "SigningSecret",
+      "ResourceType": "AWS::SecretsManager::Secret",
+      "Action": "Add"
+    }
+  ],
+  "expectedModifications": [],
+  "expectedRemovals": [],
+  "expectedReplacements": [],
+  "preserveOriginalIngressResources": 12,
+  "expectedSelectedResourcesAfterSam": 17,
+  "receiveConsumerEnabled": false,
+  "processingEnabled": false,
+  "sendEnabled": false,
+  "bindingEnabled": false,
+  "allowedRecipients": [],
+  "intendedOrganization": "Screen Art Demo Workspace",
+  "intendedOrganizationId": 227,
+  "demoWorkspaceId": 312,
+  "demoOrganizationIdentityReadOnlyVerified": true,
+  "demoAuthenticatedAccessVerified": false,
+  "authorizedOrganizationIds": [],
+  "coreOrganizationWorkspaceChannelIdsVerified": false,
+  "coreEndpointVerified": false,
+  "coreEndpoint": "https://aws-bridge-staging.muserelay.com",
+  "coreEndpointStatus": "temporary technical test destination only; not activated; final native Core endpoint needs review",
+  "productionModified": false,
+  "agentDeployed": false,
+  "prerequisitesBeforeExecution": [
+    "Read actual change set and preserve the original 12 resources",
+    "Verify attached managed policies/boundaries and execution role policy in AWS",
+    "Verify Lambda reserved concurrency capacity without changing quotas or other functions",
+    "Authorize private ZIP upload separately and verify S3 checksum",
+    "Explicit authorization to execute this exact runtime change set"
+  ],
+  "prerequisitesBeforeReception": [
+    "Owner-created Screen Art Demo identity and scope verification",
+    "Reviewed Core connector installation, native inbox, rollback and authenticated HTTPS endpoint",
+    "Private HMAC initialization and expiry/allowlist checks",
+    "Explicit authorization covering existing SQS backlog and receive/drain activation"
+  ]
+}
