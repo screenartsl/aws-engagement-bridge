@@ -45,7 +45,7 @@
   },
   {
     "ParameterKey": "RuntimeArtifactKey",
-    "ParameterValue": "releases/62dab78f458e1b31c108be0601d745cb0c8880fc/bridge.zip"
+    "ParameterValue": "releases/82707086af6e0597d741c3e44e7ce843c074a326/bridge.zip"
   },
   {
     "ParameterKey": "ReceiveEnabled",

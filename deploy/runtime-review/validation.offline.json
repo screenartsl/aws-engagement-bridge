@@ -1,8 +1,8 @@
 {
   "result": "PASS_OFFLINE_SAM",
   "awsCalls": 0,
-  "templateSha256": "3e82e39dd7aa0ea4db5eb4833b33eca653596fd8aeff5d84d264b3140820041b",
-  "artifactSourceCommit": "62dab78f458e1b31c108be0601d745cb0c8880fc",
+  "templateSha256": "88161733676dae8d788eff092cf75c6430c5ca28860e7f7048804e5ce3f694ac",
+  "artifactSourceCommit": "82707086af6e0597d741c3e44e7ce843c074a326",
   "originalIngressResourcesIdentical": 12,
   "selectedResources": 17,
   "addedResources": {
@@ -13,9 +13,13 @@
     "InboundFunctionInput": "AWS::Lambda::EventSourceMapping"
   },
   "inboundMappingEnabled": false,
+  "inboundReservedConcurrentExecutions": null,
+  "inboundSqsMaximumConcurrency": 2,
+  "userReportedAccountConcurrency": 10,
   "outboundResources": 0,
   "iamResources": 0,
   "agentResources": 0,
   "secretPopulated": false,
-  "productionModified": false
+  "productionModified": false,
+  "liveDeploymentVerified": false
 }
