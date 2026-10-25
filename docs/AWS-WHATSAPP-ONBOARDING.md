@@ -33,6 +33,8 @@ flowchart LR
 
 El diagrama describe el destino previsto, no recursos activos. La cola conserva temporalmente los eventos para el consumidor; el tema no ofrece por defecto un historial recuperable por una suscripción creada más tarde. SNS Standard puede repetir/reordenar eventos; la deduplicación del Bridge y sus límites siguen siendo necesarios. La demo no certifica escalabilidad para miles de usuarios.
 
+Registrar el número no instala por sí solo la bandeja ni el agente: el Bridge es la conexión con esas capacidades de MuseRelay. Tampoco basta con registrar y dejar apagada la publicación de eventos. La [guía de multimedia y tamaños](MEDIA-AND-PAYLOAD-LIMITS.md) explica esa separación, el límite SNS y las funciones que realmente implementa hoy el módulo.
+
 Un operador autorizado, CloudFormation o el asistente AWS Social pueden crear el tema. La guía de registro contempla elegir un tema existente o solicitar uno nuevo dentro del propio flujo. Meta no lo crea por el mero registro del teléfono. AWS devuelve su ARN, que debe verificarse en el recurso real; no es una contraseña ni el ID de WABA.
 
 Fuente: [registro AWS](https://docs.aws.amazon.com/social-messaging/latest/userguide/getting-started-whatsapp.html), [suscripción SNS](https://docs.aws.amazon.com/sns/latest/dg/sns-create-subscribe-endpoint-to-topic.html).
@@ -251,6 +253,7 @@ Desvincular WABA, migrar teléfono, eliminar stack/clave o revocar el rol de un 
 | Inventario SNS | Usuario comunica cero temas en Screen Art/Irlanda. No convertirlo en prueba API ni deducirlo solo de la captura del formulario. |
 | Formulario SNS inicial | Captura recibida: FIFO seleccionado; se indicó cambiar a Standard, sin `.fifo`. |
 | Formulario preparado posterior | Usuario confirma Standard; captura muestra nombre `muserelay-aws-bridge-stage-inbound` y 256 KiB. Todavía sin creación. |
+| Publicación desactivada | Un texto posterior aportado por el usuario describe desmarcar la publicación y la advertencia de que no se recibirán mensajes. Se registra como información comunicada; no hay aquí captura nueva/API del estado ni confirmación de finalizar el alta. |
 | Política, cifrado y método de creación | Documentados aquí; recomendación IaC y revisión KMS antes de tráfico real. Sin aplicación. |
 | Creación SNS/SQS, destino y finalización AWS | Pendientes de autorización, creación y verificación. |
 | IDs reales vinculados, consumidor y conversación | Pendientes. No hay evidencia de envíos reales del Bridge. |
@@ -258,3 +261,9 @@ Desvincular WABA, migrar teléfono, eliminar stack/clave o revocar el rol de un 
 Las capturas se usan como evidencia de lo visible, no de páginas anteriores o permisos efectivos. Antes de incorporarlas al repo privado, disponer del archivo original y una versión revisada sin PIN, OTP, claves, tokens, cookies, QR de acceso ni datos ajenos. La revisión actual registra su contenido técnico; no ha guardado ni fabricado imágenes en Git.
 
 La formulación de producto recomendada es: **«MuseRelay busca ofrecer WhatsApp desde sus paneles habituales, gestionando la infraestructura técnica cuando el modelo autorizado lo permita. La demo valida primero el transporte de una WABA propia; el alta comercial de terceros y BYO AWS requieren trabajo y validaciones adicionales».**
+
+## 16. Tamaño de eventos y multimedia: aclaración posterior
+
+Mantener **256 KiB** como límite SNS previsto para la demo. No es un límite directo del archivo WhatsApp, SNS no comprime imágenes y ampliar el atributo a 1 MiB no amplía automáticamente el Bridge. El módulo actual admite **texto y estados**, y omite multimedia deliberadamente; no implementa todavía recuperación, almacenamiento o visualización de imágenes/audios/documentos por la ruta AWS. La capacidad de otros canales nativos no cambia por ello.
+
+Véase [MEDIA-AND-PAYLOAD-LIMITS.md](MEDIA-AND-PAYLOAD-LIMITS.md) para el detalle del código, condiciones SNS, ejemplos de rechazo y requisitos futuros. Esta limitación debe figurar en cualquier demo/descripción comercial; no presentar una explicación arquitectónica futura como funcionalidad ya instalada.
