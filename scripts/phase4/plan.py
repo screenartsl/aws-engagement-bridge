@@ -51,7 +51,8 @@ def render(config):
         'metaPhoneNumberId':c['metaPhoneNumberId'],'awsPhoneNumberId':c['socialPhoneArn'],'allowedRecipients':[] if 'recipient' in pending else [c['recipient']]}
     params={'BindingsJson':json.dumps([binding],separators=(',',':')),'SocialPhoneArn':c['socialPhoneArn'],'SecretArn':c['secretArn'],
         'CoreBaseUrl':'https://'+c['coreHostname'],'MetaApiVersion':c['metaApiVersion'],'LiveSend':'false','RunId':c['runId'],
-        'DailyInboundLimit':str(c['dailyInboundLimit']),'DailySendLimit':str(c['dailySendLimit'])}
+        'DailyInboundLimit':str(c['dailyInboundLimit']),'DailySendLimit':str(c['dailySendLimit']),
+        'KmsAdministratorArn':c['deployerPrincipalArn'],'DeployProcessing':'false','ProcessingEnabled':'false'}
     read_actions=['sts:GetCallerIdentity','social-messaging:GetLinkedWhatsAppBusinessAccount','social-messaging:GetLinkedWhatsAppBusinessAccountPhoneNumber',
         'bedrock:GetInferenceProfile','cloudformation:DescribeStacks','cloudformation:ListStackResources','lambda:GetFunctionConfiguration','lambda:GetPolicy',
         'sns:GetTopicAttributes','sns:ListSubscriptionsByTopic','sqs:GetQueueAttributes','secretsmanager:DescribeSecret','logs:FilterLogEvents',
@@ -74,7 +75,7 @@ def render(config):
     bedrock={'Version':'2012-10-17','Statement':[{'Sid':'ConverseSelectedEuProfiles','Effect':'Allow','Action':'bedrock:InvokeModel',
         'Resource':[f'arn:aws:bedrock:{region}:{account}:inference-profile/eu.amazon.nova-lite-v1:0',f'arn:aws:bedrock:{region}:{account}:inference-profile/eu.amazon.nova-micro-v1:0','TO_SUPPLY_VERIFIED_EU_DESTINATION_MODEL_ARNS']} ]}
     return {'review':{'kind':'PREPARATION_ONLY','authorizedToExecute':False,'pendingInputs':pending,
-        'accountVerified':False,'endpointProvisioned':False,'resourcesInBridgeTemplate':23,'externalResources':['dedicated demo WABA/number','stage signing secret','private artifact S3 bucket/object','dedicated staging OS user/services/TLS host','separate Bedrock identity'],
+        'accountVerified':False,'endpointProvisioned':False,'resourcesInBridgeTemplate':30,'bootstrapResources':12,'templateRequiresNewCloudformationRunbook':True,'externalResources':['verified demo WABA/phone identifiers','private signing-secret initialization (metadata can be stack-created)','reviewed runtime ZIP upload to stack-created private artifact bucket','dedicated staging OS user/services/TLS host','separate Bedrock identity'],
         'templateSha256':hashlib.sha256((ROOT/'template.yaml').read_bytes()).hexdigest(),'runId':c['runId'],'budgetUsd':5,'maximumHours':c['maximumDurationHours']},
         'parameters':[{'ParameterKey':k,'ParameterValue':v} for k,v in params.items()], 'readOnlyPolicy':policy,'bedrockPolicyDraft':bedrock}
 

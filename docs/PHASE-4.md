@@ -1,5 +1,7 @@
 # Fase 4 — preparación de la primera conversación real
 
+> Informe histórico. Para SNS/KMS, artefactos, parámetros, recursos y retirada AWS prevalece [CLOUDFORMATION-DEPLOYMENT.md](CLOUDFORMATION-DEPLOYMENT.md), revisado el 25-10-2026. Los comandos de package/deploy de este informe no deben aplicarse a la plantilla actual. El estado instalado/desactivado del Core y el repositorio privado se actualizan en README y POST-INSTALL-VERIFICATION.
+
 **GO para preparar y revisar. NO-GO para ejecutar todavía.** Fecha de revisión: 24 de octubre de 2026. La primera conversación real sigue pendiente; no se ha desplegado AWS, activado DNS/TLS, arrancado staging, enviado mensajes ni publicado GitHub en esta fase.
 
 La cuenta autorizada es **Screen Art S.L., `365470560685`, `eu-west-1`**. El preparador rechaza cualquier otra cuenta y el preflight detiene las consultas si STS devuelve root. No se utilizará la cuenta de Muse Layer. El usuario ha confirmado `aws-bridge-staging.muserelay.com` como entrada técnica, sin panel de clientes/resellers. El rol/perfil IAM y la WABA/número exclusivos siguen pendientes.

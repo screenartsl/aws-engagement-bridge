@@ -1,6 +1,6 @@
 # Incorporación de WhatsApp mediante AWS End User Messaging Social
 
-Documento técnico y de producto. Revisado el **25 de octubre de 2026, Europe/Paris**. Describe el proceso de demostración y las decisiones pendientes para clientes/resellers. No constituye autorización para crear recursos, registrar activos, modificar permisos, activar organizaciones ni enviar mensajes. Esta revisión cambia únicamente documentación.
+Documento técnico y de producto. Revisado el **25 de octubre de 2026, Europe/Paris**. Describe el proceso de demostración y las decisiones pendientes para clientes/resellers. No constituye autorización para crear recursos, registrar activos, modificar permisos, activar organizaciones ni enviar mensajes. La revisión actual prepara documentación e infraestructura local; no modifica AWS ni producción.
 
 ## 1. Qué está disponible y qué es una propuesta
 
@@ -88,11 +88,11 @@ Estado de la pantalla: formulario abierto, recurso **no creado** según el usuar
 | Tamaño máximo | Mantener **256 KiB**. El banner de 1 MiB no acredita compatibilidad del Bridge: el código impone límites propios inferiores. No aumentarlo en esta fase. |
 | Alto rendimiento / grupos FIFO | No aplican al tema Standard. |
 | Deduplicación por contenido FIFO | No aplica; no sustituye la idempotencia persistente del Bridge. |
-| Cifrado en reposo | Decisión pendiente de revisión KMS; ver sección 8. La plantilla actual no configura SSE-KMS SNS. No activar una clave arbitraria desde el formulario. |
+| Cifrado en reposo | IaC ya preparada con SSE-KMS y clave simétrica dedicada de staging; todavía NO desplegada. Ver sección 8 y runbook CloudFormation. No crear manualmente desde este formulario. |
 | Política de acceso | Preparar la declaración exacta de la sección 7; solo el propietario por defecto no basta para la publicación de Social. No acceso público. |
 | Archivado | No activar. La cola SQS es el buffer previsto; no se ha diseñado replay desde archivo SNS. |
 | Logs de entrega | No activar todavía. Se revisarán junto a retención, coste y permisos de logging; no confundirlos con estados de entrega de WhatsApp. |
-| Etiquetas | Propuestas sin datos personales: `Project=aws-engagement-bridge`, `Environment=demo`, `Owner=ScreenArt`. Alinear con IaC antes de aplicar. |
+| Etiquetas | Alineadas con IaC: `Company=ScreenArt`, `Project=MuseRelay`, `Component=aws-engagement-bridge`, `Environment=staging`, `Purpose=hackathon`. |
 | Rastreo X-Ray | Desactivado; no hace falta para resolver este bloqueo y tiene coste/permiso propios. |
 | Botón final «Crear un tema» | **No pulsar en esta fase documental. Se recomienda la plantilla revisada.** |
 
@@ -104,7 +104,7 @@ arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound
 
 La plantilla usa `TopicName: ${AWS::StackName}-inbound`; ese nombre coincide si el stack se llama exactamente **`muserelay-aws-bridge-stage`**. Mantener el nombre no garantiza que CloudFormation adopte un tema creado fuera de él.
 
-**Decisión recomendada:** crear, tras autorización, el [bootstrap SNS/SQS](../deploy/sns-bootstrap/README.md) con ese nombre de stack. Sus seis recursos conservan los logical IDs y propiedades del ingreso de la plantilla completa. Más adelante actualizar el **mismo stack** con el resto del Bridge, revisando que el change set no sustituya el ingreso. No crear primero el tema manualmente y después desplegar a ciegas el stack completo con el mismo nombre físico.
+**Decisión recomendada:** crear, tras autorización, el [bootstrap SNS/SQS](../deploy/sns-bootstrap/README.md) con ese nombre de stack. Sus doce recursos cifrados conservan los logical IDs y propiedades del ingreso de la plantilla completa. Más adelante actualizar el **mismo stack** con el resto del Bridge, revisando que el change set no sustituya el ingreso. No crear primero el tema manualmente y después desplegar a ciegas el stack completo con el mismo nombre físico.
 
 Si se elige creación manual, documentar ARN, políticas, propietario y etiquetas y preparar antes una importación soportada/revisada o adaptación explícita para recursos externos. Esa adaptación no está implementada ahora. No borrar y recrear un tema para resolver un conflicto de propiedad.
 
@@ -145,9 +145,9 @@ Una WABA admite un destino de eventos y lo comparten todos sus teléfonos: consu
 
 ## 8. Cifrado SNS y KMS
 
-**Recomendación antes de tráfico real: SNS con SSE-KMS y una clave simétrica dedicada, administrada por Screen Art y ubicada en Irlanda.** No se aplica durante esta revisión. La plantilla actual no tiene `KmsMasterKeyId`; por tanto, no afirmar que SNS ya cifra en reposo con KMS. SQS sí declara su cifrado propio y TLS es un control separado.
+**Decisión incorporada a IaC: SNS con SSE-KMS y clave simétrica dedicada de staging en Irlanda.** Ambas plantillas ya declaran `KmsMasterKeyId`, clave, alias y política Social restringida. No se han desplegado: no existe aquí evidencia de un tema cifrado real. SQS usa SSE-SQS y TLS es un control separado. Detalles, administrador no-root requerido y validación en [CLOUDFORMATION-DEPLOYMENT.md](CLOUDFORMATION-DEPLOYMENT.md).
 
-Para implementarlo después de autorización: incorporar la referencia a la clave en el tema, conservar administradores/recuperación de la clave en su política completa y añadir la autorización de Social que describe AWS. Declaración adicional orientativa para la **política de esa clave**, no una política completa lista para sustituirla:
+La plantilla conserva administración explícita mediante `KmsAdministratorArn` y esta autorización de Social. El siguiente fragmento es solo la concesión Social de la **política de esa clave**, no una política administrativa completa:
 
 ```json
 {
@@ -169,7 +169,7 @@ Aquí `Resource:"*"` está dentro de la política de **una clave concreta** y no
 
 La administración/uso por identidades operadoras debe revisarse por separado con mínimos permisos; no conceder `kms:*` al runtime del Bridge. No añadir permisos de descifrado de esta clave SNS a Lambda por el mero hecho de consumir SQS: el cifrado de la cola es otra capa. Si la cola pasa a usar una clave propia, revisar también permisos del productor SNS y consumidor SQS.
 
-Esta mejora necesita un cambio documental/IaC posterior revisado, un ARN real de clave y autorización antes de desplegar. No crear roles/claves ni modificar IAM desde este formulario. El coste KMS y sus peticiones se añade al coste del [ingreso preparado](../deploy/sns-bootstrap/README.md); presentar la estimación vigente de la clave elegida antes de aprobar.
+La mejora está preparada localmente y necesita revisión de identidad/permisos y autorización antes de desplegar. No crear roles/claves ni modificar IAM desde el formulario SNS. El coste KMS se añade al [ingreso preparado](../deploy/sns-bootstrap/README.md). Una clave cuesta por clave, no por número ni WABA: se puede compartir entre recursos compatibles autorizados, sin que eso sustituya el aislamiento por organización. Separar staging/producción; las claves por partner/BYO son una decisión futura.
 
 Referencia de coste: una clave propia simple cuesta aproximadamente **USD 1/mes, prorrateado por horas**, más peticiones e impuestos; cuatro días representan aproximadamente USD 0,13 de almacenamiento de clave. No presupone créditos/free tier, ni incluye retenerla después o rotaciones adicionales. [Precio oficial KMS](https://aws.amazon.com/kms/pricing/).
 
@@ -267,3 +267,11 @@ La formulación de producto recomendada es: **«MuseRelay busca ofrecer WhatsApp
 Mantener **256 KiB** como límite SNS previsto para la demo. No es un límite directo del archivo WhatsApp, SNS no comprime imágenes y ampliar el atributo a 1 MiB no amplía automáticamente el Bridge. El módulo actual admite **texto y estados**, y omite multimedia deliberadamente; no implementa todavía recuperación, almacenamiento o visualización de imágenes/audios/documentos por la ruta AWS. La capacidad de otros canales nativos no cambia por ello.
 
 Véase [MEDIA-AND-PAYLOAD-LIMITS.md](MEDIA-AND-PAYLOAD-LIMITS.md) para el detalle del código, condiciones SNS, ejemplos de rechazo y requisitos futuros. Esta limitación debe figurar en cualquier demo/descripción comercial; no presentar una explicación arquitectónica futura como funcionalidad ya instalada.
+
+## 17. CloudFormation y las dos etapas acordadas
+
+Se abandona la creación manual del tema. El usuario confirma IaC y está explorando el asistente CloudFormation, sin pila creada según lo comunicado. La preparación actual entrega **dos archivos para la misma pila**: ingreso cifrado de doce recursos, luego UPDATE del runtime con IDs finales. Véase [plantillas, recursos exactos, coste, validación y procedimiento](CLOUDFORMATION-DEPLOYMENT.md). No confundir esta decisión con autorización para ejecutar.
+
+El primer YAML se podrá cargar desde consola después de aprobarlo. La segunda etapa necesita además el ZIP Lambda privado en S3; la consola puede desplegar el YAML completo con esa referencia sin SAM CLI. La carga de un YAML al asistente puede escribir en un bucket S3 de plantillas antes de crear la pila. No afirmar que todos los pasos previos al botón final son de solo lectura. El ARN se copiará del output real y se contrastará con SNS; no usar el previsto como si estuviera creado.
+
+El número de demo comunicado se conserva como objetivo del alta. No se necesita otro por dividir la infraestructura en etapas, aunque reanudar una sesión caducada puede requerir pasos interactivos Meta/AWS. El registro efectivo, PIN configurado, destino y IDs AWS siguen pendientes de comprobación.

@@ -5,263 +5,992 @@ Parameters:
   BindingsJson:
     Type: String
     Description: JSON bindings; no credentials. Topic ARN must match InboundTopic output.
+    Default: '[]'
   SocialPhoneArn:
     Type: String
-    AllowedPattern: 'arn:aws:social-messaging:eu-west-1:[0-9]{12}:phone-number-id/[a-zA-Z0-9][a-zA-Z0-9-]*'
+    AllowedPattern: ^$|arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/[a-zA-Z0-9][a-zA-Z0-9-]*
+    Default: ''
   SecretArn:
     Type: String
-    Description: Existing Secrets Manager secret with per-binding core/outbound signing keys
-    AllowedPattern: 'arn:aws:secretsmanager:eu-west-1:[0-9]{12}:secret:.+'
+    Description: Optional existing dedicated secret using the default Secrets Manager KMS key; empty creates an
+      unpopulated secret during runtime deployment. Never pass secret values.
+    AllowedPattern: ^$|arn:aws:secretsmanager:eu-west-1:365470560685:secret:.+
+    Default: ''
   CoreBaseUrl:
     Type: String
-    AllowedPattern: 'https://[a-zA-Z0-9.-]+'
+    AllowedPattern: ^$|https://aws-bridge-staging\.muserelay\.com
+    Default: ''
   MetaApiVersion:
     Type: String
-    AllowedPattern: 'v[0-9]+\.[0-9]+'
+    AllowedPattern: ^$|v[0-9]+\.[0-9]+
     Description: Explicit version supported by AWS Social at deployment time
+    Default: ''
   LiveSend:
     Type: String
     Default: 'false'
-    AllowedValues: ['false', 'true']
+    AllowedValues:
+    - 'false'
+    - 'true'
   RunId:
     Type: String
     Default: phase4_not_started
-    AllowedPattern: 'phase4_[A-Za-z0-9_-]{4,56}'
+    AllowedPattern: phase4_[A-Za-z0-9_-]{4,56}
   DailySendLimit:
     Type: Number
-    Default: 20
+    Default: 6
     MinValue: 1
-    MaxValue: 100
+    MaxValue: 6
   DailyInboundLimit:
     Type: Number
-    Default: 40
+    Default: 6
     MinValue: 1
-    MaxValue: 100
+    MaxValue: 6
+  KmsAdministratorArn:
+    Type: String
+    AllowedPattern: arn:aws:iam::365470560685:(role|user)/[A-Za-z0-9/+=,.@_-]+
+    Description: Approved non-root IAM identity used by CloudFormation to administer this dedicated SNS key. No
+      STS session ARN.
+  DeployProcessing:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Requires separate authorization. Default false; does not modify the MuseRelay Core.
+  ProcessingEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Requires separate authorization. Default false; does not modify the MuseRelay Core.
+  RuntimeArtifactKey:
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|releases/[a-f0-9]{40}/bridge\.zip
+    Description: Private S3 key uploaded after approval to this stack ArtifactBucket. No URL or secret.
 Rules:
-  IrelandOnly:
+  ScreenArtDemo:
     Assertions:
-      - Assert: !Equals [!Ref 'AWS::Region', eu-west-1]
-        AssertDescription: This MVP template is restricted to eu-west-1; verify Social availability before deployment.
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::AccountId
+        - '365470560685'
+      AssertDescription: Screen Art account only.
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::Region
+        - eu-west-1
+      AssertDescription: Ireland only.
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::StackName
+        - muserelay-aws-bridge-stage
+      AssertDescription: Use the reviewed stack name to preserve the SNS topic and queue identities.
+  RuntimeInputs:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: DeployProcessing
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: SocialPhoneArn
+          - ''
+      AssertDescription: Runtime deployment requires SocialPhoneArn
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: CoreBaseUrl
+          - ''
+      AssertDescription: Runtime deployment requires CoreBaseUrl
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: MetaApiVersion
+          - ''
+      AssertDescription: Runtime deployment requires MetaApiVersion
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: BindingsJson
+          - '[]'
+      AssertDescription: Supply real, initially disabled demo bindings.
+    - Assert:
+        Fn::Not:
+        - Fn::Equals:
+          - Ref: RuntimeArtifactKey
+          - ''
+      AssertDescription: Upload the reviewed runtime ZIP before updating processing resources.
+  ProcessingRequiresRuntime:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: ProcessingEnabled
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: DeployProcessing
+        - 'true'
+      AssertDescription: Runtime must be deployed before processing is enabled.
+  SendingRequiresProcessing:
+    RuleCondition:
+      Fn::Equals:
+      - Ref: LiveSend
+      - 'true'
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: ProcessingEnabled
+        - 'true'
+      AssertDescription: Sending requires an explicitly enabled runtime.
 Globals:
   Function:
     Runtime: nodejs22.x
-    Architectures: [arm64]
-    CodeUri: build/
+    Architectures:
+    - arm64
+    CodeUri:
+      Bucket:
+        Ref: ArtifactBucket
+      Key:
+        Ref: RuntimeArtifactKey
     Timeout: 30
     MemorySize: 256
     ReservedConcurrentExecutions: 1
     Environment:
       Variables:
-        BRIDGE_BINDINGS_JSON: !Ref BindingsJson
-        BRIDGE_STATE_TABLE: !Ref State
-        BRIDGE_SECRET_ARN: !Ref SecretArn
-        MUSERELAY_BASE_URL: !Ref CoreBaseUrl
-        BRIDGE_LIVE_SEND: !Ref LiveSend
-        BRIDGE_DAILY_SEND_LIMIT: !Ref DailySendLimit
-        BRIDGE_DAILY_INBOUND_LIMIT: !Ref DailyInboundLimit
-        META_API_VERSION: !Ref MetaApiVersion
-        BRIDGE_RUN_ID: !Ref RunId
+        BRIDGE_BINDINGS_JSON:
+          Ref: BindingsJson
+        BRIDGE_STATE_TABLE:
+          Ref: State
+        BRIDGE_SECRET_ARN:
+          Fn::If:
+          - HasExternalSecret
+          - Ref: SecretArn
+          - Ref: SigningSecret
+        MUSERELAY_BASE_URL:
+          Ref: CoreBaseUrl
+        BRIDGE_LIVE_SEND:
+          Ref: LiveSend
+        BRIDGE_DAILY_SEND_LIMIT:
+          Ref: DailySendLimit
+        BRIDGE_DAILY_INBOUND_LIMIT:
+          Ref: DailyInboundLimit
+        META_API_VERSION:
+          Ref: MetaApiVersion
+        BRIDGE_RUN_ID:
+          Ref: RunId
+        BRIDGE_RUNTIME_ENABLED:
+          Ref: ProcessingEnabled
+    Tags:
+      Company: ScreenArt
+      Project: MuseRelay
+      Component: aws-engagement-bridge
+      Environment: staging
+      Purpose: hackathon
 Resources:
+  SnsKey:
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: Screen Art MuseRelay staging SNS events; dedicated hackathon key
+      KeySpec: SYMMETRIC_DEFAULT
+      KeyUsage: ENCRYPT_DECRYPT
+      EnableKeyRotation: false
+      PendingWindowInDays: 7
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: DedicatedKeyAdministration
+          Effect: Allow
+          Principal:
+            AWS:
+              Ref: KmsAdministratorArn
+          Action:
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          - kms:PutKeyPolicy
+          - kms:EnableKey
+          - kms:DisableKey
+          - kms:EnableKeyRotation
+          - kms:DisableKeyRotation
+          - kms:GetKeyRotationStatus
+          - kms:ScheduleKeyDeletion
+          - kms:CancelKeyDeletion
+          - kms:ListResourceTags
+          - kms:TagResource
+          - kms:UntagResource
+          - kms:UpdateKeyDescription
+          - kms:CreateAlias
+          - kms:UpdateAlias
+          - kms:DeleteAlias
+          Resource: '*'
+        - Sid: AllowScreenArtSocialPublishEncryption
+          Effect: Allow
+          Principal:
+            Service: social-messaging.amazonaws.com
+          Action:
+          - kms:GenerateDataKey*
+          - kms:Decrypt
+          Resource: '*'
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+            ArnLike:
+              aws:SourceArn:
+                Fn::Sub: arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  SnsKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName:
+        Fn::Sub: alias/${AWS::StackName}-sns
+      TargetKeyId:
+        Ref: SnsKey
   InboundTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub '${AWS::StackName}-inbound'
+      TopicName:
+        Fn::Sub: ${AWS::StackName}-inbound
+      FifoTopic: false
+      KmsMasterKeyId:
+        Fn::GetAtt:
+        - SnsKey
+        - Arn
+      MaximumMessageSize: 262144
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
   TopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
-      Topics: [!Ref InboundTopic]
+      Topics:
+      - Ref: InboundTopic
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
-            Principal: {Service: social-messaging.amazonaws.com}
-            Action: sns:Publish
-            Resource: !Ref InboundTopic
-            Condition:
-              StringEquals: {'aws:SourceAccount': !Ref 'AWS::AccountId'}
-              ArnLike: {'aws:SourceArn': !Sub 'arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*'}
+        - Effect: Allow
+          Principal:
+            Service: social-messaging.amazonaws.com
+          Action: sns:Publish
+          Resource:
+            Ref: InboundTopic
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+            ArnLike:
+              aws:SourceArn:
+                Fn::Sub: arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*
   State:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
       BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions: [{AttributeName: pk, AttributeType: S}]
-      KeySchema: [{AttributeName: pk, KeyType: HASH}]
-      TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}
-      SSESpecification: {SSEEnabled: true}
-      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      AttributeDefinitions:
+      - AttributeName: pk
+        AttributeType: S
+      KeySchema:
+      - AttributeName: pk
+        KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
   InboundDlq:
     Type: AWS::SQS::Queue
-    Properties: {MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+    Properties:
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-inbound-dlq
+      RedriveAllowPolicy:
+        redrivePermission: byQueue
+        sourceQueueArns:
+        - Fn::Sub: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${AWS::StackName}-inbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
   OutboundDlq:
     Type: AWS::SQS::Queue
-    Properties: {MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+    Properties:
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-outbound-dlq
+      RedriveAllowPolicy:
+        redrivePermission: byQueue
+        sourceQueueArns:
+        - Fn::Sub: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${AWS::StackName}-outbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
   InboundQueue:
     Type: AWS::SQS::Queue
     Properties:
       VisibilityTimeout: 180
       MessageRetentionPeriod: 345600
       SqsManagedSseEnabled: true
-      RedrivePolicy: {deadLetterTargetArn: !GetAtt InboundDlq.Arn, maxReceiveCount: 5}
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - InboundDlq
+          - Arn
+        maxReceiveCount: 5
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-inbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
   OutboundQueue:
     Type: AWS::SQS::Queue
     Properties:
       VisibilityTimeout: 180
       MessageRetentionPeriod: 345600
       SqsManagedSseEnabled: true
-      RedrivePolicy: {deadLetterTargetArn: !GetAtt OutboundDlq.Arn, maxReceiveCount: 5}
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - OutboundDlq
+          - Arn
+        maxReceiveCount: 5
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-outbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
   InboundQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
-      Queues: [!Ref InboundQueue]
+      Queues:
+      - Ref: InboundQueue
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
-            Principal: {Service: sns.amazonaws.com}
-            Action: sqs:SendMessage
-            Resource: !GetAtt InboundQueue.Arn
-            Condition:
-              ArnEquals: {'aws:SourceArn': !Ref InboundTopic}
-              StringEquals: {'aws:SourceAccount': !Ref 'AWS::AccountId'}
+        - Effect: Allow
+          Principal:
+            Service: sns.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - InboundQueue
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Ref: InboundTopic
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
   Subscription:
     Type: AWS::SNS::Subscription
-    DependsOn: InboundQueuePolicy
+    DependsOn:
+    - InboundQueuePolicy
+    - DeliveryDlqPolicy
+    - TopicPolicy
     Properties:
-      TopicArn: !Ref InboundTopic
+      TopicArn:
+        Ref: InboundTopic
       Protocol: sqs
-      Endpoint: !GetAtt InboundQueue.Arn
+      Endpoint:
+        Fn::GetAtt:
+        - InboundQueue
+        - Arn
       RawMessageDelivery: false
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - DeliveryDlq
+          - Arn
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
-      DefaultRouteSettings: {ThrottlingBurstLimit: 2, ThrottlingRateLimit: 1}
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 2
+        ThrottlingRateLimit: 1
+      Tags:
+        Company: ScreenArt
+        Project: MuseRelay
+        Component: aws-engagement-bridge
+        Environment: staging
+        Purpose: hackathon
+    Condition: DeployRuntime
   InboundExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
-            Principal: {Service: lambda.amazonaws.com}
-            Action: sts:AssumeRole
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
       Policies:
-        - PolicyName: bridge-runtime
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
-                Resource: !GetAtt State.Arn
-              - Effect: Allow
-                Action: secretsmanager:GetSecretValue
-                Resource: !Ref SecretArn
-              - Effect: Allow
-                Action: [logs:CreateLogStream, logs:PutLogEvents]
-                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-inbound:*'
-              - Effect: Allow
-                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
-                Resource: !GetAtt InboundQueue.Arn
+      - PolicyName: bridge-runtime
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            Resource:
+              Fn::GetAtt:
+              - State
+              - Arn
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource:
+              Fn::If:
+              - HasExternalSecret
+              - Ref: SecretArn
+              - Ref: SigningSecret
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+              Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-inbound:*
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+              Fn::GetAtt:
+              - InboundQueue
+              - Arn
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
   EnqueueExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
-            Principal: {Service: lambda.amazonaws.com}
-            Action: sts:AssumeRole
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
       Policies:
-        - PolicyName: bridge-runtime
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: [dynamodb:PutItem]
-                Resource: !GetAtt State.Arn
-              - Effect: Allow
-                Action: secretsmanager:GetSecretValue
-                Resource: !Ref SecretArn
-              - Effect: Allow
-                Action: [logs:CreateLogStream, logs:PutLogEvents]
-                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-enqueue:*'
-              - Effect: Allow
-                Action: sqs:SendMessage
-                Resource: !GetAtt OutboundQueue.Arn
+      - PolicyName: bridge-runtime
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:PutItem
+            Resource:
+              Fn::GetAtt:
+              - State
+              - Arn
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource:
+              Fn::If:
+              - HasExternalSecret
+              - Ref: SecretArn
+              - Ref: SigningSecret
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+              Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-enqueue:*
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource:
+              Fn::GetAtt:
+              - OutboundQueue
+              - Arn
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
   SenderExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
-            Principal: {Service: lambda.amazonaws.com}
-            Action: sts:AssumeRole
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
       Policies:
-        - PolicyName: bridge-runtime
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
-                Resource: !GetAtt State.Arn
-              - Effect: Allow
-                Action: secretsmanager:GetSecretValue
-                Resource: !Ref SecretArn
-              - Effect: Allow
-                Action: [logs:CreateLogStream, logs:PutLogEvents]
-                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-sender:*'
-              - Effect: Allow
-                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
-                Resource: !GetAtt OutboundQueue.Arn
-              - Effect: Allow
-                Action: social-messaging:SendWhatsAppMessage
-                Resource: !Ref SocialPhoneArn
+      - PolicyName: bridge-runtime
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            Resource:
+              Fn::GetAtt:
+              - State
+              - Arn
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource:
+              Fn::If:
+              - HasExternalSecret
+              - Ref: SecretArn
+              - Ref: SigningSecret
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+              Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-sender:*
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+              Fn::GetAtt:
+              - OutboundQueue
+              - Arn
+          - Fn::If:
+            - HasSocialPhone
+            - Effect: Allow
+              Action: social-messaging:SendWhatsAppMessage
+              Resource:
+                Ref: SocialPhoneArn
+            - Ref: AWS::NoValue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
   InboundFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${AWS::StackName}-inbound'
-      Role: !GetAtt InboundExecutionRole.Arn
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-inbound
+      Role:
+        Fn::GetAtt:
+        - InboundExecutionRole
+        - Arn
       Handler: handlers.inbound
       Events:
         Input:
           Type: SQS
-          Properties: {Queue: !GetAtt InboundQueue.Arn, BatchSize: 1, FunctionResponseTypes: [ReportBatchItemFailures]}
+          Properties:
+            Queue:
+              Fn::GetAtt:
+              - InboundQueue
+              - Arn
+            BatchSize: 1
+            FunctionResponseTypes:
+            - ReportBatchItemFailures
+            Enabled:
+              Fn::If:
+              - RunConsumers
+              - true
+              - false
+    Condition: DeployRuntime
   EnqueueFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${AWS::StackName}-enqueue'
-      Role: !GetAtt EnqueueExecutionRole.Arn
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-enqueue
+      Role:
+        Fn::GetAtt:
+        - EnqueueExecutionRole
+        - Arn
       Handler: handlers.enqueue
       Environment:
-        Variables: {BRIDGE_OUTBOUND_QUEUE_URL: !Ref OutboundQueue}
+        Variables:
+          BRIDGE_OUTBOUND_QUEUE_URL:
+            Ref: OutboundQueue
       Events:
         Outbound:
           Type: HttpApi
-          Properties: {ApiId: !Ref HttpApi, Path: /outbound, Method: POST}
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /outbound
+            Method: POST
+    Condition: DeployRuntime
   SenderFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${AWS::StackName}-sender'
-      Role: !GetAtt SenderExecutionRole.Arn
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-sender
+      Role:
+        Fn::GetAtt:
+        - SenderExecutionRole
+        - Arn
       Handler: handlers.sender
       Events:
         Output:
           Type: SQS
-          Properties: {Queue: !GetAtt OutboundQueue.Arn, BatchSize: 1, FunctionResponseTypes: [ReportBatchItemFailures]}
+          Properties:
+            Queue:
+              Fn::GetAtt:
+              - OutboundQueue
+              - Arn
+            BatchSize: 1
+            FunctionResponseTypes:
+            - ReportBatchItemFailures
+            Enabled:
+              Fn::If:
+              - RunConsumers
+              - true
+              - false
+    Condition: DeployRuntime
   InboundLogs:
     Type: AWS::Logs::LogGroup
-    Properties: {LogGroupName: !Sub '/aws/lambda/${InboundFunction}', RetentionInDays: 7}
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${InboundFunction}
+      RetentionInDays: 7
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
   EnqueueLogs:
     Type: AWS::Logs::LogGroup
-    Properties: {LogGroupName: !Sub '/aws/lambda/${EnqueueFunction}', RetentionInDays: 7}
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${EnqueueFunction}
+      RetentionInDays: 7
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
   SenderLogs:
     Type: AWS::Logs::LogGroup
-    Properties: {LogGroupName: !Sub '/aws/lambda/${SenderFunction}', RetentionInDays: 7}
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${SenderFunction}
+      RetentionInDays: 7
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployRuntime
+  DeliveryDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-sns-delivery-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  DeliveryDlqPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: DeliveryDlq
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: sns.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - DeliveryDlq
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Ref: InboundTopic
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+  SigningSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: CreateSigningSecret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name:
+        Fn::Sub: ${AWS::StackName}/signing
+      Description: Dedicated Bridge signing JSON. Created without a value; populate through approved private procedure
+        before enabling runtime.
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName:
+        Fn::Sub: ${AWS::StackName}-artifacts-${AWS::AccountId}-${AWS::Region}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+        - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - Id: ExpireDemoArtifacts
+          Status: Enabled
+          ExpirationInDays: 30
+          AbortIncompleteMultipartUpload:
+            DaysAfterInitiation: 1
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  ArtifactBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: ArtifactBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: RequireTls
+          Effect: Deny
+          Principal: '*'
+          Action: s3:*
+          Resource:
+          - Fn::GetAtt:
+            - ArtifactBucket
+            - Arn
+          - Fn::Sub: ${ArtifactBucket.Arn}/*
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+              aws:PrincipalIsAWSService: 'false'
 Outputs:
-  InboundTopicArn: {Value: !Ref InboundTopic}
-  OutboundUrl: {Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/outbound'}
-  StateTable: {Value: !Ref State}
-  InboundDeadLetterQueue: {Value: !Ref InboundDlq}
-  OutboundDeadLetterQueue: {Value: !Ref OutboundDlq}
+  InboundTopicArn:
+    Value:
+      Ref: InboundTopic
+  OutboundUrl:
+    Value:
+      Fn::Sub: https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/outbound
+    Condition: DeployRuntime
+  StateTable:
+    Value:
+      Ref: State
+    Condition: DeployRuntime
+  InboundDeadLetterQueue:
+    Value:
+      Ref: InboundDlq
+  OutboundDeadLetterQueue:
+    Value:
+      Ref: OutboundDlq
+    Condition: DeployRuntime
+  SnsKeyArn:
+    Value:
+      Fn::GetAtt:
+      - SnsKey
+      - Arn
+  InboundQueueArn:
+    Value:
+      Fn::GetAtt:
+      - InboundQueue
+      - Arn
+  InboundQueueUrl:
+    Value:
+      Ref: InboundQueue
+  SubscriptionArn:
+    Value:
+      Ref: Subscription
+  SnsDeliveryDeadLetterQueue:
+    Value:
+      Ref: DeliveryDlq
+  SigningSecretArn:
+    Condition: DeployRuntime
+    Value:
+      Fn::If:
+      - HasExternalSecret
+      - Ref: SecretArn
+      - Ref: SigningSecret
+  ProcessingEnabled:
+    Value:
+      Ref: ProcessingEnabled
+  LiveSend:
+    Value:
+      Ref: LiveSend
+  ArtifactBucketName:
+    Value:
+      Ref: ArtifactBucket
+Conditions:
+  DeployRuntime:
+    Fn::Equals:
+    - Ref: DeployProcessing
+    - 'true'
+  RunConsumers:
+    Fn::Equals:
+    - Ref: ProcessingEnabled
+    - 'true'
+  CreateSigningSecret:
+    Fn::And:
+    - Condition: DeployRuntime
+    - Fn::Equals:
+      - Ref: SecretArn
+      - ''
+  HasExternalSecret:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: SecretArn
+      - ''
+  HasSocialPhone:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: SocialPhoneArn
+      - ''

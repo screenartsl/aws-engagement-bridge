@@ -1,64 +1,358 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Prepared only - Screen Art demo Social ingress; no Lambda, IAM, model calls or sends
+Description: Screen Art encrypted WhatsApp demo ingress only; no runtime, sends or Core deployment
+Parameters:
+  KmsAdministratorArn:
+    Type: String
+    AllowedPattern: arn:aws:iam::365470560685:(role|user)/[A-Za-z0-9/+=,.@_-]+
+    Description: Approved non-root IAM identity used by CloudFormation to administer this dedicated SNS key. No
+      STS session ARN.
 Rules:
-  IrelandOnly:
+  ScreenArtDemo:
     Assertions:
-      - Assert: !Equals [!Ref 'AWS::Region', eu-west-1]
-        AssertDescription: Use eu-west-1 for the approved Screen Art demonstration.
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::AccountId
+        - '365470560685'
+      AssertDescription: Screen Art account only.
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::Region
+        - eu-west-1
+      AssertDescription: Ireland only.
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::StackName
+        - muserelay-aws-bridge-stage
+      AssertDescription: Use the reviewed stack name to preserve the SNS topic and queue identities.
 Resources:
+  SnsKey:
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: Screen Art MuseRelay staging SNS events; dedicated hackathon key
+      KeySpec: SYMMETRIC_DEFAULT
+      KeyUsage: ENCRYPT_DECRYPT
+      EnableKeyRotation: false
+      PendingWindowInDays: 7
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: DedicatedKeyAdministration
+          Effect: Allow
+          Principal:
+            AWS:
+              Ref: KmsAdministratorArn
+          Action:
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          - kms:PutKeyPolicy
+          - kms:EnableKey
+          - kms:DisableKey
+          - kms:EnableKeyRotation
+          - kms:DisableKeyRotation
+          - kms:GetKeyRotationStatus
+          - kms:ScheduleKeyDeletion
+          - kms:CancelKeyDeletion
+          - kms:ListResourceTags
+          - kms:TagResource
+          - kms:UntagResource
+          - kms:UpdateKeyDescription
+          - kms:CreateAlias
+          - kms:UpdateAlias
+          - kms:DeleteAlias
+          Resource: '*'
+        - Sid: AllowScreenArtSocialPublishEncryption
+          Effect: Allow
+          Principal:
+            Service: social-messaging.amazonaws.com
+          Action:
+          - kms:GenerateDataKey*
+          - kms:Decrypt
+          Resource: '*'
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+            ArnLike:
+              aws:SourceArn:
+                Fn::Sub: arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  SnsKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName:
+        Fn::Sub: alias/${AWS::StackName}-sns
+      TargetKeyId:
+        Ref: SnsKey
   InboundTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub '${AWS::StackName}-inbound'
+      TopicName:
+        Fn::Sub: ${AWS::StackName}-inbound
+      FifoTopic: false
+      KmsMasterKeyId:
+        Fn::GetAtt:
+        - SnsKey
+        - Arn
+      MaximumMessageSize: 262144
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
   TopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
-      Topics: [!Ref InboundTopic]
+      Topics:
+      - Ref: InboundTopic
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
-            Principal: {Service: social-messaging.amazonaws.com}
-            Action: sns:Publish
-            Resource: !Ref InboundTopic
-            Condition:
-              StringEquals: {'aws:SourceAccount': !Ref 'AWS::AccountId'}
-              ArnLike: {'aws:SourceArn': !Sub 'arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*'}
+        - Effect: Allow
+          Principal:
+            Service: social-messaging.amazonaws.com
+          Action: sns:Publish
+          Resource:
+            Ref: InboundTopic
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+            ArnLike:
+              aws:SourceArn:
+                Fn::Sub: arn:aws:social-messaging:${AWS::Region}:${AWS::AccountId}:*
   InboundDlq:
     Type: AWS::SQS::Queue
-    Properties: {MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+    Properties:
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-inbound-dlq
+      RedriveAllowPolicy:
+        redrivePermission: byQueue
+        sourceQueueArns:
+        - Fn::Sub: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${AWS::StackName}-inbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
   InboundQueue:
     Type: AWS::SQS::Queue
     Properties:
       VisibilityTimeout: 180
       MessageRetentionPeriod: 345600
       SqsManagedSseEnabled: true
-      RedrivePolicy: {deadLetterTargetArn: !GetAtt InboundDlq.Arn, maxReceiveCount: 5}
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - InboundDlq
+          - Arn
+        maxReceiveCount: 5
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-inbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
   InboundQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
-      Queues: [!Ref InboundQueue]
+      Queues:
+      - Ref: InboundQueue
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
-            Principal: {Service: sns.amazonaws.com}
-            Action: sqs:SendMessage
-            Resource: !GetAtt InboundQueue.Arn
-            Condition:
-              ArnEquals: {'aws:SourceArn': !Ref InboundTopic}
-              StringEquals: {'aws:SourceAccount': !Ref 'AWS::AccountId'}
+        - Effect: Allow
+          Principal:
+            Service: sns.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - InboundQueue
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Ref: InboundTopic
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+  DeliveryDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName:
+        Fn::Sub: ${AWS::StackName}-sns-delivery-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  DeliveryDlqPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: DeliveryDlq
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: sns.amazonaws.com
+          Action: sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - DeliveryDlq
+            - Arn
+          Condition:
+            ArnEquals:
+              aws:SourceArn:
+                Ref: InboundTopic
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
   Subscription:
     Type: AWS::SNS::Subscription
-    DependsOn: InboundQueuePolicy
+    DependsOn:
+    - InboundQueuePolicy
+    - DeliveryDlqPolicy
+    - TopicPolicy
     Properties:
-      TopicArn: !Ref InboundTopic
+      TopicArn:
+        Ref: InboundTopic
       Protocol: sqs
-      Endpoint: !GetAtt InboundQueue.Arn
+      Endpoint:
+        Fn::GetAtt:
+        - InboundQueue
+        - Arn
       RawMessageDelivery: false
-
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - DeliveryDlq
+          - Arn
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName:
+        Fn::Sub: ${AWS::StackName}-artifacts-${AWS::AccountId}-${AWS::Region}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+        - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - Id: ExpireDemoArtifacts
+          Status: Enabled
+          ExpirationInDays: 30
+          AbortIncompleteMultipartUpload:
+            DaysAfterInitiation: 1
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  ArtifactBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: ArtifactBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: RequireTls
+          Effect: Deny
+          Principal: '*'
+          Action: s3:*
+          Resource:
+          - Fn::GetAtt:
+            - ArtifactBucket
+            - Arn
+          - Fn::Sub: ${ArtifactBucket.Arn}/*
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
+              aws:PrincipalIsAWSService: 'false'
 Outputs:
-  InboundTopicArn: {Value: !Ref InboundTopic}
-  InboundQueueArn: {Value: !GetAtt InboundQueue.Arn}
-  InboundQueueUrl: {Value: !Ref InboundQueue}
-  InboundDeadLetterQueue: {Value: !Ref InboundDlq}
+  InboundTopicArn:
+    Value:
+      Ref: InboundTopic
+  SnsKeyArn:
+    Value:
+      Fn::GetAtt:
+      - SnsKey
+      - Arn
+  InboundQueueArn:
+    Value:
+      Fn::GetAtt:
+      - InboundQueue
+      - Arn
+  InboundQueueUrl:
+    Value:
+      Ref: InboundQueue
+  InboundDeadLetterQueue:
+    Value:
+      Ref: InboundDlq
+  SnsDeliveryDeadLetterQueue:
+    Value:
+      Ref: DeliveryDlq
+  SubscriptionArn:
+    Value:
+      Ref: Subscription
+  ArtifactBucketName:
+    Value:
+      Ref: ArtifactBucket

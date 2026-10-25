@@ -1,0 +1,30 @@
+{
+  "kind": "NOT_DEPLOYABLE_REVIEW_INPUTS",
+  "authorizedToExecute": false,
+  "accountId": "365470560685",
+  "region": "eu-west-1",
+  "stackName": "muserelay-aws-bridge-stage",
+  "KmsAdministratorArn": "TO_SUPPLY_EXISTING_APPROVED_NON_ROOT_IAM_PRINCIPAL",
+  "metaWabaIdReported": "29207063275646749",
+  "linkedAwsWabaId": "TO_SUPPLY_FROM_AWS_AFTER_SIGNUP",
+  "linkedAwsPhoneArn": "TO_SUPPLY_FROM_AWS_AFTER_SIGNUP",
+  "metaPhoneNumberId": "TO_SUPPLY_FROM_AWS_AFTER_SIGNUP",
+  "MetaApiVersion": "TO_VERIFY_SUPPORTED_VERSION",
+  "CoreBaseUrl": "https://aws-bridge-staging.muserelay.com",
+  "RuntimeArtifactKey": "TO_SUPPLY_FROM_LOCAL_RELEASE_MANIFEST",
+  "SecretArn": "",
+  "DeployProcessing": "false",
+  "ProcessingEnabled": "false",
+  "LiveSend": "false",
+  "BindingsJson": "[]",
+  "DailyInboundLimit": 6,
+  "DailySendLimit": 6,
+  "pendingExternal": [
+    "Read-only STS/account/IAM/SCP/quota and existing-resource checks",
+    "Approval for initial encrypted ingress stack and template S3 upload",
+    "Verify actual SNS output and authorize demo WABA event destination",
+    "Isolated Core staging HTTPS, organization/channel/agent/ticket inbox and Bedrock identity",
+    "Private signing-secret initialization and demo binding configuration",
+    "Separate authorization for runtime update, processing and real messages"
+  ]
+}
