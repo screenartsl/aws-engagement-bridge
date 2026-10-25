@@ -50,6 +50,7 @@ final class CoreTest extends TestCase
     private Scope $scope;
     private int $now = 1792860000;
     private string $secret = 'synthetic-core-signing-key-no-real-credentials';
+    private array $controls = ['receive'=>true, 'agent'=>true, 'send'=>true];
 
     protected function setUp(): void
     {
@@ -97,7 +98,7 @@ final class CoreTest extends TestCase
         $db->table('aws_bridge_bindings')->insert(['id' => 'demo', 'channel_ref' => 'demo-channel', 'organization_id' => 1, 'workspace_id' => 10, 'channel_id' => 20, 'agent_id' => 30,
             'account_id' => '111111111111', 'region' => 'eu-west-1', 'waba_id' => '123456', 'meta_phone_id' => '789012',
             'aws_phone_arn' => 'arn:aws:social-messaging:eu-west-1:111111111111:phone-number-id/abc123', 'allowed_recipients' => '["+12025550123"]', 'enabled' => true]);
-        $this->store = new Store($db, $app['encrypter'], true, [1], fn () => $this->now);
+        $this->store = new Store($db, $app['encrypter'], true, [1], fn () => $this->now, fn () => $this->controls);
         $this->core = new FixtureCore($this->store); $this->outbox = new Outbox($this->store, $this->core); $this->scope = new Scope();
     }
 
@@ -228,6 +229,59 @@ final class CoreTest extends TestCase
         $worker = new Worker($this->store, $this->core, $this->scope);
         self::assertTrue($worker->once()); self::assertFalse($worker->once());
         self::assertSame(1, $this->core->received); self::assertSame(1, $this->core->turns); self::assertNull($this->scope->event);
+    }
+    public function testMissingOperationFlagsFailClosedBeforeModuleQueries(): void
+    {
+        $store = new Store($this->store->db, Container::getInstance()['encrypter'], true, [1]);
+        Schema::drop($store->db->getSchemaBuilder());
+        self::assertNull($store->claim());
+        self::assertFalse((new Outbox($store,$this->core))->publishOne(fn()=>self::fail('must not publish')));
+        $this->expectExceptionMessage('bridge_receive_disabled');$store->accept('demo',$this->event());
+    }
+    public function testReceiveOnlyNeedsNoAgentOrProviderAndDoesNotReplayWhenAgentIsLaterEnabled(): void
+    {
+        $this->controls=['receive'=>true,'agent'=>false,'send'=>false];
+        $agent=(array)$this->store->db->table('ai_agents')->first();$provider=(array)$this->store->db->table('ai_providers')->first();
+        $this->store->db->table('ai_agents')->delete();$this->store->db->table('ai_providers')->delete();
+        self::assertSame('accepted',$this->store->accept('demo',$this->event())['status']);
+        self::assertSame('duplicate',$this->store->accept('demo',$this->event())['status']);
+        $worker=new Worker($this->store,$this->core,$this->scope);
+        self::assertTrue($worker->once());self::assertFalse($worker->once());
+        self::assertSame(1,$this->core->received);self::assertSame(0,$this->core->turns);
+        self::assertSame(0,$this->store->db->table('aws_bridge_outbox')->count());
+        $this->controls['agent']=true;
+        $this->store->db->table('ai_agents')->insert($agent);$this->store->db->table('ai_providers')->insert($provider);
+        // No pending rows: completed receive-only messages cannot suddenly trigger an old turn.
+        self::assertFalse($worker->once());self::assertSame(0,$this->core->turns);
+    }
+    public function testSendRevocationStopsPendingOutboxWithoutChangingItsState(): void
+    {
+        $out=$this->outbox->enqueue($this->store->binding('demo'),'+12025550123','Synthetic',123,null);
+        $this->controls['send']=false;
+        self::assertFalse($this->outbox->publishOne(fn()=>self::fail('must not publish')));
+        self::assertSame('pending',$this->store->db->table('aws_bridge_outbox')->where('id',$out['command_id'])->value('state'));
+        $this->expectExceptionMessage('bridge_send_disabled');
+        $this->outbox->enqueue($this->store->binding('demo'),'+12025550123','Synthetic',null,99);
+    }
+    public function testHumanReplyDoesNotRequireAgentProvider(): void
+    {
+        $this->controls=['receive'=>false,'agent'=>false,'send'=>true];
+        $this->store->db->table('ai_agents')->delete();$this->store->db->table('ai_providers')->delete();
+        $out=$this->outbox->enqueue($this->store->binding('demo'),'+12025550123','Synthetic human reply',null,99);
+        self::assertTrue($out['queued']);self::assertSame(0,$this->core->turns);
+    }
+    public function testAgentRevocationBlocksToolDispatchEvenInExistingScope(): void
+    {
+        $this->store->accept('demo',$this->event());$row=$this->store->claim();
+        $this->scope->binding=$this->store->binding('demo');$this->scope->event=$row;
+        $this->controls['agent']=false;
+        $this->expectExceptionMessage('bridge_agent_disabled');
+        (new ToolGuard($this->store,$this->scope,$this->core))->execute('support_create_ticket',$this->context($row),fn()=>self::fail('tool must not run'));
+    }
+    public function testStringTrueDoesNotEnableAnOperation(): void
+    {
+        $this->controls=['receive'=>'true','agent'=>'true','send'=>'true'];
+        foreach (['receive','agent','send'] as $operation) self::assertFalse($this->store->operationEnabled($operation));
     }
     public function testEqualTimestampEventsKeepTheirAcceptedOrderInsteadOfHashOrder(): void
     {

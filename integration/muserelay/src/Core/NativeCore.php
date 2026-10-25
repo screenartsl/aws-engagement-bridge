@@ -18,6 +18,7 @@ final class NativeCore implements CorePort
 
     public function incoming(object $b, array $event): array
     {
+        $this->store->requireOperation('receive');
         $this->sameConnection();
         $channel = Channel::findOrFail($b->channel_id);
         $contact = app(ContactManagerService::class)->findOrCreateFromWhatsApp(ltrim($event['sender'], '+'), $channel);
@@ -64,6 +65,7 @@ final class NativeCore implements CorePort
 
     public function authorizeTurn(object $b, object $event): void
     {
+        $this->store->requireOperation('agent');
         $conversation = Conversation::where('id', $event->conversation_id)->where('channel_id', $b->channel_id)->where('workspace_id', $b->workspace_id)->where('organization_id', $b->organization_id)->lockForUpdate()->firstOrFail();
         if ($conversation->automation_paused || $conversation->status === 'closed'
             || Message::where('conversation_id', $conversation->id)->where('direction', 'outbound')->where('sender_type', 'agent')->where('id', '>', $event->message_id)->exists()) {
@@ -73,6 +75,7 @@ final class NativeCore implements CorePort
 
     public function outgoing(object $b, string $recipient, string $text, ?int $sourceId, ?int $userId): int
     {
+        $this->store->requireOperation('send');
         $this->sameConnection();
         $channel = Channel::findOrFail($b->channel_id);
         $contact = Contact::where('workspace_id', $b->workspace_id)->where('organization_id', $b->organization_id)
@@ -111,6 +114,7 @@ final class NativeCore implements CorePort
 
     public function authorizeOutgoing(object $b, object $outbox, array $command): void
     {
+        $this->store->requireOperation('send');
         $message = Message::where('id', $outbox->message_id)->where('channel_id', $b->channel_id)->firstOrFail();
         $conversation = Conversation::where('id', $message->conversation_id)->where('workspace_id', $b->workspace_id)->where('organization_id', $b->organization_id)->firstOrFail();
         $channel = Channel::findOrFail($b->channel_id);

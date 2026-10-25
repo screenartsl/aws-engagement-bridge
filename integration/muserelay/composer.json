@@ -1,7 +1,7 @@
 {
   "name": "screenartsl/muserelay-aws-engagement-bridge-core",
   "description": "Opt-in Core connector for the private MuseRelay AWS Engagement Bridge",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "library",
   "require": { "php": "^8.1", "laravel/framework": "^10.0" },
   "autoload": {

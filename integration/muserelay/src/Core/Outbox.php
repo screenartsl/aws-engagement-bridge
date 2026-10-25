@@ -8,6 +8,7 @@ final class Outbox
 
     public function enqueue(object $binding, string $recipient, string $text, ?int $sourceId, ?int $userId): array
     {
+        $this->store->requireOperation('send');
         $b = $this->store->binding($binding->id, $binding->channel_ref);
         if (!preg_match('/^\+[1-9][0-9]{6,14}$/D', $recipient) || !in_array($recipient, json_decode($b->allowed_recipients, true, 8, JSON_THROW_ON_ERROR), true)) throw new BridgeException('recipient_not_allowed', 403);
         if (trim($text) === '' || mb_strlen($text) > 4096) throw new BridgeException('invalid_text');
@@ -50,7 +51,7 @@ final class Outbox
     public function publishOne(callable $publish): bool
     {
         // No queries at all when disabled; reuse Store's gate before selecting a binding.
-        if (!$this->store->isEnabled()) return false;
+        if (!$this->store->operationEnabled('send')) return false;
         $selected = null;
         $rows = $this->store->db->table('aws_bridge_outbox')->whereIn('binding_id', $this->store->bindingIds())->whereIn('state', ['pending', 'publishing'])->where('lease_until', '<=', $this->store->now())
             ->where('attempts', '<', 3)->orderBy('created_epoch')->limit(10)->get();
@@ -67,6 +68,7 @@ final class Outbox
         }
         if (!$selected) return false;
         try {
+            $this->store->requireOperation('send');
             $binding = $this->store->binding($selected->binding_id);
             $payload = $this->store->decode($selected->payload);
             $this->core->authorizeOutgoing($binding, $selected, $payload);

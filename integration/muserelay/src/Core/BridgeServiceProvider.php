@@ -12,7 +12,9 @@ final class BridgeServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(dirname(__DIR__, 2).'/config/aws_bridge.php', 'aws_bridge');
         $this->app->bindIf(RuntimeSettings::class,fn($app)=>new ConfigRuntimeSettings($app['config']));
         $this->app->scoped(Store::class, fn ($app) => new Store($app['db']->connection(), $app['encrypter'],
-            fn()=>$app->make(RuntimeSettings::class)->enabled(),fn()=>$app->make(RuntimeSettings::class)->organizations()));
+            fn()=>$app->make(RuntimeSettings::class)->enabled(),fn()=>$app->make(RuntimeSettings::class)->organizations(), null,
+            fn()=>['receive'=>$app['config']->get('aws_bridge.receive_enabled',false),
+                'agent'=>$app['config']->get('aws_bridge.agent_enabled',false),'send'=>$app['config']->get('aws_bridge.send_enabled',false)]));
         $this->app->scoped(Scope::class, fn () => new Scope());
         $this->app->bind(CorePort::class, NativeCore::class);
         $this->app->bind(SigningKeys::class, fn ($app) => new SigningKeys((string) $app['config']->get('aws_bridge.signing_keys_file', '')));

@@ -18,7 +18,8 @@ final class Worker
                 $row = $this->store->materialize($row, fn () => $this->core->incoming($binding, $event));
                 $this->scope->event = $row;
                 $replyExists = $this->store->db->table('aws_bridge_outbox')->where('binding_id', $binding->id)->where('source_message_id', $row->message_id)->exists();
-                if (!$replyExists) $this->core->turn($binding, $row);
+                // Receive-only runs finish here; enabling an agent later never replays old turns.
+                if (!$replyExists && $this->store->operationEnabled('agent')) $this->core->turn($binding, $row);
             }
             $this->store->finish($row, true);
         } catch (\Throwable $error) {

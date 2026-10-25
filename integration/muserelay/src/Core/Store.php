@@ -8,11 +8,21 @@ use Illuminate\Database\ConnectionInterface;
 final class Store
 {
     public function __construct(public readonly ConnectionInterface $db, private Encrypter $crypto, private bool|\Closure $enabled,
-        private array|\Closure $organizations, private ?\Closure $clock = null) {}
+        private array|\Closure $organizations, private ?\Closure $clock = null, private array|\Closure $controls = []) {}
 
     public function now(): int { return $this->clock ? ($this->clock)() : time(); }
     public function organizationIds(): array { return $this->organizations instanceof \Closure ? ($this->organizations)() : $this->organizations; }
     public function isEnabled(): bool { return ($this->enabled instanceof \Closure ? ($this->enabled)() : $this->enabled) && $this->organizationIds() !== []; }
+    public function operationEnabled(string $operation): bool
+    {
+        $controls = $this->controls instanceof \Closure ? ($this->controls)() : $this->controls;
+        return $this->isEnabled() && in_array($operation, ['receive', 'agent', 'send'], true) && ($controls[$operation] ?? false) === true;
+    }
+    public function requireOperation(string $operation): void
+    {
+        if (!$this->isEnabled()) throw new BridgeException('bridge_disabled', 503);
+        if (!$this->operationEnabled($operation)) throw new BridgeException('bridge_'.$operation.'_disabled', 503);
+    }
     public function bindingIds(): array
     {
         return $this->isEnabled() ? $this->db->table('aws_bridge_bindings')->where('enabled', true)->whereIn('organization_id', $this->organizationIds())->orderBy('id')->pluck('id')->all() : [];
@@ -28,19 +38,21 @@ final class Store
         if ($channelRef !== null && !hash_equals($b->channel_ref, $channelRef)) throw new BridgeException('binding_mismatch', 403);
         $channel = $this->db->table('channels')->where('id', $b->channel_id)->first();
         $workspace = $this->db->table('workspaces')->where('id', $b->workspace_id)->first();
-        $agent = $this->db->table('ai_agents')->where('id', $b->agent_id)->first();
-        if (!$channel || !$workspace || !$agent || $channel->type !== 'whatsapp' || $channel->status !== 'active'
+        if (!$channel || !$workspace || $channel->type !== 'whatsapp' || $channel->status !== 'active'
             || ($channel->managed_provider ?? '') !== 'aws_social'
             || (int) $channel->organization_id !== (int) $b->organization_id || (int) $channel->workspace_id !== (int) $b->workspace_id
-            || (int) $workspace->organization_id !== (int) $b->organization_id
-            || (int) $agent->organization_id !== (int) $b->organization_id || (int) $agent->workspace_id !== (int) $b->workspace_id
-            || (int) ($channel->ai_agent_id ?? 0) !== (int) $agent->id) throw new BridgeException('ownership_mismatch', 403);
+            || (int) $workspace->organization_id !== (int) $b->organization_id) throw new BridgeException('ownership_mismatch', 403);
         if ($b->region !== 'eu-west-1' || !preg_match('/^[0-9]{12}$/D', $b->account_id)
             || !preg_match('/^[0-9]+$/D', $b->waba_id) || !preg_match('/^[0-9]+$/D', $b->meta_phone_id)
             || !preg_match('~^arn:aws:social-messaging:'.preg_quote($b->region, '~').':'.preg_quote($b->account_id, '~').':phone-number-id/[a-zA-Z0-9][a-zA-Z0-9-]*$~D', $b->aws_phone_arn)) {
             throw new BridgeException('invalid_aws_identity', 403);
         }
-        // The demo must actually use Bedrock, including configured agent fallbacks.
+        // Reception and human replies must not depend on a configured LLM identity.
+        if (!$this->operationEnabled('agent')) return $b;
+        $agent = $this->db->table('ai_agents')->where('id', $b->agent_id)->first();
+        if (!$agent || (int) $agent->organization_id !== (int) $b->organization_id || (int) $agent->workspace_id !== (int) $b->workspace_id
+            || (int) ($channel->ai_agent_id ?? 0) !== (int) $agent->id) throw new BridgeException('ownership_mismatch', 403);
+        // An explicitly enabled demo agent must actually use Bedrock, including fallbacks.
         foreach (['ai_provider_id', 'fallback_provider_id', 'fallback2_provider_id'] as $column) {
             $id = (int) ($agent->$column ?? 0);
             if (!$id && $column !== 'ai_provider_id') continue;
@@ -68,6 +80,7 @@ final class Store
 
     public function accept(string $authenticatedBinding, array $event): array
     {
+        $this->requireOperation('receive');
         $b = $this->binding($authenticatedBinding, (string) ($event['channelRef'] ?? ''));
         $event = Protocol::event($event, $b, $this->now());
         $digest = hash('sha256', json_encode($event, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
@@ -91,7 +104,7 @@ final class Store
 
     public function claim(): ?object
     {
-        if (!$this->isEnabled()) return null;
+        if (!$this->operationEnabled('receive')) return null;
         $bindings = $this->bindingIds();
         foreach ($bindings as $id) {
             $b = $this->binding((string) $id);

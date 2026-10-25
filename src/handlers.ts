@@ -41,13 +41,13 @@ async function runtime(): Promise<Runtime> {
 }
 
 export async function inbound(event: SQSEvent, context?: Context): Promise<SQSBatchResponse> {
-  if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true') return disabledBatch(event);
+  if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true' || process.env.BRIDGE_RECEIVE_ENABLED !== 'true') return disabledBatch(event);
   const rt = await runtime();
   return batch(event, async body => ingest(JSON.parse(body), rt.bindings, rt.store, rt.core, Number(env('BRIDGE_DAILY_INBOUND_LIMIT'))), context);
 }
 
 export async function sender(event: SQSEvent, context?: Context): Promise<SQSBatchResponse> {
-  if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true') return disabledBatch(event);
+  if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true' || process.env.BRIDGE_SEND_ENABLED !== 'true' || process.env.BRIDGE_LIVE_SEND !== 'true') return disabledBatch(event);
   const rt = await runtime();
   const adapter = SocialAdapter.aws(rt.region, env('META_API_VERSION'), process.env.BRIDGE_LIVE_SEND === 'true');
   return batch(event, async body => deliver(JSON.parse(body), rt.bindings, rt.store, rt.core, adapter, Number(env('BRIDGE_DAILY_SEND_LIMIT'))), context);
@@ -60,7 +60,7 @@ export async function enqueue(event: APIGatewayProxyEventV2): Promise<APIGateway
     if (!event.headers['x-bridge-binding'] || !event.headers['x-bridge-signature'] || !event.headers['x-bridge-timestamp'] || !event.headers['x-bridge-nonce']) {
       return jsonResponse(401, { error: 'unauthorized' });
     }
-    if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true') return jsonResponse(503, { error: 'bridge_runtime_disabled' });
+    if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true' || process.env.BRIDGE_SEND_ENABLED !== 'true' || process.env.BRIDGE_LIVE_SEND !== 'true') return jsonResponse(503, { error: 'bridge_runtime_disabled' });
     const rt = await runtime();
     return enqueueRequest(event, { bindings: rt.bindings, secret: id => rt.secrets[id]?.outbound,
       nonce: key => rt.store.nonce(key), queue: async command => {

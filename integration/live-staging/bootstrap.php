@@ -50,6 +50,7 @@ final class BridgeLiveConfiguration
         $config['broadcasting']=['default'=>'null','connections'=>['null'=>['driver'=>'null']]];$config['session']['driver']='array';
         $config['filesystems']=['default'=>'local','disks'=>['local'=>['driver'=>'local','root'=>BridgeLiveConfig::DATA.'/storage/app']]];
         $config['aws_bridge']=['enabled'=>($c['enabled'] ?? false)===true,'organization_ids'=>[97101],
+            'receive_enabled'=>($c['receiveEnabled'] ?? false)===true,'agent_enabled'=>($c['agentEnabled'] ?? false)===true,'send_enabled'=>($c['sendEnabled'] ?? false)===true,
             'outbound_url'=>$c['outboundUrl'],'signing_keys_file'=>'/etc/muserelay/aws-bridge/signing-stage.json'];
         $config['features']['agent_executor_mode']='full';$config['features']['tool_escalation']['enabled']=false;
         $app->instance('config',new Illuminate\Config\Repository($config));$app->detectEnvironment(fn()=>'bridge-staging');

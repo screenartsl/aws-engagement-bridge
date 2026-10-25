@@ -7,6 +7,7 @@ final class ToolGuard
     public function __construct(private Store $store, private Scope $scope, private CorePort $core) {}
     public function execute(string $name, array $context, callable $dispatch): array
     {
+        $this->store->requireOperation('agent');
         $event = $this->scope->event;
         $binding = $this->scope->binding;
         if (!$event || !$binding || (int) ($context['channel_id'] ?? 0) !== (int) $binding->channel_id

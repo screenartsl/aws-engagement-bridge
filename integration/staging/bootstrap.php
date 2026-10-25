@@ -77,7 +77,9 @@ final class BridgeStageConfiguration
         $config['session']['driver'] = 'array';
         $config['filesystems']['default'] = 'local';
         $config['filesystems']['disks'] = ['local' => ['driver' => 'local', 'root' => $stage.'/storage/app']];
+        // Synthetic regression suite explicitly opts in; production defaults remain false.
         $config['aws_bridge'] = ['enabled' => getenv('BRIDGE_STAGE_DISABLED') !== '1', 'organization_ids' => [97101],
+            'receive_enabled'=>true,'agent_enabled'=>true,'send_enabled'=>true,
             'outbound_url' => 'https://synthetic.execute-api.eu-west-1.amazonaws.com/outbound'];
         $config['features']['agent_executor_mode'] = 'full';
         $config['features']['tool_escalation']['enabled'] = false;
