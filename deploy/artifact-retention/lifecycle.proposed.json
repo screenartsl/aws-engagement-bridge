@@ -1,0 +1,17 @@
+{
+  "Rules": [
+    {
+      "Id": "AbortIncompleteUploads",
+      "Status": "Enabled",
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 1
+      }
+    },
+    {
+      "Id": "ExpireTemporaryArtifacts",
+      "Status": "Enabled",
+      "Prefix": "tmp/",
+      "ExpirationInDays": 30
+    }
+  ]
+}

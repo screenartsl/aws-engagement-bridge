@@ -1,0 +1,22 @@
+--- LifecycleConfiguration.before
++++ LifecycleConfiguration.proposed
+@@ -1,12 +1,17 @@
+ {
+   "Rules": [
+     {
+-      "Id": "ExpireDemoArtifacts",
++      "Id": "AbortIncompleteUploads",
+       "Status": "Enabled",
+-      "ExpirationInDays": 30,
+       "AbortIncompleteMultipartUpload": {
+         "DaysAfterInitiation": 1
+       }
++    },
++    {
++      "Id": "ExpireTemporaryArtifacts",
++      "Status": "Enabled",
++      "Prefix": "tmp/",
++      "ExpirationInDays": 30
+     }
+   ]
+ }

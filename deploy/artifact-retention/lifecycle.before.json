@@ -1,0 +1,12 @@
+{
+  "Rules": [
+    {
+      "Id": "ExpireDemoArtifacts",
+      "Status": "Enabled",
+      "ExpirationInDays": 30,
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 1
+      }
+    }
+  ]
+}
