@@ -422,8 +422,6 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: expiresAt
         Enabled: true
-      SSESpecification:
-        SSEEnabled: true
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       Tags:
