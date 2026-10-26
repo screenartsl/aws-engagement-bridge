@@ -1,0 +1,189 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CallerIdentity",
+      "Effect": "Allow",
+      "Action": [
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1"
+        }
+      }
+    },
+    {
+      "Sid": "BridgeStackMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:ListStackResources",
+        "cloudformation:GetTemplate"
+      ],
+      "Resource": [
+        "arn:aws:cloudformation:eu-west-1:365470560685:stack/muserelay-aws-bridge-stage/*",
+        "arn:aws:cloudformation:eu-west-1:365470560685:stack/muserelay-aws-bridge-iam-foundation/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1"
+        }
+      }
+    },
+    {
+      "Sid": "ReviewedChangeSetMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:DescribeChangeSet"
+      ],
+      "Resource": [
+        "arn:aws:cloudformation:eu-west-1:365470560685:changeSet/sam-transform-iam-review-d60476a283b7/*",
+        "arn:aws:cloudformation:eu-west-1:365470560685:changeSet/receive-sam-review-88161733676d-82707086-fix1/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1"
+        }
+      }
+    },
+    {
+      "Sid": "BridgeRoleMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies"
+      ],
+      "Resource": [
+        "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution",
+        "arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery",
+        "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime",
+        "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-enqueue-runtime",
+        "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-sender-runtime"
+      ]
+    },
+    {
+      "Sid": "BridgeLambdaMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:GetFunctionConcurrency",
+        "lambda:GetPolicy",
+        "lambda:ListTags"
+      ],
+      "Resource": [
+        "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound",
+        "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-enqueue",
+        "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-sender"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1"
+        }
+      }
+    },
+    {
+      "Sid": "BridgeSnsMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "sns:GetTopicAttributes",
+        "sns:ListSubscriptionsByTopic"
+      ],
+      "Resource": "arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1"
+        }
+      }
+    },
+    {
+      "Sid": "BridgeQueueMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:GetQueueUrl",
+        "sqs:GetQueueAttributes"
+      ],
+      "Resource": [
+        "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue",
+        "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-dlq",
+        "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-sns-delivery-dlq"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1"
+        }
+      }
+    },
+    {
+      "Sid": "BridgeBucketMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetBucketOwnershipControls",
+        "s3:GetBucketPolicy",
+        "s3:GetLifecycleConfiguration",
+        "s3:GetBucketTagging"
+      ],
+      "Resource": "arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1"
+        }
+      }
+    },
+    {
+      "Sid": "BridgeKeyMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "kms:DescribeKey",
+        "kms:GetKeyPolicy"
+      ],
+      "Resource": "arn:aws:kms:eu-west-1:365470560685:key/d712bd69-6b20-48b2-918a-fea097f7241a",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1"
+        }
+      }
+    },
+    {
+      "Sid": "DenyEverythingOutsideReviewedMetadataActions",
+      "Effect": "Deny",
+      "NotAction": [
+        "cloudformation:DescribeChangeSet",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:DescribeStacks",
+        "cloudformation:GetTemplate",
+        "cloudformation:ListStackResources",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "kms:DescribeKey",
+        "kms:GetKeyPolicy",
+        "lambda:GetFunctionConcurrency",
+        "lambda:GetPolicy",
+        "lambda:ListTags",
+        "s3:GetBucketLocation",
+        "s3:GetBucketOwnershipControls",
+        "s3:GetBucketPolicy",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetBucketTagging",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetLifecycleConfiguration",
+        "sns:GetTopicAttributes",
+        "sns:ListSubscriptionsByTopic",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
