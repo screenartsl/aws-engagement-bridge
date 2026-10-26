@@ -1,5 +1,11 @@
 # Acceso temporal BridgeTools — propuesta, no instalación
 
+**No activar todavía:** el ejecutor cerrado de esta propuesta necesita incorporar
+la [revisión consolidada de dependencias del proveedor](../runtime-provider-iam/README.md)
+con sus propias restricciones. No copiar automáticamente GetSecretValue o las
+excepciones regionales a la identidad de herramientas. La ruta manual sigue
+siendo prioritaria; este acceso autónomo no está desplegado.
+
 26/10/2026. Preparación autorizada únicamente. No se ha creado/configurado ninguna
 identidad, rol, boundary, asignación, trail, pila, usuario Linux o credencial.
 No se ha ejecutado IAM Foundation ni el conjunto SAM pendiente.

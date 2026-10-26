@@ -1,5 +1,5 @@
 {
-  "status": "HOLD_RUNTIME_EXECUTION",
+  "status": "SUPERSEDED_CANDIDATE_DO_NOT_APPLY",
   "ownerReportedMetadataChecks": 15,
   "metadataPassDoesNotProveProviderPermissions": true,
   "confirmedMissingActions": [
@@ -15,5 +15,6 @@
   "runtimeTemplateUnchanged": true,
   "runtimeChangeSetNotDeletedOrRecreated": true,
   "changesApplied": false,
-  "awsCalls": 0
+  "awsCalls": 0,
+  "supersededBy": "deploy/runtime-provider-iam/README.md"
 }

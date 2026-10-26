@@ -1,0 +1,33 @@
+{
+  "status": "PREPARED_LOCALLY_NOT_CREATED_IN_AWS",
+  "account": "365470560685",
+  "region": "eu-west-1",
+  "stack": "muserelay-aws-bridge-iam-foundation",
+  "changeSetName": "runtime-provider-iam-review-cb4d602f2d90",
+  "baselineRawSha256": "d60476a283b76d3dcc2babdd689bee81b1888e834364c90067621cc7ef4531cc",
+  "proposedRawSha256": "cb4d602f2d9067c4271c6789fd2c1ce8716d28aadae2caa6421aa81d55565e98",
+  "baselineCanonicalSha256": "2c7ae874f68bf674017382466647d6fc8920e7778d801503177a6a3288a37a8c",
+  "proposedCanonicalSha256": "a95ae086428ba41721b03ba1ba5d7ea0d9136f84a42181f309169784b76d1b9f",
+  "proposedRuntimeInlineCanonicalSha256": "e8171cc0863ffac6acb1a3da30493691635ee78394d61e8beb13e17b72df6f50",
+  "appendedStatements": 7,
+  "actionResourceGrants": 14,
+  "expectedChanges": [
+    {
+      "Action": "Modify",
+      "LogicalResourceId": "StageCloudFormationRole",
+      "Replacement": "False"
+    }
+  ],
+  "oldPoliciesTrustRolesParametersPreserved": true,
+  "GrantSocialSend": "false",
+  "RoleARNOmittedForFoundation": true,
+  "awsCalls": 0,
+  "executionAuthorized": false,
+  "schemaEvidence": "Owner reports five DescribeType reads succeeded, but full output/version/action lists not supplied; local official cfn-lint handler snapshot and current AWS documentation used. No claim of direct live-schema comparison.",
+  "exceptionsNeedingExplicitReview": [
+    "Regional Logs policy metadata is Resource * because APIs do not support resource ARN scoping",
+    "CloudFormation provider can GetSecretValue only on the dedicated signing secret with Bridge/staging tags; no tool/user secret access",
+    "Mapping tag bootstrap uses CloudFormation system request tags; metadata read uses system resource tags, not unsupported lambda:FunctionArn on Tag/ListTags"
+  ],
+  "limits": "Provider handler declarations describe a contract/superset; proposal covers selected create settings, standard read stabilization and tag lifecycle. AWS acceptance and context population still require approved deployment. No claim of guaranteed execution."
+}

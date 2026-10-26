@@ -1,0 +1,468 @@
+[
+  {
+    "PolicyName": "bridge-stage-scoped",
+    "PolicyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "CreateOnlySymmetricDemoKey",
+          "Effect": "Allow",
+          "Action": [
+            "kms:CreateKey"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1",
+              "kms:KeySpec": "SYMMETRIC_DEFAULT",
+              "kms:KeyUsage": "ENCRYPT_DECRYPT",
+              "aws:RequestTag/Company": "ScreenArt",
+              "aws:RequestTag/Component": "aws-engagement-bridge",
+              "aws:RequestTag/Environment": "staging"
+            },
+            "Bool": {
+              "kms:BypassPolicyLockoutSafetyCheck": "false"
+            }
+          }
+        },
+        {
+          "Sid": "TagKeyAtCreation",
+          "Effect": "Allow",
+          "Action": [
+            "kms:TagResource"
+          ],
+          "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1",
+              "aws:RequestTag/Company": "ScreenArt",
+              "aws:RequestTag/Component": "aws-engagement-bridge",
+              "aws:RequestTag/Environment": "staging"
+            }
+          }
+        },
+        {
+          "Sid": "ReadRegionalKeyMetadata",
+          "Effect": "Allow",
+          "Action": [
+            "kms:DescribeKey",
+            "kms:GetKeyPolicy",
+            "kms:GetKeyRotationStatus",
+            "kms:ListResourceTags"
+          ],
+          "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "NamedAliasOnly",
+          "Effect": "Allow",
+          "Action": [
+            "kms:CreateAlias",
+            "kms:UpdateAlias",
+            "kms:DeleteAlias"
+          ],
+          "Resource": "arn:aws:kms:eu-west-1:365470560685:alias/muserelay-aws-bridge-stage-sns",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "ReadAliasRegistry",
+          "Effect": "Allow",
+          "Action": [
+            "kms:ListAliases"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "StageTopicAndSubscriptionOnly",
+          "Effect": "Allow",
+          "Action": [
+            "sns:CreateTopic",
+            "sns:DeleteTopic",
+            "sns:GetTopicAttributes",
+            "sns:SetTopicAttributes",
+            "sns:TagResource",
+            "sns:UntagResource",
+            "sns:ListTagsForResource",
+            "sns:Subscribe",
+            "sns:Unsubscribe",
+            "sns:GetSubscriptionAttributes",
+            "sns:SetSubscriptionAttributes",
+            "sns:ListSubscriptionsByTopic",
+            "sns:GetDataProtectionPolicy"
+          ],
+          "Resource": "arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "StageQueuesOnly",
+          "Effect": "Allow",
+          "Action": [
+            "sqs:CreateQueue",
+            "sqs:DeleteQueue",
+            "sqs:GetQueueUrl",
+            "sqs:GetQueueAttributes",
+            "sqs:SetQueueAttributes",
+            "sqs:TagQueue",
+            "sqs:UntagQueue",
+            "sqs:ListQueueTags"
+          ],
+          "Resource": [
+            "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue",
+            "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-dlq",
+            "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-sns-delivery-dlq"
+          ],
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "PrivateArtifactBucketOnly",
+          "Effect": "Allow",
+          "Action": [
+            "s3:CreateBucket",
+            "s3:DeleteBucket",
+            "s3:GetBucketLocation",
+            "s3:ListBucket",
+            "s3:GetBucketAcl",
+            "s3:GetEncryptionConfiguration",
+            "s3:PutEncryptionConfiguration",
+            "s3:GetBucketPublicAccessBlock",
+            "s3:PutBucketPublicAccessBlock",
+            "s3:GetBucketOwnershipControls",
+            "s3:PutBucketOwnershipControls",
+            "s3:GetBucketTagging",
+            "s3:PutBucketTagging",
+            "s3:GetBucketPolicy",
+            "s3:PutBucketPolicy",
+            "s3:DeleteBucketPolicy",
+            "s3:GetLifecycleConfiguration",
+            "s3:PutLifecycleConfiguration",
+            "s3:GetAccelerateConfiguration",
+            "s3:GetAnalyticsConfiguration",
+            "s3:GetBucketAbac",
+            "s3:GetBucketCORS",
+            "s3:GetBucketLogging",
+            "s3:GetBucketMetadataTableConfiguration",
+            "s3:GetBucketNotification",
+            "s3:GetBucketObjectLockConfiguration",
+            "s3:GetBucketVersioning",
+            "s3:GetBucketWebsite",
+            "s3:GetIntelligentTieringConfiguration",
+            "s3:GetInventoryConfiguration",
+            "s3:GetMetricsConfiguration",
+            "s3:GetReplicationConfiguration",
+            "s3:ListTagsForResource",
+            "s3:TagResource",
+            "s3:UntagResource"
+          ],
+          "Resource": "arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1"
+        },
+        {
+          "Sid": "PreventKeyDestructionFromDeployment",
+          "Effect": "Deny",
+          "Action": [
+            "kms:DisableKey",
+            "kms:ScheduleKeyDeletion"
+          ],
+          "Resource": "arn:aws:kms:eu-west-1:365470560685:key/*"
+        }
+      ]
+    }
+  },
+  {
+    "PolicyName": "bridge-runtime-receive-provisioning",
+    "PolicyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "PassOnlyInboundRuntime",
+          "Effect": "Allow",
+          "Action": [
+            "iam:PassRole"
+          ],
+          "Resource": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime",
+          "Condition": {
+            "StringEquals": {
+              "iam:PassedToService": "lambda.amazonaws.com"
+            }
+          }
+        },
+        {
+          "Sid": "InboundFunctionProvisioning",
+          "Effect": "Allow",
+          "Action": [
+            "lambda:CreateFunction",
+            "lambda:GetFunction",
+            "lambda:GetFunctionConfiguration",
+            "lambda:GetFunctionCodeSigningConfig",
+            "lambda:GetFunctionConcurrency",
+            "lambda:UpdateFunctionCode",
+            "lambda:UpdateFunctionConfiguration",
+            "lambda:DeleteFunction",
+            "lambda:PutFunctionConcurrency",
+            "lambda:DeleteFunctionConcurrency",
+            "lambda:TagResource",
+            "lambda:UntagResource",
+            "lambda:ListTags"
+          ],
+          "Resource": "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "CreateOnlyInboundMapping",
+          "Effect": "Allow",
+          "Action": [
+            "lambda:CreateEventSourceMapping"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            },
+            "ArnEquals": {
+              "lambda:FunctionArn": "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound"
+            }
+          }
+        },
+        {
+          "Sid": "ManageOnlyInboundMapping",
+          "Effect": "Allow",
+          "Action": [
+            "lambda:GetEventSourceMapping",
+            "lambda:UpdateEventSourceMapping",
+            "lambda:DeleteEventSourceMapping"
+          ],
+          "Resource": "arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            },
+            "ArnEquals": {
+              "lambda:FunctionArn": "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound"
+            }
+          }
+        },
+        {
+          "Sid": "OwnStateTableProvisioning",
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:CreateTable",
+            "dynamodb:DeleteTable",
+            "dynamodb:DescribeTable",
+            "dynamodb:UpdateTable",
+            "dynamodb:UpdateTimeToLive",
+            "dynamodb:DescribeTimeToLive",
+            "dynamodb:TagResource",
+            "dynamodb:UntagResource",
+            "dynamodb:ListTagsOfResource"
+          ],
+          "Resource": "arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "EmptySigningSecretMetadata",
+          "Effect": "Allow",
+          "Action": [
+            "secretsmanager:CreateSecret",
+            "secretsmanager:DescribeSecret",
+            "secretsmanager:TagResource",
+            "secretsmanager:UntagResource",
+            "secretsmanager:ListSecretVersionIds",
+            "secretsmanager:GetResourcePolicy"
+          ],
+          "Resource": "arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-??????",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "OwnLogGroupProvisioning",
+          "Effect": "Allow",
+          "Action": [
+            "logs:CreateLogGroup",
+            "logs:DeleteLogGroup",
+            "logs:PutRetentionPolicy",
+            "logs:DeleteRetentionPolicy",
+            "logs:TagResource",
+            "logs:UntagResource",
+            "logs:ListTagsForResource"
+          ],
+          "Resource": [
+            "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound",
+            "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound:*"
+          ],
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "RegionalLogGroupMetadata",
+          "Effect": "Allow",
+          "Action": [
+            "logs:DescribeLogGroups"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "ReadReviewedArtifact",
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject"
+          ],
+          "Resource": "arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/releases/*/bridge.zip"
+        },
+        {
+          "Sid": "AllowAwsSamTransformInIreland",
+          "Effect": "Allow",
+          "Action": [
+            "cloudformation:CreateChangeSet"
+          ],
+          "Resource": "arn:aws:cloudformation:eu-west-1:aws:transform/Serverless-2016-10-31"
+        },
+        {
+          "Sid": "OwnStateProviderLifecycle",
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:DescribeContinuousBackups",
+            "dynamodb:UpdateContinuousBackups",
+            "dynamodb:DescribeContributorInsights",
+            "dynamodb:DescribeKinesisStreamingDestination",
+            "dynamodb:GetResourcePolicy"
+          ],
+          "Resource": "arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "OwnInboundProviderConfigurationRead",
+          "Effect": "Allow",
+          "Action": [
+            "lambda:GetFunctionRecursionConfig",
+            "lambda:GetRuntimeManagementConfig",
+            "lambda:GetFunctionScalingConfig"
+          ],
+          "Resource": "arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "OwnMappingSystemTagBootstrap",
+          "Effect": "Allow",
+          "Action": [
+            "lambda:TagResource"
+          ],
+          "Resource": "arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1",
+              "aws:RequestTag/aws:cloudformation:stack-name": "muserelay-aws-bridge-stage",
+              "aws:RequestTag/aws:cloudformation:logical-id": "InboundFunctionInput"
+            }
+          }
+        },
+        {
+          "Sid": "OwnMappingTagRead",
+          "Effect": "Allow",
+          "Action": [
+            "lambda:ListTags"
+          ],
+          "Resource": "arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1",
+              "aws:ResourceTag/aws:cloudformation:stack-name": "muserelay-aws-bridge-stage",
+              "aws:ResourceTag/aws:cloudformation:logical-id": "InboundFunctionInput"
+            }
+          }
+        },
+        {
+          "Sid": "OwnInboundDataProtectionMetadata",
+          "Effect": "Allow",
+          "Action": [
+            "logs:GetDataProtectionPolicy"
+          ],
+          "Resource": [
+            "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound",
+            "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound:*"
+          ],
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "RegionalProviderPolicyMetadata",
+          "Effect": "Allow",
+          "Action": [
+            "logs:DescribeIndexPolicies",
+            "logs:DescribeResourcePolicies"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "OwnSecretProviderRead",
+          "Effect": "Allow",
+          "Action": [
+            "secretsmanager:GetSecretValue"
+          ],
+          "Resource": "arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-??????",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1",
+              "aws:ResourceTag/Component": "aws-engagement-bridge",
+              "aws:ResourceTag/Environment": "staging"
+            }
+          }
+        }
+      ]
+    }
+  }
+]

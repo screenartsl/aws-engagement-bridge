@@ -24,6 +24,14 @@ POLICIES={
  'bridge-stage-scoped':'7ea557e2f76a54b530a2f88cb95a531ec8b795687b690ca5c6c220e8195fefd7',
  'bridge-runtime-receive-provisioning':'4c42c376f5fb3948407011049d5edcce6cd7dc7493dec7a59bbaca5c103f315b',
 }
+CANDIDATE_RUNTIME_POLICY_HASH='e8171cc0863ffac6acb1a3da30493691635ee78394d61e8beb13e17b72df6f50'
+PROVIDER_HANDLER_HASHES={
+ 'AWS::DynamoDB::Table':'8dda74c4e4085a8f60ade7286b40b9319bbadeb6d2a6d3cc6632de05f2d97dbb',
+ 'AWS::Lambda::Function':'e6d14db162456af7923fe8c63ff09a7f6f15c351a5d213686b5300979795759f',
+ 'AWS::Lambda::EventSourceMapping':'6f289312604fd202e7063a2ca589208be8e2e978bd482c522d27a9363c02c169',
+ 'AWS::Logs::LogGroup':'227cc88b8fccee68ef09cde36b5833def2d781e50a6c4cc431120efc49e22587',
+ 'AWS::SecretsManager::Secret':'7a511c938b1f09f86ad3ed05899c08a5790a3e3d651b8ae3490e63b7607ec659',
+}
 ADDS={'InboundFunctionInput':'AWS::Lambda::EventSourceMapping',
       'InboundFunction':'AWS::Lambda::Function','InboundLogs':'AWS::Logs::LogGroup',
       'SigningSecret':'AWS::SecretsManager::Secret','State':'AWS::DynamoDB::Table'}
@@ -135,7 +143,9 @@ def verify(e):
         e['attached'].get('AttachedPolicies')==[] and not e['attached'].get('IsTruncated')
         and set(e['inline'].get('PolicyNames',[]))==set(POLICIES) and not e['inline'].get('IsTruncated'))
     checks['Ambas políticas inline íntegras coinciden; KMS Deny preservado']=all(
-        digest(e['policies'][name]['PolicyDocument'])==expected for name,expected in POLICIES.items())
+        digest(e['policies'][name]['PolicyDocument']) in (
+            [expected,CANDIDATE_RUNTIME_POLICY_HASH] if name=='bridge-runtime-receive-provisioning' else [expected])
+        for name,expected in POLICIES.items())
     t=body(e['processed'])
     f=t['Resources']['InboundFunction']['Properties']
     m=t['Resources']['InboundFunctionInput']['Properties']
@@ -213,8 +223,23 @@ def collect_provider_permissions():
         response=aws('cloudformation','describe-type','--type','RESOURCE','--type-name',typ)
         schema=json.loads(response['Schema'])
         result['providers'][typ]={'defaultVersionId':response.get('DefaultVersionId'),
-            'handlers':{k:schema.get('handlers',{}).get(k,{}).get('permissions',[]) for k in ['create','read','delete']}}
+            'handlers':{k:schema.get('handlers',{}).get(k,{}).get('permissions',[]) for k in ['create','read','delete']},
+            'tagging':schema.get('tagging',{})}
     return result
+
+
+def provider_summary(report):
+    rows=[]
+    for typ,expected in PROVIDER_HANDLER_HASHES.items():
+        p=report['providers'][typ]
+        fingerprint=digest({k:sorted(p['handlers'][k]) for k in ['create','read','delete']})
+        rows.append({'type':typ,'version':p.get('defaultVersionId'),
+            'matchesReviewedHandlers':fingerprint==expected,'fingerprint':fingerprint})
+    mapping=report['providers']['AWS::Lambda::EventSourceMapping'].get('tagging',{})
+    system_tags=(mapping.get('cloudFormationSystemTags') is True and mapping.get('tagOnCreate') is True)
+    return {'scope':'Provider handler declarations only; no effective-permission simulation or deployment approval',
+        'allMatch':all(r['matchesReviewedHandlers'] for r in rows) and system_tags,
+        'mappingSystemTagsOnCreate':system_tags,'providers':rows}
 
 
 def main():
@@ -223,10 +248,12 @@ def main():
     group.add_argument('--collect',action='store_true')
     group.add_argument('--evidence',type=Path)
     group.add_argument('--provider-permissions',action='store_true')
+    group.add_argument('--provider-summary',action='store_true')
     args=p.parse_args()
     try:
-        if args.provider_permissions:
-            print(json.dumps(collect_provider_permissions(),indent=2))
+        if args.provider_permissions or args.provider_summary:
+            report=collect_provider_permissions()
+            print(json.dumps(provider_summary(report) if args.provider_summary else report,indent=2))
             return 0
         e=collect() if args.collect else json.loads(args.evidence.read_text())
         checks=verify(e)

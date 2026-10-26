@@ -1,0 +1,25 @@
+{
+  "status": "LOCAL_ONLY_NO_AWS_CALLS",
+  "newSecurityContractTestsPassed": 12,
+  "collectorRegressionTestsPassed": 17,
+  "cfnLint": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "historyHeuristicScan": "PASS",
+  "wholeTemplateDelta": "Only seven appended statements on StageCloudFormationRole; removing them restores baseline exactly",
+  "aggregateInlineConservativeCompactCharacters": 9789,
+  "iamRoleInlineLimit": 10240,
+  "candidateChangeSetCreated": false,
+  "executionAuthorized": false,
+  "hashes": {
+    "README.md": "37c2e9744d63a7cfe5015b375503790a62c7ee4eb7a1b5d2e48f9631e2a92081",
+    "executor-policies.after.json": "b26abd4c4e38916d4d099f089563d447a14108379790330bc91063f9150727b9",
+    "executor-policies.before.json": "581741e7606c55a90400b66df44c0ab6ce7c499dd156ee32b04e967613cba452",
+    "executor-policies.diff": "5798d3f0641af7a97d4490b9ee4f281d562ab0a203727f25205dbce8a8ce6175",
+    "policy.additions.json": "c41a8f50505c53da34118c44526e8f2f405e96ab72eda1d686f16d3679be8329",
+    "provider-iam.change-set.prepared.json": "0a311d223ec482e612d3f5bcb7cb087c649dd1869c03e5fc4ff680b09bf71f66",
+    "review.json": "bc094a148d34eca14d248395cd82aa9aaec7e87a7c6788b7c72ff7b30caf08da",
+    "template.yaml": "cb4d602f2d9067c4271c6789fd2c1ce8716d28aadae2caa6421aa81d55565e98"
+  }
+}

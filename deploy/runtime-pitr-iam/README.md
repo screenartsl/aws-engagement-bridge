@@ -1,5 +1,9 @@
 # HOLD: coste cerrado y dependencia PITR omitida
 
+**Candidata sustituida:** la [revisión consolidada de proveedores](../runtime-provider-iam/README.md)
+incluye lectura/estabilización y etiquetas, además de PITR. No aplicar esta versión
+de dos acciones por separado; se conserva como evidencia del hallazgo.
+
 26/10/2026, Europe/Paris. El propietario comunica quince PASS para el conjunto
 receive-sam-review-88161733676d-82707086-fix1. Es evidencia de integridad de
 configuración/rol, no prueba de cobertura de APIs del proveedor CloudFormation.
