@@ -1,6 +1,6 @@
 # Fase 4 — runbook revisable, NO ejecutado
 
-> Informe histórico. Para SNS/KMS, artefactos, parámetros, recursos y retirada AWS prevalece [CLOUDFORMATION-DEPLOYMENT.md](CLOUDFORMATION-DEPLOYMENT.md), revisado el 25-10-2026. Los comandos de package/deploy de este informe no deben aplicarse a la plantilla actual. El estado instalado/desactivado del Core y el repositorio privado se actualizan en README y POST-INSTALL-VERIFICATION.
+> Informe histórico. Para SNS/KMS, artefactos, parámetros, recursos y retirada AWS prevalece [CLOUDFORMATION-DEPLOYMENT.md](../CLOUDFORMATION-DEPLOYMENT.md), revisado el 25-10-2026. Los comandos de package/deploy de este informe no deben aplicarse a la plantilla actual. El estado instalado/desactivado del Core y el repositorio privado se actualizan en README y POST-INSTALL-VERIFICATION.
 
 Este documento describe acciones futuras. La autorización actual permite preparación y lectura; **no ejecutar la sección de instalación, package/deploy, alta/vinculación, activación, envíos, retirada de recursos ni push sin autorización expresa**. No usar credenciales root ni producción. Alcance/costes: [PHASE-4.md](PHASE-4.md).
 

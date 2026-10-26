@@ -1,6 +1,6 @@
 # Retención permanente: propuesta de propiedades, NO desplegable
 
-Leer [qué es el runtime y cómo se mantiene permanente](../../docs/RUNTIME-PERMANENCE-AND-EXPOSURE.md).
+Leer [qué es el runtime y cómo se mantiene permanente](../../docs/history/RUNTIME-PERMANENCE-AND-EXPOSURE.md).
 
 - `lifecycle.before.json`: propiedad LifecycleConfiguration del bucket en el SAM vigente, con expiración global a 30 días.
 - `lifecycle.proposed.json`: propuesta de propiedad CloudFormation; expira solo `tmp/` y limpia multipart incompletos sin eliminar releases completos.

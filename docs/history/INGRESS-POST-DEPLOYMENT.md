@@ -26,11 +26,11 @@ El usuario comunica la pila `muserelay-aws-bridge-stage` en CREATE_COMPLETE y ap
 
 **Resultado de las lecturas comunicadas:** configuración coincidente con el diseño, sin AccessDenied ni pruebas de mensajes. GO para preparar la asociación Social; guardarla sigue sin autorizar. El usuario no ha transcrito individualmente VisibilityTimeout, ARN literal de redrive de entrada, RedriveAllowPolicy de DLQ y regla multipart; se conserva ese límite del resumen, sin presentarlos como verificaciones independientes del agente.
 
-[Registro de evidencia recibida](evidence/ingress-deployment-user-evidence.json). El YAML no cambia: commit de referencia `5f563ea4387c9694782943566614e38b9463168a`, SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`.
+[Registro de evidencia recibida](../evidence/ingress-deployment-user-evidence.json). El YAML no cambia: commit de referencia `5f563ea4387c9694782943566614e38b9463168a`, SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`.
 
 ## Recogida única de metadatos desde CloudShell
 
-Se proporciona [collect-ingress-readonly.py](../scripts/cloudformation/collect-ingress-readonly.py), autocontenido, Python estándar y AWS CLI. Descargarlo desde el repositorio privado y subirlo al directorio privado de CloudShell; también puede utilizarse desde una copia privada ya disponible del repositorio. No requiere instalar dependencias, configurar claves en el servidor ni cargar el Core.
+Se proporciona [collect-ingress-readonly.py](../../scripts/cloudformation/collect-ingress-readonly.py), autocontenido, Python estándar y AWS CLI. Descargarlo desde el repositorio privado y subirlo al directorio privado de CloudShell; también puede utilizarse desde una copia privada ya disponible del repositorio. No requiere instalar dependencias, configurar claves en el servidor ni cargar el Core.
 
 Desde la raíz de la copia del repositorio:
 

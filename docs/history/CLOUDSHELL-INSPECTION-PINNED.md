@@ -11,7 +11,7 @@ Fecha: 25-10-2026, Europe/Paris. El usuario da GO condicionado a un solo muestre
 
 La revisión del código identifica una sola llamada ReceiveMessage en inspect(), precedida de identidad/cuenta, cola/cifrado/redrive/visibilidad, ausencia de mensajes en procesamiento y mappings Lambda vacíos. Sus parámetros fijan máximo dos mensajes, espera cero y visibilidad de 30 segundos. El cliente recibe AWS_MAX_ATTEMPTS=1 y no hay bucle de recepción. No existen llamadas de borrado, purga, cambio de visibilidad, publicación, envío o activación. La salida usa campos fijos, enumeraciones cerradas, cantidades y booleanos. El historial CLI debe estar deshabilitado o sin configurar; no se cambia automáticamente.
 
-El script no ha cambiado. Los doce tests del mismo commit se ejecutaron en una carpeta desechable sin red. Además se ejecutó main() en su modo predeterminado con subprocess.run bloqueado: cero invocaciones. Esto complementa la revisión del código, no demuestra una lectura AWS. [Registro de revisión](evidence/inspection-pinned-code-review.json).
+El script no ha cambiado. Los doce tests del mismo commit se ejecutaron en una carpeta desechable sin red. Además se ejecutó main() en su modo predeterminado con subprocess.run bloqueado: cero invocaciones. Esto complementa la revisión del código, no demuestra una lectura AWS. [Registro de revisión](../evidence/inspection-pinned-code-review.json).
 
 ## Opción A: CloudShell ya tiene gh autenticado para el repositorio
 

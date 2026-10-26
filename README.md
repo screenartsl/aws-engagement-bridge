@@ -88,7 +88,8 @@ Pending: the full AI turn (Bedrock agent reply and ticket tool) through this bri
 | `test/` | Node tests, no AWS or network access |
 | `template.yaml` | AWS SAM/CloudFormation template for the runtime stack |
 | `integration/muserelay/` | Laravel connector package installed in MuseRelay, with its PHPUnit tests |
-| `deploy/`, `docs/` | Change sets, IAM reviews and runbooks kept as deployment history |
+| `deploy/` | Current templates and the reviewed change sets of each deployment step ([index](deploy/README.md)) |
+| `docs/` | [Evaluation guide](docs/EVALUATION.md), provenance, deployment and integration guides; development record in `docs/history/` |
 
 ## Build and test
 

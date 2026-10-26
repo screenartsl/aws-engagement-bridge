@@ -20,7 +20,7 @@ El octavo PASS de la versión anterior, rotulado «Sin nuevo rol de servicio», 
 acreditaba esa afirmación. El verificador actual lo limita al formato de respuesta;
 la identidad de ejecución exige DescribeStacks y revisar la solicitud CreateChangeSet
 en CloudTrail. El null de una consulta a un campo ausente no es evidencia del rol.
-Para el runtime usar [la revisión posterior](../deploy/receive-retry/POST-CREATION-REVIEW.md).
+Para el runtime usar [la revisión posterior](../../deploy/receive-retry/POST-CREATION-REVIEW.md).
 
 ## Lecturas desde CloudShell AdministratorAccess
 

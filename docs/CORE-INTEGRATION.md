@@ -1,10 +1,10 @@
-> Current native staging evidence: [PHASE-3.md](PHASE-3.md). No production or AWS activation is included.
+> Current native staging evidence: [PHASE-3.md](history/PHASE-3.md). No production or AWS activation is included.
 
 # MuseRelay Core contract and next phase
 
 This contract now has a prepared implementation under `integration/muserelay/src/Core/`, plus `core-hooks.patch` for three existing Core files. It is **not installed or activated**. `BridgeSignature.php` remains the framework-independent signature primitive. The package provider registers routes only when explicitly enabled; it does not auto-register migrations. No production routes, migrations, workers or reseller screens have been changed.
 
-The permanent target is the existing MuseRelay deployment: its reseller/white-label panels, domains, organizations, native inbox/agent/tools and existing database/Redis services. The connector adds five `aws_bridge_*` tables on the Core connection and scoped work/configuration; it does not require a second commercial application, machine, database server, Redis server or hostname. Technical signed routes may use an existing canonical Core HTTPS origin. Temporary phase 4 source/database/Redis/hostname isolation is a test fixture, not the permanent deployment model. See the user-confirmed decision in [PHASE-4.md](PHASE-4.md).
+The permanent target is the existing MuseRelay deployment: its reseller/white-label panels, domains, organizations, native inbox/agent/tools and existing database/Redis services. The connector adds five `aws_bridge_*` tables on the Core connection and scoped work/configuration; it does not require a second commercial application, machine, database server, Redis server or hostname. Technical signed routes may use an existing canonical Core HTTPS origin. Temporary phase 4 source/database/Redis/hostname isolation is a test fixture, not the permanent deployment model. See the user-confirmed decision in [PHASE-4.md](history/PHASE-4.md).
 
 Any future production installation, migrations, configuration/cache changes and worker/shared-service reloads require explicit authorization. Before retiring staging, stop its demo or verify that every retained active deployment uses its definitive Core endpoint and resources; removing a still-referenced staging URL would interrupt that deployment. Keep native data and definitive resources outside demo cleanup.
 

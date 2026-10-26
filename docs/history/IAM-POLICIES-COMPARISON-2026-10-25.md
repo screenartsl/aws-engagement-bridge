@@ -15,11 +15,11 @@ El baseline es la versión anterior **del repositorio**, no una exportación nue
 
 Artefactos íntegros, sin truncamiento, bajo `deploy/runtime-iam/review/`:
 
-- [Policies anterior](../deploy/runtime-iam/review/executor-policies.before.json).
-- [Policies propuesta](../deploy/runtime-iam/review/executor-policies.after.json).
-- [Diff unificado de Policies](../deploy/runtime-iam/review/executor-policies.diff).
-- [Tres roles con GrantSocialSend=false resuelto](../deploy/runtime-iam/review/runtime-roles.send-disabled.json).
-- [Resultado estructurado, procedencia y hashes de los artefactos](../deploy/runtime-iam/review/comparison.json).
+- [Policies anterior](../../deploy/runtime-iam/review/executor-policies.before.json).
+- [Policies propuesta](../../deploy/runtime-iam/review/executor-policies.after.json).
+- [Diff unificado de Policies](../../deploy/runtime-iam/review/executor-policies.diff).
+- [Tres roles con GrantSocialSend=false resuelto](../../deploy/runtime-iam/review/runtime-roles.send-disabled.json).
+- [Resultado estructurado, procedencia y hashes de los artefactos](../../deploy/runtime-iam/review/comparison.json).
 
 ## StageCloudFormationRole: igualdad exacta de la política anterior
 

@@ -6,7 +6,7 @@ Fecha: 25-10-2026, Europe/Paris. Cuenta Screen Art `365470560685`, región `eu-w
 
 ## Evidencia nueva recibida
 
-El usuario comunica WABA Meta `29207063275646749` vinculada/activa, número de demo conectado y destino SNS de staging habilitado. Contadores comunicados: entrada 2 visibles, ambas DLQ 0, en procesamiento 0 y retrasados 0; no se han leído/eliminado/procesado mensajes. Se registra en [social-linked-ingress-user-evidence.json](evidence/social-linked-ingress-user-evidence.json), como resumen aportado, no como consulta AWS del agente.
+El usuario comunica WABA Meta `29207063275646749` vinculada/activa, número de demo conectado y destino SNS de staging habilitado. Contadores comunicados: entrada 2 visibles, ambas DLQ 0, en procesamiento 0 y retrasados 0; no se han leído/eliminado/procesado mensajes. Se registra en [social-linked-ingress-user-evidence.json](../evidence/social-linked-ingress-user-evidence.json), como resumen aportado, no como consulta AWS del agente.
 
 Estos contadores muestran actividad de ingreso, pero no identifican el contenido, su origen individual ni una conversación. Los eventos podrían ser mensajes, estados o cambios administrativos. La identificación necesita revisar el sobre recibido. No se presenta todavía como prueba de conversación, Bedrock o integración con MuseRelay.
 
@@ -26,7 +26,7 @@ Coste: una recepción SQS más las lecturas de preflight, sin inferencia ni env�
 
 ## Herramienta preparada y privacidad
 
-[inspect-ingress-sample.py](../scripts/cloudformation/inspect-ingress-sample.py) usa Python estándar y AWS CLI. Su invocación predeterminada es solo un plan local sin llamadas AWS:
+[inspect-ingress-sample.py](../../scripts/cloudformation/inspect-ingress-sample.py) usa Python estándar y AWS CLI. Su invocación predeterminada es solo un plan local sin llamadas AWS:
 
 ```sh
 python3 scripts/cloudformation/inspect-ingress-sample.py

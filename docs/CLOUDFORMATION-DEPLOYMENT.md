@@ -1,10 +1,10 @@
 # CloudFormation cifrado en dos etapas — preparado, NO desplegado
 
-> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
+> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](history/SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
 
 Revisión: 25-10-2026. **GO para revisión offline; NO-GO para ejecutar sin autorización y preflight real.** Cuenta prevista Screen Art S.L. `365470560685`, región `eu-west-1`. No se ha contactado la cuenta mediante API, creado recursos, cambiado IAM, finalizado el alta Social ni enviado mensajes. La lista SNS vacía y el progreso Meta son datos comunicados por el usuario, no inventario independiente.
 
-Esta guía sustituye las instrucciones AWS de los informes históricos de fase 4. La instalación/retirada de staging MuseRelay continúa descrita en [PHASE-4-RUNBOOK.md](PHASE-4-RUNBOOK.md); ninguna de esas acciones queda autorizada por preparar esta plantilla. El Core instalado permanece desactivado, sin autorizaciones ni canales AWS según la última revisión; no se ha vuelto a instalar ni modificado durante esta tarea.
+Esta guía sustituye las instrucciones AWS de los informes históricos de fase 4. La instalación/retirada de staging MuseRelay continúa descrita en [PHASE-4-RUNBOOK.md](history/PHASE-4-RUNBOOK.md); ninguna de esas acciones queda autorizada por preparar esta plantilla. El Core instalado permanece desactivado, sin autorizaciones ni canales AWS según la última revisión; no se ha vuelto a instalar ni modificado durante esta tarea.
 
 ## 1. Dos etapas, una sola pila
 
@@ -57,7 +57,7 @@ La declaración de publicación del tema es:
 
 La política de la clave autoriza al mismo servicio, con esas condiciones de origen, a `kms:GenerateDataKey*` y `kms:Decrypt`. `Resource:"*"` en esa **política de clave** significa la clave concreta; no es una autorización global IAM. El patrón Social sigue la recomendación oficial inicial; no sustituirlo por el ID numérico Meta ni inventar un ARN AWS WABA. [Compatibilidad Standard y políticas Social/SNS/KMS](https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-event-destinations-add.html).
 
-**Revisión SSO/KMS posterior:** los dos parámetros ahora exigen los roles estables de [AWS-KMS-ADMINISTRATION.md](AWS-KMS-ADMINISTRATION.md). `KmsAdministratorArn` será `arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution` y hay que seleccionar ese mismo rol de servicio en Permisos de CloudFormation. `KmsRecoveryAdministratorArn` será `arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery`. Ambos son previstos, no creados/verificados. La nueva [preparación IAM separada](../deploy/iam-foundation/README.md) define dos roles retenidos; crearla necesita autorización. No usar directamente el rol `AWSReservedSSO_…` como único administrador ni continuar con el YAML anterior.
+**Revisión SSO/KMS posterior:** los dos parámetros ahora exigen los roles estables de [AWS-KMS-ADMINISTRATION.md](history/AWS-KMS-ADMINISTRATION.md). `KmsAdministratorArn` será `arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution` y hay que seleccionar ese mismo rol de servicio en Permisos de CloudFormation. `KmsRecoveryAdministratorArn` será `arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery`. Ambos son previstos, no creados/verificados. La nueva [preparación IAM separada](../deploy/iam-foundation/README.md) define dos roles retenidos; crearla necesita autorización. No usar directamente el rol `AWSReservedSSO_…` como único administrador ni continuar con el YAML anterior.
 
 La política KMS incluye administración estable, recuperación por el segundo rol y delegación de cuenta limitada a `DescribeKey`/`GetKeyPolicy`/`PutKeyPolicy`, además de Social. No hay `kms:*` ni se desactiva la comprobación anti-bloqueo. El rol de ejecución debe conservar acceso a `PutKeyPolicy`, y los administradores deben sobrevivir a la pila de transporte. La política de ejecución preparada cubre **solo el ingreso de etapa 1**; la etapa 2 necesita ampliación delimitada y autorizada.
 
@@ -117,7 +117,7 @@ El endpoint de staging, PostgreSQL/Redis, organización, agente Bedrock y buzón
 
 ## 7. Coste orientativo y límites
 
-La [nota de costes KMS y acceso AWS](AWS-ACCESS-AND-KMS-COSTS.md) distingue permanencia de la clave, solicitudes criptográficas y transporte WhatsApp; también registra el acceso no-root/MFA pendiente. Los USD 0,13 siguientes corresponden aproximadamente a mantener una clave cuatro días, no a cuatro operaciones.
+La [nota de costes KMS y acceso AWS](history/AWS-ACCESS-AND-KMS-COSTS.md) distingue permanencia de la clave, solicitudes criptográficas y transporte WhatsApp; también registra el acceso no-root/MFA pendiente. Los USD 0,13 siguientes corresponden aproximadamente a mantener una clave cuatro días, no a cuatro operaciones.
 
 Estimación sin free tier, créditos ni impuestos; tarifas consultadas el 25-10-2026. No es presupuesto automático ni techo de gasto.
 
@@ -149,7 +149,7 @@ La reversión del Core instalado y su restauración aislada se documentaron por 
 
 ## 9. Evidencia y condiciones para continuar
 
-La revisión más reciente de permisos sensibles y la secuencia previa/posterior a crear roles se detallan en [IAM-FOUNDATION-VERIFICATION.md](IAM-FOUNDATION-VERIFICATION.md). Sustituye para esos permisos los archivos históricos de la entrega SSO inicial; no se ha verificado acceso efectivo AWS.
+La revisión más reciente de permisos sensibles y la secuencia previa/posterior a crear roles se detallan en [IAM-FOUNDATION-VERIFICATION.md](history/IAM-FOUNDATION-VERIFICATION.md). Sustituye para esos permisos los archivos históricos de la entrega SSO inicial; no se ha verificado acceso efectivo AWS.
 
 Para la revisión posterior de roles estables/SSO y los hashes vigentes prevalece [kms-stable-administrators-preparation.json](evidence/kms-stable-administrators-preparation.json). El informe de cifrado anterior describe la entrega histórica sin estas vías adicionales de administración.
 

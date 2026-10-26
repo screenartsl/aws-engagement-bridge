@@ -1,8 +1,8 @@
 # Incorporación de WhatsApp mediante AWS End User Messaging Social
 
-> Estado posterior 25-10-2026: el usuario comunica WABA y número demo vinculados/activos, destino SNS habilitado y dos elementos visibles en la cola de entrada, sin lectura/borrado/procesamiento. La [inspección puntual redactada](INBOUND-SAMPLE-INSPECTION.md) está preparada, no ejecutada y requiere autorización específica por sus efectos ReceiveMessage. La asociación ya se ha realizado por el usuario; no repetir el alta o el guardado siguiendo instrucciones históricas de abajo.
+> Estado posterior 25-10-2026: el usuario comunica WABA y número demo vinculados/activos, destino SNS habilitado y dos elementos visibles en la cola de entrada, sin lectura/borrado/procesamiento. La [inspección puntual redactada](history/INBOUND-SAMPLE-INSPECTION.md) está preparada, no ejecutada y requiere autorización específica por sus efectos ReceiveMessage. La asociación ya se ha realizado por el usuario; no repetir el alta o el guardado siguiendo instrucciones históricas de abajo.
 
-> Estado actual 25-10-2026: el usuario confirma ingreso CREATE_COMPLETE, ARN SNS real y verificación parcial CloudShell de KMS/SNS. La [verificación posterior y guía de asociación](INGRESS-POST-DEPLOYMENT.md) prevalece sobre los pendientes históricos. El usuario ya confirma las lecturas SQS/S3/RawMessageDelivery y ausencia de mappings Lambda, conformes al diseño; el destino Social no está configurado ni autorizado todavía.
+> Estado actual 25-10-2026: el usuario confirma ingreso CREATE_COMPLETE, ARN SNS real y verificación parcial CloudShell de KMS/SNS. La [verificación posterior y guía de asociación](history/INGRESS-POST-DEPLOYMENT.md) prevalece sobre los pendientes históricos. El usuario ya confirma las lecturas SQS/S3/RawMessageDelivery y ausencia de mappings Lambda, conformes al diseño; el destino Social no está configurado ni autorizado todavía.
 
 Documento técnico y de producto. Revisado el **25 de octubre de 2026, Europe/Paris**. Describe el proceso de demostración y las decisiones pendientes para clientes/resellers. No constituye autorización para crear recursos, registrar activos, modificar permisos, activar organizaciones ni enviar mensajes. La revisión actual prepara documentación e infraestructura local; no modifica AWS ni producción.
 
@@ -181,9 +181,9 @@ Fuente: [AWS Social: temas cifrados y permisos de clave](https://docs.aws.amazon
 
 ## 9. IAM, acceso y separación de responsabilidades
 
-Actualización: el usuario comunica SSO/MFA operativo. La [revisión de administración KMS](AWS-KMS-ADMINISTRATION.md) exige roles estables de ejecución y recuperación y reemplaza el uso directo del ARN SSO como único administrador. Ningún rol nuevo se ha creado desde esta sesión.
+Actualización: el usuario comunica SSO/MFA operativo. La [revisión de administración KMS](history/AWS-KMS-ADMINISTRATION.md) exige roles estables de ejecución y recuperación y reemplaza el uso directo del ARN SSO como único administrador. Ningún rol nuevo se ha creado desde esta sesión.
 
-Véase [costes KMS y acceso AWS](AWS-ACCESS-AND-KMS-COSTS.md) para el procedimiento propuesto de identidad no-root, MFA, ejecutor CloudFormation y estado pendiente. Documentarlo no configura Identity Center ni autoriza cambios IAM.
+Véase [costes KMS y acceso AWS](history/AWS-ACCESS-AND-KMS-COSTS.md) para el procedimiento propuesto de identidad no-root, MFA, ejecutor CloudFormation y estado pendiente. Documentarlo no configura Identity Center ni autoriza cambios IAM.
 
 - Operador de lectura: comprobar identidad STS y cuenta antes de listar temas/atributos/suscripciones, metadatos de cola, stack y demo Social. Sin root AWS, valores de secretos, cuerpos de mensajes ni invocaciones.
 - Operador de despliegue: permisos revisados sobre recursos concretos, después de autorización. La sesión del usuario en el navegador no configura credenciales en este servidor. Que aquí falten perfiles no demuestra que su cuenta carezca de permisos.
@@ -192,7 +192,7 @@ Véase [costes KMS y acceso AWS](AWS-ACCESS-AND-KMS-COSTS.md) para el procedimie
 - Core ↔ Bridge: HTTPS y HMAC con claves diferentes por sentido/binding, nonces y comprobación de identidad. Secrets Manager no debe convertirse en un mecanismo para pasar claves en chat/Git.
 - Futuro BYO: rol entre cuentas con confianza explícita en la identidad de MuseRelay, `sts:AssumeRole`, `ExternalId` único por cliente y credenciales temporales. No solicitar credenciales root ni claves IAM permanentes al partner. Esto es diseño futuro, no funcionalidad existente.
 
-[Permisos y recursos de demo](AWS-LIVE-CHECKLIST.md), [roles AWS para terceros y ExternalId](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_common-scenarios_third-party.html). Cambiar políticas de recurso también es un cambio de permisos aunque no se cree un rol IAM.
+[Permisos y recursos de demo](history/AWS-LIVE-CHECKLIST.md), [roles AWS para terceros y ExternalId](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_common-scenarios_third-party.html). Cambiar políticas de recurso también es un cambio de permisos aunque no se cree un rol IAM.
 
 ## 10. Conectar con organización y canal MuseRelay
 
@@ -202,7 +202,7 @@ Registrar, tras autorización, un binding explícito que una cuenta/región, IDs
 
 Mantener apagados inicialmente módulo, binding, lista de destinatarios y `LiveSend`. Preparar claves, endpoint y agente Bedrock de demo con sus fallbacks antes de habilitar un ensayo. El control `/megadmin/extensions` existe; no hay aún un asistente de alta AWS por canal. El preflight local no certifica permisos efectivos, cuotas ni aprobación Meta. Las herramientas nativas de tickets se probaron con simulaciones AWS; no se ha validado aquí una herramienta nueva de calendario ni un servicio comercial BYO.
 
-Implementación: `integration/muserelay/src/Core/Store.php`, `CoreReadiness.php`, `NativeCore.php`; [arquitectura modular](CORE-EXTENSIONS.md) y [última verificación instalada](POST-INSTALL-VERIFICATION.md). Las pruebas sintéticas no se instalan en producción.
+Implementación: `integration/muserelay/src/Core/Store.php`, `CoreReadiness.php`, `NativeCore.php`; [arquitectura modular](CORE-EXTENSIONS.md) y [última verificación instalada](history/POST-INSTALL-VERIFICATION.md). Las pruebas sintéticas no se instalan en producción.
 
 ## 11. Prueba real y evidencia: solamente tras autorización
 
@@ -213,11 +213,11 @@ Implementación: `integration/muserelay/src/Core/Store.php`, `CoreReadiness.php`
 5. Verificar estados `sent`, `delivered`, `read` o `failed`. Aceptación de API/cola no equivale a entrega; `read` puede no recibirse si el usuario no comparte confirmaciones. El normalizador actual solo procesa texto y esos cuatro estados; no prometer cobertura de todos los eventos de Social.
 6. Verificar duplicados, reintentos, pausas, límites y desconexión; reconciliar envíos inciertos antes de repetirlos. No reenviar para obtener una prueba más bonita.
 
-Guardar run ID, cuenta/región, hashes de release, timestamps, IDs de correlación protegidos, eventos técnicos/estados y resultado. Diferenciar siempre simulación, dato comunicado, comprobación de lectura y evidencia real. [Estados AWS](https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-event-destinations-status.html), [runbook de demo](PHASE-4-RUNBOOK.md).
+Guardar run ID, cuenta/región, hashes de release, timestamps, IDs de correlación protegidos, eventos técnicos/estados y resultado. Diferenciar siempre simulación, dato comunicado, comprobación de lectura y evidencia real. [Estados AWS](https://docs.aws.amazon.com/social-messaging/latest/userguide/managing-event-destinations-status.html), [runbook de demo](history/PHASE-4-RUNBOOK.md).
 
 ## 12. Modelos comerciales propuestos
 
-La conversación posterior amplía estas ideas a modalidades personal, empresa e híbrida. El [registro de arquitectura futura](FUTURE-HYBRID-ARCHITECTURE.md) distingue Connect, SaaS, Desktop/Mobile, backend privado y BYO; explica retención SQS, sincronización por dispositivo y límites de las promesas de privacidad. Son propuestas fuera del alcance del primer ensayo.
+La conversación posterior amplía estas ideas a modalidades personal, empresa e híbrida. El [registro de arquitectura futura](history/FUTURE-HYBRID-ARCHITECTURE.md) distingue Connect, SaaS, Desktop/Mobile, backend privado y BYO; explica retención SQS, sincronización por dispositivo y límites de las promesas de privacidad. Son propuestas fuera del alcance del primer ensayo.
 
 | Aspecto | AWS gestionado por MuseRelay | BYO AWS del partner/reseller |
 | --- | --- | --- |
@@ -288,7 +288,7 @@ El número de demo comunicado se conserva como objetivo del alta. No se necesita
 
 ## Actualización IAM e ingreso — 25-10-2026
 
-El usuario facilita CREATE_COMPLETE de IAM Foundation, los dos ARN estables esperados y éxito de asumir realmente el rol de recuperación KMS. No implica que exista todavía el tema SNS ni que el destino de la WABA esté asociado. La [revisión de la siguiente etapa](SNS-BOOTSTRAP-CHANGE-SET.md) fija la plantilla de doce recursos, parámetros definitivos, políticas, coste y retirada, con solicitudes locales de change set sin ejecución. Se detectó y preparó una ampliación acotada de lecturas de configuración/etiquetado del ejecutor; debe revisarse antes de ejecutar ingreso. No se ha realizado cambio AWS, activación de Bridge ni envío desde esta sesión.
+El usuario facilita CREATE_COMPLETE de IAM Foundation, los dos ARN estables esperados y éxito de asumir realmente el rol de recuperación KMS. No implica que exista todavía el tema SNS ni que el destino de la WABA esté asociado. La [revisión de la siguiente etapa](history/SNS-BOOTSTRAP-CHANGE-SET.md) fija la plantilla de doce recursos, parámetros definitivos, políticas, coste y retirada, con solicitudes locales de change set sin ejecución. Se detectó y preparó una ampliación acotada de lecturas de configuración/etiquetado del ejecutor; debe revisarse antes de ejecutar ingreso. No se ha realizado cambio AWS, activación de Bridge ni envío desde esta sesión.
 
 ### Verificación posterior del UPDATE IAM
 
@@ -296,7 +296,7 @@ El usuario confirma UPDATE_COMPLETE de IAM Foundation, ARN sin cambios, nuevas a
 
 ### Conjunto de ingreso y revisión del principal KMS
 
-El usuario confirma el change set `ingress-review-4bc773772e50` disponible, doce Add y configuración prevista, todavía sin ejecutar. La [revisión oficial de compatibilidad](SNS-KMS-COMPATIBILITY.md) confirma el principal Social y las condiciones de cuenta/origen Social; no es necesaria una concesión adicional a SNS en esta clave. Se comprobó localmente el acceso PutKeyPolicy del ejecutor y BypassPolicyLockoutSafetyCheck=false, sin creación real de clave. El YAML no cambia y no se genera un conjunto nuevo por esta cuestión. No se ha asociado WABA ni enviado mensajes.
+El usuario confirma el change set `ingress-review-4bc773772e50` disponible, doce Add y configuración prevista, todavía sin ejecutar. La [revisión oficial de compatibilidad](history/SNS-KMS-COMPATIBILITY.md) confirma el principal Social y las condiciones de cuenta/origen Social; no es necesaria una concesión adicional a SNS en esta clave. Se comprobó localmente el acceso PutKeyPolicy del ejecutor y BypassPolicyLockoutSafetyCheck=false, sin creación real de clave. El YAML no cambia y no se genera un conjunto nuevo por esta cuestión. No se ha asociado WABA ni enviado mensajes.
 
 ## Ingreso desplegado y revisión posterior
 
@@ -308,7 +308,7 @@ Faltan atributos reales de la suscripción, colas y bucket, y mappings Lambda fi
 
 El usuario confirma desde CloudShell RawMessageDelivery=false, suscripción autenticada y DLQ de entrega, SSE-SQS en las tres colas, retenciones 4/14 días, maxReceiveCount=5, políticas SNS restringidas, contadores aproximados cero, mappings Lambda vacíos y configuración privada/cifrada S3 con ciclo a 30 días y etiquetas previstas. No hubo AccessDenied ni mensajes publicados/recibidos/consumidos en la auditoría. Son resúmenes facilitados, no JSON bruto inspeccionado por el agente.
 
-La [guía posterior](INGRESS-POST-DEPLOYMENT.md) queda preparada para revisar la WABA AWS vinculada, su registro, sus números y destino actual. Después se prepararía Amazon SNS con el ARN real, deteniéndose antes de Guardar. Este cierre documental no autoriza cambiar el destino, completar un alta, activar consumidores/agentes/runtime ni enviar pruebas.
+La [guía posterior](history/INGRESS-POST-DEPLOYMENT.md) queda preparada para revisar la WABA AWS vinculada, su registro, sus números y destino actual. Después se prepararía Amazon SNS con el ARN real, deteniéndose antes de Guardar. Este cierre documental no autoriza cambiar el destino, completar un alta, activar consumidores/agentes/runtime ni enviar pruebas.
 
 ## Vinculación completada e inspección preparada
 

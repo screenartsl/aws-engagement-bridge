@@ -1,6 +1,6 @@
 # Costes KMS y acceso AWS para el Bridge
 
-> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
+> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](../evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
 
 Revisión documental: **25-10-2026, Europe/Paris**. Recoge la explicación aportada por el usuario y sus matices para futuros presupuestos. No crea claves, identidades, MFA, permisos ni recursos. Cuenta prevista: Screen Art S.L. `365470560685`, Irlanda `eu-west-1`.
 
@@ -27,9 +27,9 @@ Esta posibilidad no configura por sí misma aislamiento entre clientes ni decide
 
 SNS puede reutilizar claves de datos; **un WhatsApp no equivale necesariamente a una petición KMS**. Para estimar, AWS considera temas, publicadores y reutilización de claves de datos, y advierte que el valor real puede ser mayor. No deducir solicitudes a partir del número de teléfonos. [Estimación KMS para SNS](https://docs.aws.amazon.com/sns/latest/dg/sns-key-management.html).
 
-El presupuesto futuro debe separar estas líneas: claves y solicitudes KMS; transporte Social y tarifas Meta; SNS/SQS; Lambda/API; almacenamiento/historial; secretos; logs/copias; IA. KMS no incluye transporte WhatsApp ni almacenamiento ilimitado de conversaciones. Las [estimaciones del ensayo](CLOUDFORMATION-DEPLOYMENT.md) no constituyen el precio comercial de MuseRelay.
+El presupuesto futuro debe separar estas líneas: claves y solicitudes KMS; transporte Social y tarifas Meta; SNS/SQS; Lambda/API; almacenamiento/historial; secretos; logs/copias; IA. KMS no incluye transporte WhatsApp ni almacenamiento ilimitado de conversaciones. Las [estimaciones del ensayo](../CLOUDFORMATION-DEPLOYMENT.md) no constituyen el precio comercial de MuseRelay.
 
-La plantilla usa `Retain` para la clave: eliminar la pila no elimina la clave ni detiene automáticamente sus cargos. El [procedimiento de retirada](CLOUDFORMATION-DEPLOYMENT.md) exige inventariar recursos retenidos y autorizar su limpieza. No borrar una clave mientras otro recurso dependa de ella.
+La plantilla usa `Retain` para la clave: eliminar la pila no elimina la clave ni detiene automáticamente sus cargos. El [procedimiento de retirada](../CLOUDFORMATION-DEPLOYMENT.md) exige inventariar recursos retenidos y autorizar su limpieza. No borrar una clave mientras otro recurso dependa de ella.
 
 ## 3. Root AWS y las identidades de trabajo
 
@@ -47,7 +47,7 @@ La propuesta no es crear una identidad con acceso total para todos los procesos.
 | Agente Bedrock de demo | Identidad independiente, modelos/perfiles y destinos permitidos; no hereda administración de infraestructura. |
 | Futuro partner/BYO | Acceso temporal delimitado, confianza/revocación explícitas; no credenciales root del partner. No implementado. |
 
-Los detalles de recursos y permisos siguen en el [runbook CloudFormation](CLOUDFORMATION-DEPLOYMENT.md). El nivel de permiso de un administrador humano no debe trasladarse a Lambda ni a automatizaciones para resellers.
+Los detalles de recursos y permisos siguen en el [runbook CloudFormation](../CLOUDFORMATION-DEPLOYMENT.md). El nivel de permiso de un administrador humano no debe trasladarse a Lambda ni a automatizaciones para resellers.
 
 ## 4. Secuencia futura de preparación del acceso
 
@@ -73,4 +73,4 @@ Puede hacerse desde una consola autenticada; no es necesario entregar claves al 
 | Clave KMS de staging | Definida en plantilla local, sin creación ni ARN real verificado aquí. |
 | Permisos / despliegue / envíos | Sin cambios ni autorización nueva por este documento. |
 
-Esta nota complementa las [ideas de modalidades futuras](FUTURE-HYBRID-ARCHITECTURE.md) y el [onboarding WhatsApp](AWS-WHATSAPP-ONBOARDING.md). Mantiene separadas la explicación de costes, la gestión de acceso y la autorización para ejecutar.
+Esta nota complementa las [ideas de modalidades futuras](FUTURE-HYBRID-ARCHITECTURE.md) y el [onboarding WhatsApp](../AWS-WHATSAPP-ONBOARDING.md). Mantiene separadas la explicación de costes, la gestión de acceso y la autorización para ejecutar.

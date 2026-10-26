@@ -22,7 +22,7 @@ Se verificaron 41 archivos de la instalación contra la copia usada en las prueb
 | Agentes/tickets/canales | Suite aislada final: 32 pruebas Node; 30 PHP SQLite; 30 PHP PostgreSQL/170 aserciones; conversación de dos turnos, ticket nativo con confirmación, aislamiento de organización y transacciones; regresiones Meta directo/automatización y dispatch de otros proveedores. HTTP/LLM/AWS simulados, PostgreSQL/Redis y workers reales. No certifica entrega externa. |
 | Sin ejecución Bridge | Sin procesos dedicados ni cron de usuario del Bridge; no se añadió trabajo al scheduler Core. El provider registra rutas/servicios, no ejecuta un daemon ni procesa mensajes. Los hooks seleccionan AWS solo para canales explícitos AWS y rechazan el módulo apagado; las rutas de los demás transportes conservan su comportamiento en las regresiones. |
 | Logs | Lectura de 57 archivos locales: sin errores nuevos ni firmas nuevas de WARNING desde la recarga dedicada. Persisten avisos anteriores; ninguna señal de fallo del cargador/Bridge. Ventana exacta en la evidencia JSON. |
-| Reversión | Parche inverso ensayado, 42 archivos verificados contra baseline; Core anterior renderiza las 14 páginas de regresión con las tablas aditivas presentes. Backup restaurado realmente. Procedimiento completo en [CORE-ROLLBACK.md](CORE-ROLLBACK.md). |
+| Reversión | Parche inverso ensayado, 42 archivos verificados contra baseline; Core anterior renderiza las 14 páginas de regresión con las tablas aditivas presentes. Backup restaurado realmente. Procedimiento completo en [CORE-ROLLBACK.md](../CORE-ROLLBACK.md). |
 
 ## Incidencias y límites
 
@@ -38,4 +38,4 @@ No se detectó una regresión que requiriera revertir la instalación productiva
 
 ## Evidencia
 
-[Resumen JSON sin datos personales ni secretos](evidence/core-postinstall-verification.json). Los backups y logs completos permanecen privados fuera de web/Git, en `/var/tmp/muserelay-core-before-extensions-z1g47mot`. El código fuente continúa en este repositorio privado, conservando los commits originales; los commits de documentación posteriores no cambian la release instalada.
+[Resumen JSON sin datos personales ni secretos](../evidence/core-postinstall-verification.json). Los backups y logs completos permanecen privados fuera de web/Git, en `/var/tmp/muserelay-core-before-extensions-z1g47mot`. El código fuente continúa en este repositorio privado, conservando los commits originales; los commits de documentación posteriores no cambian la release instalada.

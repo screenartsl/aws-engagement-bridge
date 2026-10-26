@@ -2,7 +2,7 @@
 
 Registro de producto y arquitectura del **25 de octubre de 2026, Europe/Paris**, a partir de la conversación facilitada por el usuario. Su preferencia expresa es explorar **ambas modalidades, individual y empresa, y una combinación híbrida**. No constituye una orden de desarrollarlas, una promesa comercial ni una autorización de infraestructura. En esta tarea solo cambia documentación.
 
-La prioridad inmediata sigue siendo la primera conversación real del Bridge antes del 28 de octubre. Desktop, Mobile, BYO AWS, despliegue privado, sincronización offline y Amazon Connect quedan fuera de ese ensayo. No se cambia la arquitectura ni el alcance de las [dos etapas CloudFormation](CLOUDFORMATION-DEPLOYMENT.md).
+La prioridad inmediata sigue siendo la primera conversación real del Bridge antes del 28 de octubre. Desktop, Mobile, BYO AWS, despliegue privado, sincronización offline y Amazon Connect quedan fuera de ese ensayo. No se cambia la arquitectura ni el alcance de las [dos etapas CloudFormation](../CLOUDFORMATION-DEPLOYMENT.md).
 
 ## 1. Qué aporta cada pieza
 
@@ -15,7 +15,7 @@ La prioridad inmediata sigue siendo la primera conversación real del Bridge ant
 | MuseRelay Core | Contexto de organización, permisos, bandeja, agentes y herramientas nativas. | App local, sincronización offline o despliegue privado certificados por instalar el Bridge. |
 | AWS Engagement Bridge | Adaptar eventos/comandos entre el transporte AWS y el Core mediante contratos autenticados. | Sustituir todo el Core, registrar cualquier WABA de terceros automáticamente o sincronizar dispositivos. |
 
-La idea de producto es separar **transporte, procesamiento empresarial/IA, almacenamiento e interfaz**. Es una dirección de diseño: no afirmamos que el Core actual ya permita intercambiar todas esas capas sin adaptación. El MVP de AWS procesa texto y determinados estados; multimedia sigue pendiente, según [MEDIA-AND-PAYLOAD-LIMITS.md](MEDIA-AND-PAYLOAD-LIMITS.md).
+La idea de producto es separar **transporte, procesamiento empresarial/IA, almacenamiento e interfaz**. Es una dirección de diseño: no afirmamos que el Core actual ya permita intercambiar todas esas capas sin adaptación. El MVP de AWS procesa texto y determinados estados; multimedia sigue pendiente, según [MEDIA-AND-PAYLOAD-LIMITS.md](../MEDIA-AND-PAYLOAD-LIMITS.md).
 
 ## 2. Amazon Connect: otra ruta soportada por AWS
 
@@ -44,7 +44,7 @@ Se registran dos propuestas comerciales futuras:
 | AWS gestionado por MuseRelay | El cliente utiliza sus paneles habituales; el operador gestiona SNS/IAM y demás recursos. | Permisos de terceros, asistente de alta, aislamiento, facturación, soporte y baja segura. |
 | BYO AWS de empresa/partner | El titular conserva su cuenta y autoriza acceso delimitado a MuseRelay. | Roles entre cuentas, credenciales temporales, consentimiento, inventario, despliegue y revocación verificables. |
 
-No ofrecer todavía un botón universal «Conectar cualquier WABA». Los pasos Meta/AWS y su elegibilidad siguen siendo condiciones externas. El alta de nuestra WABA propia no acredita aprobación comercial como Meta Tech Provider para activos ajenos. El [onboarding actual](AWS-WHATSAPP-ONBOARDING.md) separa lo manual, automatizable y dependiente de terceros.
+No ofrecer todavía un botón universal «Conectar cualquier WABA». Los pasos Meta/AWS y su elegibilidad siguen siendo condiciones externas. El alta de nuestra WABA propia no acredita aprobación comercial como Meta Tech Provider para activos ajenos. El [onboarding actual](../AWS-WHATSAPP-ONBOARDING.md) separa lo manual, automatizable y dependiente de terceros.
 
 En el intercambio se mencionan Zendesk, respond.io y Trengo como ejemplos de bandejas omnicanal. **No se ha comprobado aquí su compatibilidad específica con WABA vinculadas a AWS Social**. Hospedarse en AWS o soportar WhatsApp no demuestra esa compatibilidad. Una futura investigación debería pedir documentación oficial del método de conexión, propiedad/migración del número, eventos, herramientas, aislamiento y condiciones comerciales; no presentarlas ahora como alternativas validadas del Bridge.
 
@@ -126,7 +126,7 @@ La [nota adicional de costes KMS y acceso](AWS-ACCESS-AND-KMS-COSTS.md) explica 
 
 La tarifa Social/Meta no compra almacenamiento indefinido ni sincronización automática. El diseño futuro tendrá que presupuestar por separado transporte, publicaciones, operaciones de cola, relay/API, base de datos/objetos, cifrado, logs, copias, salida de datos, autenticación y procesamiento IA; en Connect habría además su propio modelo de uso. Más dispositivos pueden multiplicar sincronizaciones, notificaciones y copias aunque no haya más mensajes WhatsApp.
 
-No se da aquí un precio Desktop/Enterprise: faltan volumen, número de operadores/dispositivos, periodo offline, tamaño multimedia, región, disponibilidad y proveedor IA. El presupuesto pequeño de la demo y el precio de una clave KMS **no son una tarifa comercial por cliente**. Las estimaciones actuales del ensayo están únicamente en [CLOUDFORMATION-DEPLOYMENT.md](CLOUDFORMATION-DEPLOYMENT.md); no se amplían recursos ni gasto por registrar estas ideas.
+No se da aquí un precio Desktop/Enterprise: faltan volumen, número de operadores/dispositivos, periodo offline, tamaño multimedia, región, disponibilidad y proveedor IA. El presupuesto pequeño de la demo y el precio de una clave KMS **no son una tarifa comercial por cliente**. Las estimaciones actuales del ensayo están únicamente en [CLOUDFORMATION-DEPLOYMENT.md](../CLOUDFORMATION-DEPLOYMENT.md); no se amplían recursos ni gasto por registrar estas ideas.
 
 ## 9. Reutilización y límites del Bridge actual
 

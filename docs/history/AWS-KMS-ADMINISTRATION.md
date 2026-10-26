@@ -1,6 +1,6 @@
 # Administración KMS estable: Identity Center, CloudFormation y recuperación
 
-> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
+> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](../evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
 
 Revisión: **25-10-2026, Europe/Paris**. Preparación local, sin llamadas autenticadas AWS ni cambios IAM. El usuario comunica Identity Center operativo, usuario `antoni.caimari`, permission set `AdministratorAccess`, MFA funcionando, cuenta `365470560685` y región `eu-west-1`. No equivale a un inventario API ni confirma el MFA del usuario root.
 
@@ -27,14 +27,14 @@ Asignar un ARN al parámetro de KMS **no configura el rol de ejecución de la pi
 
 ## Dos roles y ciclos de vida separados
 
-Se prepara [deploy/iam-foundation/template.yaml](../deploy/iam-foundation/template.yaml), pila prevista **`muserelay-aws-bridge-iam-foundation`**, con exactamente **dos roles IAM nombrados**, sus políticas inline, etiquetas y salidas. No crea KMS, SNS, mensajes ni el Core. Ambos roles llevan `DeletionPolicy: Retain` y `UpdateReplacePolicy: Retain`.
+Se prepara [deploy/iam-foundation/template.yaml](../../deploy/iam-foundation/template.yaml), pila prevista **`muserelay-aws-bridge-iam-foundation`**, con exactamente **dos roles IAM nombrados**, sus políticas inline, etiquetas y salidas. No crea KMS, SNS, mensajes ni el Core. Ambos roles llevan `DeletionPolicy: Retain` y `UpdateReplacePolicy: Retain`.
 
 Esta preparación IAM es un prerrequisito independiente; las dos etapas del transporte siguen siendo ingreso cifrado → actualización del mismo stack con runtime. La pila del transporte no crea ni elimina a sus propios administradores KMS.
 
 1. **`muserelay-aws-bridge-stage-cfn-execution`**: confianza exclusivamente en `cloudformation.amazonaws.com`. Sus permisos iniciales permiten administrar el ingreso de doce recursos, con ARN/nombres acotados y restricciones KMS. No contiene AdministratorAccess, creación de usuarios/roles, envíos Social, lectura de mensajes ni Bedrock.
 2. **`muserelay-aws-bridge-kms-recovery`**: confianza en el permission set AdministratorAccess de esta cuenta/instancia regional mediante patrón de sufijo. Permite describir la clave de staging y leer/modificar su política, no incorpora permisos criptográficos ni despliegue ordinario. Quien puede modificar una política de clave tiene poder administrativo para cambiar autorizaciones: tratarlo como acceso privilegiado, no como lectura.
 
-La confianza del segundo rol es [recovery-role-trust.json](../deploy/iam-foundation/recovery-role-trust.json):
+La confianza del segundo rol es [recovery-role-trust.json](../../deploy/iam-foundation/recovery-role-trust.json):
 
 ```json
 {
@@ -71,7 +71,7 @@ Estas vías reducen el riesgo; no garantizan acceso frente a una clave eliminada
 
 ## Permisos preparados y límites
 
-Las políticas completas para revisión/copia están en [deploy/iam-foundation](../deploy/iam-foundation/README.md):
+Las políticas completas para revisión/copia están en [deploy/iam-foundation](../../deploy/iam-foundation/README.md):
 
 | Archivo | Alcance |
 | --- | --- |
@@ -111,4 +111,4 @@ Esta revisión entrega configuración reproducible y validación local; no confi
 
 El presupuesto de clave de la demo no cambia y no se crea otra clave por añadir administradores. La identidad humana con AdministratorAccess sigue siendo una identidad privilegiada: no se distribuyen sus sesiones a Lambda ni a resellers. No se ha usado el usuario indicado para autenticar herramientas en este servidor.
 
-La [evidencia de esta revisión](evidence/kms-stable-administrators-preparation.json) recoge hashes y resultados. **Paquete histórico anterior al endurecimiento de permisos:** `/var/tmp/aws-bridge-release-ee85cda2db20/` contiene la entrega previa, no debe cargarse como YAML vigente. Contiene: `00-iam-foundation.yaml`, `01-ingress.yaml`, `02-runtime.yaml`, `bridge.zip` y `manifest.json`, fijados al commit `ee85cda2db200f9ae74d5e4709264b935de8d234`. No se ha subido a AWS. Los JSON y YAML del repositorio privado permiten revisar los mismos permisos.
+La [evidencia de esta revisión](../evidence/kms-stable-administrators-preparation.json) recoge hashes y resultados. **Paquete histórico anterior al endurecimiento de permisos:** `/var/tmp/aws-bridge-release-ee85cda2db20/` contiene la entrega previa, no debe cargarse como YAML vigente. Contiene: `00-iam-foundation.yaml`, `01-ingress.yaml`, `02-runtime.yaml`, `bridge.zip` y `manifest.json`, fijados al commit `ee85cda2db200f9ae74d5e4709264b935de8d234`. No se ha subido a AWS. Los JSON y YAML del repositorio privado permiten revisar los mismos permisos.

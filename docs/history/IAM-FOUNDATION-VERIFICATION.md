@@ -1,6 +1,6 @@
 # Verificación de permisos antes y después de la pila IAM
 
-> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
+> Estado actualizado 25-10-2026: el usuario confirma IAM Foundation CREATE_COMPLETE, ambos ARN definitivos y asunción real del rol de recuperación correcta. Véase la [evidencia recibida](../evidence/iam-foundation-deployed-user-evidence.json). La [revisión de ingreso](SNS-BOOTSTRAP-CHANGE-SET.md) prevalece sobre los pendientes históricos de este documento; incluye una corrección local de permisos de metadatos/etiquetado aún no aplicada. SNS/KMS/SQS y su ejecución siguen pendientes.
 
 Revisión: 25-10-2026, Europe/Paris. **No ejecutada en AWS desde esta sesión.** No hay AWS CLI, perfiles ni credenciales AWS de entorno en el usuario operativo del servidor. El usuario ha facilitado una salida STS de CloudShell que confirma cuenta y sesión SSO; se registra su procedencia, sin atribuir esa llamada a las herramientas del arquitecto. Las políticas adjuntas, boundaries/SCP y la asunción del rol nuevo siguen pendientes de comprobación efectiva.
 
@@ -91,7 +91,7 @@ Si falla la fase C, detenerse **antes de crear la clave** y conservar la evidenc
 
 ## Salida STS facilitada y versión a utilizar
 
-El usuario comunica `Account=365470560685` y `Arn=arn:aws:sts::365470560685:assumed-role/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256/antoni.caimari`. Coincide con la identidad de origen prevista. El conjunto de cambios anterior conserva el YAML antiguo: no ejecutarlo. Preparar otro CREATE con el archivo reducido y revisar exactamente dos adiciones de tipo AWS::IAM::Role antes de confirmar. No se ha creado ni ejecutado un change set desde esta sesión. La [evidencia actualizada](evidence/kms-effective-permissions-review.json) distingue identidad recibida, verificaciones offline y pruebas AWS pendientes.
+El usuario comunica `Account=365470560685` y `Arn=arn:aws:sts::365470560685:assumed-role/AWSReservedSSO_AdministratorAccess_6a3ad0308126a256/antoni.caimari`. Coincide con la identidad de origen prevista. El conjunto de cambios anterior conserva el YAML antiguo: no ejecutarlo. Preparar otro CREATE con el archivo reducido y revisar exactamente dos adiciones de tipo AWS::IAM::Role antes de confirmar. No se ha creado ni ejecutado un change set desde esta sesión. La [evidencia actualizada](../evidence/kms-effective-permissions-review.json) distingue identidad recibida, verificaciones offline y pruebas AWS pendientes.
 
 ## Resultado posterior de la simulación de origen
 

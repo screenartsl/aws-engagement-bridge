@@ -1,10 +1,10 @@
 # Conectar la demo: trabajo en paralelo y autorizaciones
 
-**Ruta vigente — 26/10/2026:** priorizar la [corrección SAM y reintento de recepción cerrado](../deploy/receive-retry/README.md), sin esperar BridgeTools. GO técnico limitado a la corrección mínima revisada y las ocho comprobaciones que comunica el propietario; su ejecución aún necesita autorización expresa. El reintento runtime se prepara después de UPDATE_COMPLETE y lectura del permiso efectivo. Las instrucciones/nombres siguientes son históricos: no reutilizar el conjunto FAILED ni repetir la subida S3. No ejecutar runtime, activar consumidores, enviar o cambiar Core por esta preparación.
+**Ruta vigente — 26/10/2026:** priorizar la [corrección SAM y reintento de recepción cerrado](../../deploy/receive-retry/README.md), sin esperar BridgeTools. GO técnico limitado a la corrección mínima revisada y las ocho comprobaciones que comunica el propietario; su ejecución aún necesita autorización expresa. El reintento runtime se prepara después de UPDATE_COMPLETE y lectura del permiso efectivo. Las instrucciones/nombres siguientes son históricos: no reutilizar el conjunto FAILED ni repetir la subida S3. No ejecutar runtime, activar consumidores, enviar o cambiar Core por esta preparación.
 
 25/10/2026, Europe/Paris. Se mantiene el alcance de recepción primero. No se interpretan «vamos a conectarlo todo» ni la creación del usuario demo como autorización para desplegar recursos, modificar producción o consumir/envíar mensajes reales.
 
-Actualización: el propietario autorizó específicamente la subida de bridge.zip y comunica que ya se completó, con tamaño/checksum/AES256 coincidentes y sin sobrescritura. Caducidad prevista comunicada: 25/11/2026, regla ExpireDemoArtifacts. [Evidencia con procedencia](../deploy/runtime-review/evidence.s3-upload.owner-reported.json). No repetir esa escritura ni considerar que autoriza el despliegue. El siguiente paso de consola es crear/revisar el conjunto deshabilitado.
+Actualización: el propietario autorizó específicamente la subida de bridge.zip y comunica que ya se completó, con tamaño/checksum/AES256 coincidentes y sin sobrescritura. Caducidad prevista comunicada: 25/11/2026, regla ExpireDemoArtifacts. [Evidencia con procedencia](../../deploy/runtime-review/evidence.s3-upload.owner-reported.json). No repetir esa escritura ni considerar que autoriza el despliegue. El siguiente paso de consola es crear/revisar el conjunto deshabilitado.
 
 ## Qué prepara el arquitecto
 

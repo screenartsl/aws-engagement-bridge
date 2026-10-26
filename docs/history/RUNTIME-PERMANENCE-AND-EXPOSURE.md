@@ -26,7 +26,7 @@ El modo predeterminado de código Lambda es COPY: al desplegar conserva una copi
 
 La plantilla actual del bucket tiene una regla global de expiración de objetos a 30 días. El propietario informa caducidad prevista del ZIP el 25/11/2026. Para operación permanente debemos reemplazar ese alcance global por una política que conserve versiones de código activas y de rollback. No solucionar este problema reponiendo el mismo ZIP cada mes.
 
-La propuesta local de propiedades está en [deploy/artifact-retention](../deploy/artifact-retention/README.md):
+La propuesta local de propiedades está en [deploy/artifact-retention](../../deploy/artifact-retention/README.md):
 
 - Los archivos completos de `releases/`, incluido el ZIP ya subido, no coincidirían con ninguna regla de expiración de la propuesta.
 - Solo `tmp/` caducaría a los 30 días.

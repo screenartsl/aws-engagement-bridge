@@ -56,7 +56,7 @@ Se usan las clases reales NativeCore, AutomationService, AIAgentService, AgentEx
 | Plantilla AWS | Expansión SAM offline y cfn-lint sin incidencias; 23 recursos, tres roles explícitos sin políticas SQS gestionadas amplias |
 | Historial Git | Escáner de todos los objetos locales, incluidos metadatos y objetos no alcanzables, además del árbol publicable; sin hallazgos en la revisión realizada |
 
-Son **87 ejecuciones de pruebas de contrato**, porque las 28 PHP se ejecutan en dos motores, además del recorrido y las comprobaciones integradas. No se suman como 87 pruebas de negocio distintas. El resumen verificable y hashes de logs están en [evidencia estructurada](evidence/phase-3-summary.json). Los logs completos permanecen en el directorio temporal privado indicado allí; no se incluyen datos de producción.
+Son **87 ejecuciones de pruebas de contrato**, porque las 28 PHP se ejecutan en dos motores, además del recorrido y las comprobaciones integradas. No se suman como 87 pruebas de negocio distintas. El resumen verificable y hashes de logs están en [evidencia estructurada](../evidence/phase-3-summary.json). Los logs completos permanecen en el directorio temporal privado indicado allí; no se incluyen datos de producción.
 
 La regresión conserva el comportamiento de Meta/Telnyx/Instagram/Messenger/SMS/Telegram/email/chatbot/voz en el punto de despacho de herramientas. Meta también tiene una prueba de envío HTTP simulado y una prueba del flujo de AutomationService que mantiene el job `SendAIChannelResponse`. Eso no sustituye una prueba completa de proveedor para cada canal ni una revisión de navegador de todos los paneles.
 
@@ -77,7 +77,7 @@ El esquema usado es un fixture sintético de integración, ampliado a partir de 
 
 ## Instalación, Git y siguiente prueba
 
-La reproducción completa, activación por organización, desactivación y rollback están en [STAGING.md](STAGING.md). El inventario de AWS, IAM, identificadores y configuraciones pendientes está en [AWS-LIVE-CHECKLIST.md](AWS-LIVE-CHECKLIST.md). Se han conservado los commits iniciales `2d02e31`, `f2b5d07` y `e43b552`; el código y harness nuevos de esta fase se añaden después, sin alterar su fecha ni atribuir al hackathon el agente o sistema de tickets histórico. [Procedencia](PROVENANCE.md).
+La reproducción completa, activación por organización, desactivación y rollback están en [STAGING.md](../STAGING.md). El inventario de AWS, IAM, identificadores y configuraciones pendientes está en [AWS-LIVE-CHECKLIST.md](AWS-LIVE-CHECKLIST.md). Se han conservado los commits iniciales `2d02e31`, `f2b5d07` y `e43b552`; el código y harness nuevos de esta fase se añaden después, sin alterar su fecha ni atribuir al hackathon el agente o sistema de tickets histórico. [Procedencia](../PROVENANCE.md).
 
 El destino local es `screenartsl/aws-engagement-bridge`; la existencia y visibilidad del remoto no han sido autenticadas en esta sesión. La rama y una copia Git bundle pueden prepararse localmente, pero **no se ha publicado**. [Preparación del repositorio privado](REPOSITORY-UPLOAD.md). El análisis de secretos es heurístico y cubre lo almacenado localmente; no certifica historial que solo exista en GitHub ni archivos externos LFS.
 

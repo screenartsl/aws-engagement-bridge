@@ -10,7 +10,7 @@ El usuario confirma `ingress-review-4bc773772e50` en CREATE_COMPLETE/AVAILABLE c
 
 ## Estado posterior: IAM actualizado y siguiente paso desde consola
 
-El usuario comunica UPDATE_COMPLETE de IAM Foundation, ARN sin cambios, acciones SNS/S3 previstas presentes y denegaciones DisableKey/ScheduleKeyDeletion conservadas, comprobado desde CloudShell. Se registra como [evidencia facilitada](evidence/iam-foundation-update-user-evidence.json); no es una lectura AWS del agente. No repetir el UPDATE IAM. El apartado de ampliación IAM y sus comandos de preparación más abajo queda como historial del requisito ya completado según esa verificación. La fuente YAML de ingreso permanece idéntica al commit `5f563ea4387c9694782943566614e38b9463168a`, SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`.
+El usuario comunica UPDATE_COMPLETE de IAM Foundation, ARN sin cambios, acciones SNS/S3 previstas presentes y denegaciones DisableKey/ScheduleKeyDeletion conservadas, comprobado desde CloudShell. Se registra como [evidencia facilitada](../evidence/iam-foundation-update-user-evidence.json); no es una lectura AWS del agente. No repetir el UPDATE IAM. El apartado de ampliación IAM y sus comandos de preparación más abajo queda como historial del requisito ya completado según esa verificación. La fuente YAML de ingreso permanece idéntica al commit `5f563ea4387c9694782943566614e38b9463168a`, SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`.
 
 ### Preparación de ingreso desde consola, sin CloudShell
 
@@ -35,13 +35,13 @@ El usuario confirma desde CloudShell que `muserelay-aws-bridge-iam-foundation` e
 
 También comunica éxito de una asunción real STS del rol de recuperación, mostrando solo el ARN. Se registra como evidencia facilitada por el usuario, no como llamada del agente. Esto prueba la asunción en ese momento; aún no prueba administración de una clave que no existe. No se ha leído aquí la política inline realmente desplegada.
 
-La fuente de ingreso es [deploy/sns-bootstrap/template.yaml](../deploy/sns-bootstrap/template.yaml), SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`. Su contenido no cambia en esta revisión. El [manifiesto](../deploy/sns-bootstrap/review-manifest.json) fija los hashes de ambas plantillas, parámetros, rol de servicio y doce adiciones esperadas. Los JSON incorporan exactamente el YAML en `TemplateBody`; no necesitan publicar la plantilla en S3.
+La fuente de ingreso es [deploy/sns-bootstrap/template.yaml](../../deploy/sns-bootstrap/template.yaml), SHA-256 `4bc773772e50645680a5ffacdb25fdd8100a7f4a07ea8c6c185d461295f023cb`. Su contenido no cambia en esta revisión. El [manifiesto](../../deploy/sns-bootstrap/review-manifest.json) fija los hashes de ambas plantillas, parámetros, rol de servicio y doce adiciones esperadas. Los JSON incorporan exactamente el YAML en `TemplateBody`; no necesitan publicar la plantilla en S3.
 
 ## Hallazgo: completar permisos de metadatos antes de ejecutar ingreso
 
 La base IAM ya creada no se vuelve a crear ni se reemplazan sus roles. La revisión de los esquemas de proveedores incluidos en cfn-lint detecta permisos de lectura declarados por los handlers que no estaban cubiertos. Además, AWS documenta que CloudFormation utiliza actualmente `s3:TagResource` y `s3:UntagResource` para etiquetas de buckets.
 
-Se prepara una actualización **local** de la política inline del ejecutor con 18 acciones adicionales: `sns:GetDataProtectionPolicy`; quince lecturas S3 y dos acciones de etiquetado, todas sobre el tema/bucket exactos. Lista completa y hashes del esquema consultado en [ingress-provider-permission-review.json](evidence/ingress-provider-permission-review.json). El ejecutor pasa de 48 a 66 acciones Allow. Los esquemas son una copia local, no una consulta a la versión activa de AWS; declarar permisos de un handler no demuestra que invoque cada API para todas las propiedades. La ampliación cubre conservadoramente sus lecturas, sin conceder las escrituras opcionales del proveedor.
+Se prepara una actualización **local** de la política inline del ejecutor con 18 acciones adicionales: `sns:GetDataProtectionPolicy`; quince lecturas S3 y dos acciones de etiquetado, todas sobre el tema/bucket exactos. Lista completa y hashes del esquema consultado en [ingress-provider-permission-review.json](../evidence/ingress-provider-permission-review.json). El ejecutor pasa de 48 a 66 acciones Allow. Los esquemas son una copia local, no una consulta a la versión activa de AWS; declarar permisos de un handler no demuestra que invoque cada API para todas las propiedades. La ampliación cubre conservadoramente sus lecturas, sin conceder las escrituras opcionales del proveedor.
 
 No se añaden `GetObject`, `PutObject`, `DeleteObject`, `sns:Publish`, operaciones de mensajes SQS, `iam:PassRole`, permisos de Bedrock o cambios IAM al ejecutor. No se añaden configuración de replicación, website, ABAC ni otras escrituras S3 opcionales. Permanece el Deny explícito de `kms:DisableKey` y `kms:ScheduleKeyDeletion`. La administración `PutKeyPolicy` se concede directamente sobre la futura clave, no mediante una concesión IAM amplia basada en etiquetas.
 
@@ -51,7 +51,7 @@ Antes de ejecutar, contrastar desde CloudShell la política desplegada con el JS
 
 ## Parámetros y políticas definitivos del ingreso
 
-Los dos valores de [parameters.stage.json](../deploy/sns-bootstrap/parameters.stage.json) son los ARN anteriores: `KmsAdministratorArn` toma el ejecutor y `KmsRecoveryAdministratorArn` el rol de recuperación. **Seleccionar también el ejecutor como rol de servicio de CloudFormation**; el parámetro por sí solo no configura ese rol. La petición preparada lleva `RoleARN` explícito. El rol de recuperación no se utiliza para ejecutar la pila.
+Los dos valores de [parameters.stage.json](../../deploy/sns-bootstrap/parameters.stage.json) son los ARN anteriores: `KmsAdministratorArn` toma el ejecutor y `KmsRecoveryAdministratorArn` el rol de recuperación. **Seleccionar también el ejecutor como rol de servicio de CloudFormation**; el parámetro por sí solo no configura ese rol. La petición preparada lleva `RoleARN` explícito. El rol de recuperación no se utiliza para ejecutar la pila.
 
 | Recurso/política | Configuración revisada |
 | --- | --- |

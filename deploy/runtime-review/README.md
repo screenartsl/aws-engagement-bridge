@@ -1,6 +1,6 @@
 # Runtime de recepción: conjunto UPDATE preparado, sin ejecutar
 
-**HOLD — 26/10/2026:** el propietario comunica FAILED / UNAVAILABLE en la creación del conjunto por el permiso de transformación SAM ausente. No reintentar las instrucciones siguientes ni cambiar IAM hasta revisar la [propuesta mínima y alternativa nativa](../../docs/SAM-TRANSFORM-REVIEW-2026-10-26.md). Este documento conserva la preparación previa; no es autorización para nuevos intentos.
+**HOLD — 26/10/2026:** el propietario comunica FAILED / UNAVAILABLE en la creación del conjunto por el permiso de transformación SAM ausente. No reintentar las instrucciones siguientes ni cambiar IAM hasta revisar la [propuesta mínima y alternativa nativa](../../docs/history/SAM-TRANSFORM-REVIEW-2026-10-26.md). Este documento conserva la preparación previa; no es autorización para nuevos intentos.
 
 **Revisión por cuota completada localmente:** el propietario ha comunicado ConcurrentExecutions=10, UnreservedConcurrentExecutions=10 y cero funciones. No desplegar la plantilla anterior de hash `3e82e39dd7aa...` ni el draft receive-review-62dab78f: reservaban una concurrencia. La nueva plantilla elimina esa reserva para inbound y limita su mapping a dos ejecuciones, manteniéndolo deshabilitado. Los identificadores actuales se detallan debajo. No se ha cambiado AWS ni solicitado un aumento de cuota.
 
@@ -82,7 +82,7 @@ La bandeja final será la de MuseRelay actual, utilizando una organización nuev
 
 El controlador de canales de producción todavía solo admite meta/telnyx en managed_provider y el formulario AWS no está implementado. Habilitar el catálogo del módulo no añade ese formulario ni limita automáticamente al propietario a crear solo canales AWS. Ese requisito necesita una revisión específica de UI/backend y alcance por organización. La recepción preparada materializa contactos/conversaciones/mensajes nativos; agentes, herramientas, intervención humana y envío siguen siendo pasos posteriores con sus propios controles. El canal AWS conserva transporte propio, sin fallback a Meta directo.
 
-La gestión debe integrarse en la sección actual **Megadmin → Módulos**, que ya enlaza al cargador de extensiones. La [revisión de concepto y límites de autorización](../../docs/MEGADMIN-BRIDGE-INTEGRATION-CONCEPT.md) documenta el encaje; no se ha aplicado todavía en producción.
+La gestión debe integrarse en la sección actual **Megadmin → Módulos**, que ya enlaza al cargador de extensiones. La [revisión de concepto y límites de autorización](../../docs/history/MEGADMIN-BRIDGE-INTEGRATION-CONCEPT.md) documenta el encaje; no se ha aplicado todavía en producción.
 
 El hostname técnico de staging sigue siendo el único permitido por el YAML actual. Es un destino temporal de pruebas, todavía no activado ni verificado. Para llevar el runtime al endpoint del Core actual habrá que revisar el allowlist CoreBaseUrl, el hook, TLS/HMAC y la instalación del conector; no basta con cambiar una base de test por la de producción. Esta propuesta deshabilitada no envía callbacks y no exige activar DNS/HTTPS ahora. No presentar esta infraestructura como un flujo funcional de extremo a extremo.
 

@@ -29,12 +29,12 @@ El segmento de cuenta **aws** es intencionado: identifica la transformación ges
 
 Archivos completos:
 
-- [Plantilla IAM corregida propuesta](../deploy/runtime-sam-iam/template.yaml).
-- [Declaración nueva como política JSON](../deploy/runtime-sam-iam/policy.addition.json).
-- [Policies antes](../deploy/runtime-sam-iam/executor-policies.before.json), [después](../deploy/runtime-sam-iam/executor-policies.after.json) y [diff íntegro](../deploy/runtime-sam-iam/executor-policies.diff).
-- [Solicitud IAM preparada, no creada en AWS](../deploy/runtime-sam-iam/change-set.update.prepared.json).
-- [Solicitud de reintento SAM preparada, todavía no autorizada](../deploy/runtime-sam-iam/change-set.runtime-retry.prepared.json).
-- [Comparación estructurada de ambas opciones](../deploy/runtime-sam-iam/comparison.prepared.json).
+- [Plantilla IAM corregida propuesta](../../deploy/runtime-sam-iam/template.yaml).
+- [Declaración nueva como política JSON](../../deploy/runtime-sam-iam/policy.addition.json).
+- [Policies antes](../../deploy/runtime-sam-iam/executor-policies.before.json), [después](../../deploy/runtime-sam-iam/executor-policies.after.json) y [diff íntegro](../../deploy/runtime-sam-iam/executor-policies.diff).
+- [Solicitud IAM preparada, no creada en AWS](../../deploy/runtime-sam-iam/change-set.update.prepared.json).
+- [Solicitud de reintento SAM preparada, todavía no autorizada](../../deploy/runtime-sam-iam/change-set.runtime-retry.prepared.json).
+- [Comparación estructurada de ambas opciones](../../deploy/runtime-sam-iam/comparison.prepared.json).
 
 | Elemento | Antes | Propuesta |
 | --- | --- | --- |
@@ -61,9 +61,9 @@ El YAML del runtime SAM conserva SHA256 `88161733676dae8d788eff092cf75c6430c5ca2
 
 Se ha preparado una expansión **local y reproducible** con `aws-sam-translator==1.115.0`, sin red ni acceso AWS:
 
-- [Plantilla nativa](../deploy/runtime-native/template.yaml).
-- [Parámetros cerrados](../deploy/runtime-native/parameters.disabled.json).
-- [Solicitud UPDATE nativa preparada, no creada en AWS](../deploy/runtime-native/change-set.update.prepared.json).
+- [Plantilla nativa](../../deploy/runtime-native/template.yaml).
+- [Parámetros cerrados](../../deploy/runtime-native/parameters.disabled.json).
+- [Solicitud UPDATE nativa preparada, no creada en AWS](../../deploy/runtime-native/change-set.update.prepared.json).
 
 SHA256 del YAML nativo:
 
@@ -100,7 +100,7 @@ La plantilla nativa conserva los defaults y las ramas condicionales del fuente. 
 
 ## Pruebas, costes y reversión
 
-Se han ejecutado **15 pruebas locales de seguridad**, todas correctas, que comprueban: diferencia IAM exacta de una declaración; igualdad del resto del documento; conservación de denegaciones KMS; roles y confianzas intactos; default GrantSocialSend=false; equivalencia de recursos del nativo con la expansión SAM; ausencia de IAM/macros en nativo; reuse del ZIP; rechazo de clave S3 vacía con runtime seleccionado; consumidores y envíos cerrados. El lint IAM no presenta errores ni avisos. El [informe de validación offline](../deploy/runtime-sam-iam/validation.offline.json) conserva los avisos del nativo. También se guarda el [fallo comunicado por el propietario](../deploy/runtime-sam-iam/failure.owner-reported.json) sin reconstruir sus identificadores incompletos.
+Se han ejecutado **15 pruebas locales de seguridad**, todas correctas, que comprueban: diferencia IAM exacta de una declaración; igualdad del resto del documento; conservación de denegaciones KMS; roles y confianzas intactos; default GrantSocialSend=false; equivalencia de recursos del nativo con la expansión SAM; ausencia de IAM/macros en nativo; reuse del ZIP; rechazo de clave S3 vacía con runtime seleccionado; consumidores y envíos cerrados. El lint IAM no presenta errores ni avisos. El [informe de validación offline](../../deploy/runtime-sam-iam/validation.offline.json) conserva los avisos del nativo. También se guarda el [fallo comunicado por el propietario](../../deploy/runtime-sam-iam/failure.owner-reported.json) sin reconstruir sus identificadores incompletos.
 
 No se ha simulado la nueva política en AWS ni creado un conjunto para validarla. Las comprobaciones locales no garantizan que no aparezca otro permiso de servicio insuficiente durante un futuro aprovisionamiento. Ante un nuevo error, parar y revisar la acción concreta; no ampliar a cloudformation:* ni Resource=*.
 

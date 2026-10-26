@@ -1,8 +1,8 @@
 # Roles estables de administración — base desplegada según evidencia facilitada
 
-Actualización 25-10-2026: el usuario facilita CREATE_COMPLETE, los dos ARN de Outputs y éxito de STS AssumeRole real de recuperación. Evidencia: [resultado recibido](../../docs/evidence/iam-foundation-deployed-user-evidence.json). **Actualización posterior confirmada por el usuario:** UPDATE_COMPLETE, ARN conservados, acciones SNS/S3 presentes y denegaciones KMS conservadas; véase la [verificación comunicada](../../docs/evidence/iam-foundation-update-user-evidence.json). No repetir el UPDATE ni recrear los roles. Instrucciones vigentes: [siguiente conjunto de cambios](../../docs/SNS-BOOTSTRAP-CHANGE-SET.md). Las instrucciones de creación siguientes describen el bootstrap original.
+Actualización 25-10-2026: el usuario facilita CREATE_COMPLETE, los dos ARN de Outputs y éxito de STS AssumeRole real de recuperación. Evidencia: [resultado recibido](../../docs/evidence/iam-foundation-deployed-user-evidence.json). **Actualización posterior confirmada por el usuario:** UPDATE_COMPLETE, ARN conservados, acciones SNS/S3 presentes y denegaciones KMS conservadas; véase la [verificación comunicada](../../docs/evidence/iam-foundation-update-user-evidence.json). No repetir el UPDATE ni recrear los roles. Instrucciones vigentes: [siguiente conjunto de cambios](../../docs/history/SNS-BOOTSTRAP-CHANGE-SET.md). Las instrucciones de creación siguientes describen el bootstrap original.
 
-Procedimiento y decisiones: [AWS-KMS-ADMINISTRATION.md](../../docs/AWS-KMS-ADMINISTRATION.md).
+Procedimiento y decisiones: [AWS-KMS-ADMINISTRATION.md](../../docs/history/AWS-KMS-ADMINISTRATION.md).
 
 La plantilla crea únicamente dos roles IAM con nombres estables y políticas inline, sin AdministratorAccess y con Retain:
 
@@ -21,4 +21,4 @@ No borrar roles retenidos mientras existan claves o pilas que los utilicen. Cons
 
 ## Revisión posterior antes de ejecutar
 
-Véase [verificación efectiva y endurecimiento](../../docs/IAM-FOUNDATION-VERIFICATION.md). El ejecutor tiene Deny explícito para desactivar o programar el borrado de claves, y ya no recibe PutKeyPolicy por una concesión IAM basada en etiquetas. La administración de la clave propia se declara en su key policy. La ausencia de AWS CLI/perfil en este servidor impide afirmar verificación de permisos reales. El AssumeRole real se verifica tras crear los dos roles y antes de crear KMS; antes se comprueba identidad y se puede simular la política del origen. No ejecutar el change set con el YAML anterior.
+Véase [verificación efectiva y endurecimiento](../../docs/history/IAM-FOUNDATION-VERIFICATION.md). El ejecutor tiene Deny explícito para desactivar o programar el borrado de claves, y ya no recibe PutKeyPolicy por una concesión IAM basada en etiquetas. La administración de la clave propia se declara en su key policy. La ausencia de AWS CLI/perfil en este servidor impide afirmar verificación de permisos reales. El AssumeRole real se verifica tras crear los dos roles y antes de crear KMS; antes se comprueba identidad y se puede simular la política del origen. No ejecutar el change set con el YAML anterior.
