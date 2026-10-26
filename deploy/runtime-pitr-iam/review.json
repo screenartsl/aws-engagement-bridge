@@ -1,0 +1,19 @@
+{
+  "status": "HOLD_RUNTIME_EXECUTION",
+  "ownerReportedMetadataChecks": 15,
+  "metadataPassDoesNotProveProviderPermissions": true,
+  "confirmedMissingActions": [
+    "dynamodb:DescribeContinuousBackups",
+    "dynamodb:UpdateContinuousBackups"
+  ],
+  "candidateScope": "Only confirmed PITR omission, not a complete provider dependency certificate",
+  "furtherProviderPermissionReviewRequired": true,
+  "templateSha256": "1131cf936e4d1ee00a32893d95dd49d54c888480e54d9e3b5a366d3361f1c2f1",
+  "baselineSha256": "d60476a283b76d3dcc2babdd689bee81b1888e834364c90067621cc7ef4531cc",
+  "expectedFoundationChange": "Only Modify StageCloudFormationRole; no replacement or other resource/property changes",
+  "GrantSocialSend": "false",
+  "runtimeTemplateUnchanged": true,
+  "runtimeChangeSetNotDeletedOrRecreated": true,
+  "changesApplied": false,
+  "awsCalls": 0
+}

@@ -52,6 +52,23 @@ class ReceiveReviewTests(unittest.TestCase):
     def test_missing_cloudtrail_evidence_never_assumed_safe(self):
         self.e['creationEvents']=[];self.assertFalse(self.ok())
 
+    def test_metadata_pass_does_not_hide_missing_pitr_permissions(self):
+        self.assertTrue(self.ok())
+        self.assertFalse(all(v.provider_prerequisites(self.e).values()))
+
+    def test_pitr_guard_requires_exact_table_and_region(self):
+        p=self.e['policies']['bridge-runtime-receive-provisioning']['PolicyDocument']
+        add={'Effect':'Allow','Action':['dynamodb:DescribeContinuousBackups','dynamodb:UpdateContinuousBackups'],
+            'Resource':f'arn:aws:dynamodb:{v.REGION}:{v.ACCOUNT}:table/{v.STACK}-state',
+            'Condition':{'StringEquals':{'aws:RequestedRegion':v.REGION}}}
+        p['Statement'].append(add)
+        self.assertTrue(all(v.provider_prerequisites(self.e).values()))
+        # Policy equality still rejects unreviewed expansion until its new full
+        # version is reviewed. The feature guard is not an automatic IAM upgrade.
+        self.assertFalse(self.ok())
+        add['Resource']='*'
+        self.assertFalse(all(v.provider_prerequisites(self.e).values()))
+
     def test_wrong_stack_role_and_account_rejected(self):
         self.e['stack']['Stacks'][0]['RoleARN']='arn:aws:iam::365470560685:role/AdministratorAccess'
         self.assertFalse(self.ok())
@@ -125,6 +142,19 @@ class ReceiveReviewTests(unittest.TestCase):
         with patch.object(v.subprocess,'run',side_effect=fake):
             with self.assertRaises(ValueError):v.collect()
         self.assertEqual(len(calls),1)
+
+    def test_provider_audit_is_exactly_six_read_only_metadata_calls(self):
+        calls=[]
+        def fake(cmd,**kwargs):
+            calls.append((cmd[1],cmd[2]))
+            if calls[-1]==('sts','get-caller-identity'):response={'Account':v.ACCOUNT}
+            else:
+                self.assertEqual(calls[-1],('cloudformation','describe-type'))
+                response={'DefaultVersionId':'synthetic','Schema':json.dumps({'handlers':{'read':{'permissions':['synthetic:Describe']}}})}
+            return SimpleNamespace(returncode=0,stdout=json.dumps(response),stderr='')
+        with patch.object(v.subprocess,'run',side_effect=fake):response=v.collect_provider_permissions()
+        self.assertEqual(len(calls),6)
+        self.assertEqual(len(response['providers']),5)
 
 
 if __name__=='__main__':unittest.main()

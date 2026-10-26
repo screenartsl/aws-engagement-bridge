@@ -48,6 +48,28 @@ def original_matches(response):
     except (KeyError,ValueError,TypeError):return False
 
 
+def provider_prerequisites(e):
+    """Known feature dependency, separate from equality with reviewed policy.
+
+    This is not an exhaustive provider IAM simulation. Never turn matching
+    prepared policy hashes into evidence that optional-feature APIs are allowed.
+    """
+    t=body(e['processed'])
+    p=t['Resources']['State']['Properties']
+    enabled=p.get('PointInTimeRecoverySpecification',{}).get('PointInTimeRecoveryEnabled')
+    if enabled is not True:return {'PITR: configuración reconocida para revisar permisos':False}
+    needed={'dynamodb:DescribeContinuousBackups','dynamodb:UpdateContinuousBackups'}
+    allowed=set()
+    for response in e['policies'].values():
+        for s in response['PolicyDocument']['Statement']:
+            if (s.get('Effect')=='Allow'
+                and s.get('Resource')==f'arn:aws:dynamodb:{REGION}:{ACCOUNT}:table/{STACK}-state'
+                and s.get('Condition',{}).get('StringEquals',{}).get('aws:RequestedRegion')==REGION):
+                a=s.get('Action',[])
+                allowed.update(a if isinstance(a,list) else [a])
+    return {'PITR: permisos Describe/UpdateContinuousBackups explícitos sobre tabla propia':needed<=allowed}
+
+
 def resolve(value,template,params):
     if isinstance(value,list):return [resolve(x,template,params) for x in value]
     if not isinstance(value,dict):return value
@@ -177,15 +199,38 @@ def collect():
     return e
 
 
+def collect_provider_permissions():
+    """Six metadata-only CLI reads; returns provider handler declarations only."""
+    def aws(service,*args):
+        result=subprocess.run(['aws',service,*args,'--region',REGION,'--output','json','--no-cli-pager'],
+            capture_output=True,text=True,timeout=45)
+        if result.returncode:raise ValueError('Provider metadata read failed')
+        return json.loads(result.stdout)
+    caller=aws('sts','get-caller-identity')
+    if caller['Account']!=ACCOUNT:raise ValueError('Wrong account')
+    result={'account':ACCOUNT,'region':REGION,'scope':'Provider schema metadata only; not an authorization or permission simulation','providers':{}}
+    for typ in ['AWS::DynamoDB::Table','AWS::Lambda::Function','AWS::Lambda::EventSourceMapping','AWS::Logs::LogGroup','AWS::SecretsManager::Secret']:
+        response=aws('cloudformation','describe-type','--type','RESOURCE','--type-name',typ)
+        schema=json.loads(response['Schema'])
+        result['providers'][typ]={'defaultVersionId':response.get('DefaultVersionId'),
+            'handlers':{k:schema.get('handlers',{}).get(k,{}).get('permissions',[]) for k in ['create','read','delete']}}
+    return result
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     group=p.add_mutually_exclusive_group(required=True)
     group.add_argument('--collect',action='store_true')
     group.add_argument('--evidence',type=Path)
+    group.add_argument('--provider-permissions',action='store_true')
     args=p.parse_args()
     try:
+        if args.provider_permissions:
+            print(json.dumps(collect_provider_permissions(),indent=2))
+            return 0
         e=collect() if args.collect else json.loads(args.evidence.read_text())
         checks=verify(e)
+        checks.update(provider_prerequisites(e))
     except (ValueError,KeyError,TypeError,IndexError,OSError,subprocess.TimeoutExpired):
         print('REVISAR: lectura incompleta, formato no reconocido o respuesta inesperada; no ejecutar. No se muestran cuerpos ni errores privados.')
         return 1

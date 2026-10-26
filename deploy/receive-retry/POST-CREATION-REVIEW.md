@@ -1,5 +1,12 @@
 # Runtime creado para revisión: RoleARN null y comprobación efectiva
 
+**HOLD posterior — dependencia PITR:** el propietario comunicó quince PASS. Al
+revisar coste/propiedades se detectaron DescribeContinuousBackups y
+UpdateContinuousBackups ausentes del ejecutor. Es una omisión de la preparación:
+igualar sus políticas al baseline revisado no probaba cobertura de APIs. Ver
+[bloqueo y coste incremental](../runtime-pitr-iam/README.md). El verificador añade
+un guard separado de PITR; no ejecutar con el resultado histórico de quince PASS.
+
 26/10/2026, Europe/Paris. Propietario comunica CREATE_COMPLETE / AVAILABLE para
 receive-sam-review-88161733676d-82707086-fix1, exactamente los cinco Add previstos,
 sin otros cambios. Fuente: propietario desde CloudShell, no lectura directa desde
@@ -90,6 +97,20 @@ Pegar las líneas PASS/REVISAR y el resultado. Incluso todos los PASS solo cierr
 la revisión técnica: después hay que presentar costes y solicitar autorización
 específica de ejecución. No autorizan consumidores, inicialización de firmas,
 modificación de MuseRelay, mensajes, agentes ni herramientas.
+
+Para completar el preflight de dependencias con el schema real del proveedor,
+usar la versión actual revisada del mismo script:
+
+```sh
+python3 review-receive-change-set.py --provider-permissions
+```
+
+Son seis lecturas: identidad y DescribeType de los cinco tipos. Devuelve solo
+listas de permisos declaradas por sus handlers y versiones; no consultas de
+mensajes/secretos, escrituras ni ejecución de recursos. Revisar qué permisos
+corresponden a las propiedades seleccionadas antes de preparar IAM definitivo.
+Las listas son una unión de características opcionales, no una política que se
+deba conceder completa. Este modo no significa PASS de permisos efectivos.
 
 Límites: no prueba conectividad Core, recursos aún no creados, SCP/Organizations,
 permisos efectivos completos de los roles runtime, entrega de mensajes ni S3 real.

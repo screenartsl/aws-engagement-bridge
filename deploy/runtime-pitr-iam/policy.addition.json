@@ -1,0 +1,14 @@
+{
+  "Sid": "OwnStatePitrLifecycle",
+  "Effect": "Allow",
+  "Action": [
+    "dynamodb:DescribeContinuousBackups",
+    "dynamodb:UpdateContinuousBackups"
+  ],
+  "Resource": "arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state",
+  "Condition": {
+    "StringEquals": {
+      "aws:RequestedRegion": "eu-west-1"
+    }
+  }
+}
