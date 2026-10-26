@@ -59,13 +59,15 @@ final class NativeCore implements CorePort
         if (config('features.agent_executor_mode') !== 'full') throw new BridgeException('agent_executor_required', 503);
         $automation = app(AutomationService::class);
         if (!$automation->shouldProcessWithAutomation($channel, $conversation)) return;
-        if ($channel->processing_type !== 'ai_agent' || !$channel->ai_agent_enabled) throw new BridgeException('agent_channel_required');
+        // Human-only channel (no AI linked/enabled in the panel): the message stays in the inbox, no turn, no retry.
+        if ($channel->processing_type !== 'ai_agent' || !$channel->ai_agent_enabled || !$channel->ai_agent_id) return;
         if (!$automation->sendToAIAgent($message, $conversation, $channel, [], 0, 'text')) throw new BridgeException('agent_turn_failed', 503);
     }
 
     public function authorizeTurn(object $b, object $event): void
     {
         $this->store->requireOperation('agent');
+        $this->store->agentFor($b);
         $conversation = Conversation::where('id', $event->conversation_id)->where('channel_id', $b->channel_id)->where('workspace_id', $b->workspace_id)->where('organization_id', $b->organization_id)->lockForUpdate()->firstOrFail();
         if ($conversation->automation_paused || $conversation->status === 'closed'
             || Message::where('conversation_id', $conversation->id)->where('direction', 'outbound')->where('sender_type', 'agent')->where('id', '>', $event->message_id)->exists()) {

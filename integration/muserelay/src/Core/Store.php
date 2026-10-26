@@ -47,11 +47,17 @@ final class Store
             || !preg_match('~^arn:aws:social-messaging:'.preg_quote($b->region, '~').':'.preg_quote($b->account_id, '~').':phone-number-id/[a-zA-Z0-9][a-zA-Z0-9-]*$~D', $b->aws_phone_arn)) {
             throw new BridgeException('invalid_aws_identity', 403);
         }
-        // Reception and human replies must not depend on a configured LLM identity.
-        if (!$this->operationEnabled('agent')) return $b;
-        $agent = $this->db->table('ai_agents')->where('id', $b->agent_id)->first();
-        if (!$agent || (int) $agent->organization_id !== (int) $b->organization_id || (int) $agent->workspace_id !== (int) $b->workspace_id
-            || (int) ($channel->ai_agent_id ?? 0) !== (int) $agent->id) throw new BridgeException('ownership_mismatch', 403);
+        // Reception and human replies never depend on the agent: it is validated only for AI turns (agentFor).
+        return $b;
+    }
+
+    /** The agent linked to the channel in the panel (channels.ai_agent_id), validated for an AI turn. */
+    public function agentFor(object $b): object
+    {
+        $this->requireOperation('agent');
+        $channel = $this->db->table('channels')->where('id', $b->channel_id)->first();
+        $agent = $channel ? $this->db->table('ai_agents')->where('id', (int) ($channel->ai_agent_id ?? 0))->first() : null;
+        if (!$agent || (int) $agent->organization_id !== (int) $b->organization_id || (int) $agent->workspace_id !== (int) $b->workspace_id) throw new BridgeException('ownership_mismatch', 403);
         // An explicitly enabled demo agent must actually use Bedrock, including fallbacks.
         foreach (['ai_provider_id', 'fallback_provider_id', 'fallback2_provider_id'] as $column) {
             $id = (int) ($agent->$column ?? 0);
@@ -61,7 +67,7 @@ final class Store
             if (isset($provider->is_active) && !$provider->is_active) throw new BridgeException('provider_inactive', 403);
             if (!empty($provider->organization_id) && (int) $provider->organization_id !== (int) $b->organization_id && ($provider->scope ?? '') !== 'global') throw new BridgeException('provider_ownership_mismatch', 403);
         }
-        return $b;
+        return $agent;
     }
 
     public function bindingForChannel(int $channelId): object

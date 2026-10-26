@@ -167,7 +167,7 @@ final class CoreTest extends TestCase
     public function testNonBedrockAgentCannotRunThisDemo(): void
     {
         $this->store->db->table('ai_providers')->update(['provider_type' => 'azure_openai']);
-        $this->expectExceptionMessage('bedrock_agent_required'); $this->store->binding('demo');
+        $this->expectExceptionMessage('bedrock_agent_required'); $this->store->agentFor($this->store->binding('demo'));
     }
     public function testSignedResourceTupleMustMatchTheCoreBinding(): void
     {
@@ -284,6 +284,20 @@ final class CoreTest extends TestCase
         $this->store->db->table('ai_agents')->insert($agent);$this->store->db->table('ai_providers')->insert($provider);
         // No pending rows: completed receive-only messages cannot suddenly trigger an old turn.
         self::assertFalse($worker->once());self::assertSame(0,$this->core->turns);
+    }
+    public function testAgentProblemsNeverBlockReceptionAndAgentComesFromTheChannel(): void
+    {
+        $this->controls=['receive'=>true,'agent'=>true,'send'=>false];
+        self::assertSame(30,(int)$this->store->agentFor($this->store->binding('demo'))->id);
+        // Agent unlinked from the channel in the panel: reception still works, only the AI turn is refused.
+        $this->store->db->table('channels')->where('id',20)->update(['ai_agent_id'=>0]);
+        self::assertSame('accepted',$this->store->accept('demo',$this->event())['status']);
+        try { $this->store->agentFor($this->store->binding('demo')); self::fail('must reject'); } catch (BridgeException $e) { self::assertSame('ownership_mismatch',$e->reason); }
+        // Non-Bedrock provider: same, reception unaffected.
+        $this->store->db->table('channels')->where('id',20)->update(['ai_agent_id'=>30]);
+        $this->store->db->table('ai_providers')->update(['provider_type'=>'openai']);
+        self::assertSame('accepted',$this->store->accept('demo',$this->event('wamid.two'))['status']);
+        $this->expectExceptionMessage('bedrock_agent_required'); $this->store->agentFor($this->store->binding('demo'));
     }
     public function testSendRevocationStopsPendingOutboxWithoutChangingItsState(): void
     {
@@ -411,15 +425,28 @@ final class CoreTest extends TestCase
         $second = $this->store->claim(); self::assertNotNull($second); self::assertNotSame($first->lease_token, $second->lease_token);
         $this->expectExceptionMessage('event_lease_lost'); $this->store->finish($first, true);
     }
-    public function testUnsupportedOrCrossTenantToolsCannotExecute(): void
+    public function testCrossTenantToolsCannotExecute(): void
     {
         $this->store->accept('demo', $this->event()); $row = $this->store->claim();
         $this->scope->binding = $this->store->binding('demo'); $this->scope->event = $row;
         $guard = new ToolGuard($this->store, $this->scope, $this->core); $called = false;
         $dispatch = function () use (&$called) { $called = true; return ['ok' => true]; };
-        self::assertFalse($guard->execute('calendar_book_appointment', $this->context($row), $dispatch)['ok']);
+        self::assertFalse($guard->execute('calendar_book_appointment', array_merge($this->context($row), ['organization_id' => 999]), $dispatch)['ok']);
         self::assertFalse($guard->execute('support_create_ticket', array_merge($this->context($row), ['workspace_id' => 999]), $dispatch)['ok']);
         self::assertFalse($called);
+    }
+    public function testAnyNativeToolRunsInContextAndIdenticalRetriesDoNotActTwice(): void
+    {
+        $this->store->accept('demo', $this->event()); $row = $this->store->claim();
+        $this->scope->binding = $this->store->binding('demo'); $this->scope->event = $row;
+        $guard = new ToolGuard($this->store, $this->scope, $this->core); $calls = 0;
+        $dispatch = function () use (&$calls) { $calls++; return ['ok' => true, 'n' => $calls]; };
+        $book = ['date' => '2026-11-02', 'time' => '10:00'];
+        self::assertSame(1, $guard->execute('calendar_book_appointment', $this->context($row), $dispatch, $book)['n']);
+        self::assertSame(1, $guard->execute('calendar_book_appointment', $this->context($row), $dispatch, $book)['n']);
+        self::assertSame(2, $guard->execute('calendar_book_appointment', $this->context($row), $dispatch, ['date' => '2026-11-03', 'time' => '10:00'])['n']);
+        self::assertSame(3, $guard->execute('knowledge_search', $this->context($row), $dispatch, ['q' => 'x'])['n']);
+        self::assertSame(4, $guard->execute('knowledge_search', $this->context($row), $dispatch, ['q' => 'x'])['n']);
     }
     public function testDailyBudgetsBlockAdditionalNewWorkButNotDuplicates(): void
     {

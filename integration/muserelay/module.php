@@ -2,7 +2,7 @@
 return [
     'id'=>'aws-engagement-bridge',
     'name'=>'AWS Engagement Bridge',
-    'version'=>'0.5.3',
+    'version'=>'0.5.4',
     'core_api'=>1,
     'provider'=>\MuseRelay\AwsEngagementBridge\Core\CoreIntegrationProvider::class,
     'health'=>\MuseRelay\AwsEngagementBridge\Core\CoreReadiness::class,
