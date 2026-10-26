@@ -1,0 +1,795 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Screen Art IAM foundation UPDATE review: existing roles preserved; independent runtime roles; no messaging or
+  consumers'
+Rules:
+  ScreenArtOnly:
+    Assertions:
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::AccountId
+        - '365470560685'
+      AssertDescription: Screen Art only
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::Region
+        - eu-west-1
+      AssertDescription: Ireland only
+    - Assert:
+        Fn::Equals:
+        - Ref: AWS::StackName
+        - muserelay-aws-bridge-iam-foundation
+      AssertDescription: Reviewed foundation name only
+Resources:
+  StageCloudFormationRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RoleName: muserelay-aws-bridge-stage-cfn-execution
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: cloudformation.amazonaws.com
+          Action: sts:AssumeRole
+      MaxSessionDuration: 3600
+      Policies:
+      - PolicyName: bridge-stage-scoped
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: CreateOnlySymmetricDemoKey
+            Effect: Allow
+            Action:
+            - kms:CreateKey
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+                kms:KeySpec: SYMMETRIC_DEFAULT
+                kms:KeyUsage: ENCRYPT_DECRYPT
+                aws:RequestTag/Company: ScreenArt
+                aws:RequestTag/Component: aws-engagement-bridge
+                aws:RequestTag/Environment: staging
+              Bool:
+                kms:BypassPolicyLockoutSafetyCheck: 'false'
+          - Sid: TagKeyAtCreation
+            Effect: Allow
+            Action:
+            - kms:TagResource
+            Resource: arn:aws:kms:eu-west-1:365470560685:key/*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+                aws:RequestTag/Company: ScreenArt
+                aws:RequestTag/Component: aws-engagement-bridge
+                aws:RequestTag/Environment: staging
+          - Sid: ReadRegionalKeyMetadata
+            Effect: Allow
+            Action:
+            - kms:DescribeKey
+            - kms:GetKeyPolicy
+            - kms:GetKeyRotationStatus
+            - kms:ListResourceTags
+            Resource: arn:aws:kms:eu-west-1:365470560685:key/*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: NamedAliasOnly
+            Effect: Allow
+            Action:
+            - kms:CreateAlias
+            - kms:UpdateAlias
+            - kms:DeleteAlias
+            Resource: arn:aws:kms:eu-west-1:365470560685:alias/muserelay-aws-bridge-stage-sns
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: ReadAliasRegistry
+            Effect: Allow
+            Action:
+            - kms:ListAliases
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: StageTopicAndSubscriptionOnly
+            Effect: Allow
+            Action:
+            - sns:CreateTopic
+            - sns:DeleteTopic
+            - sns:GetTopicAttributes
+            - sns:SetTopicAttributes
+            - sns:TagResource
+            - sns:UntagResource
+            - sns:ListTagsForResource
+            - sns:Subscribe
+            - sns:Unsubscribe
+            - sns:GetSubscriptionAttributes
+            - sns:SetSubscriptionAttributes
+            - sns:ListSubscriptionsByTopic
+            - sns:GetDataProtectionPolicy
+            Resource: arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: StageQueuesOnly
+            Effect: Allow
+            Action:
+            - sqs:CreateQueue
+            - sqs:DeleteQueue
+            - sqs:GetQueueUrl
+            - sqs:GetQueueAttributes
+            - sqs:SetQueueAttributes
+            - sqs:TagQueue
+            - sqs:UntagQueue
+            - sqs:ListQueueTags
+            Resource:
+            - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue
+            - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-dlq
+            - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-sns-delivery-dlq
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: PrivateArtifactBucketOnly
+            Effect: Allow
+            Action:
+            - s3:CreateBucket
+            - s3:DeleteBucket
+            - s3:GetBucketLocation
+            - s3:ListBucket
+            - s3:GetBucketAcl
+            - s3:GetEncryptionConfiguration
+            - s3:PutEncryptionConfiguration
+            - s3:GetBucketPublicAccessBlock
+            - s3:PutBucketPublicAccessBlock
+            - s3:GetBucketOwnershipControls
+            - s3:PutBucketOwnershipControls
+            - s3:GetBucketTagging
+            - s3:PutBucketTagging
+            - s3:GetBucketPolicy
+            - s3:PutBucketPolicy
+            - s3:DeleteBucketPolicy
+            - s3:GetLifecycleConfiguration
+            - s3:PutLifecycleConfiguration
+            - s3:GetAccelerateConfiguration
+            - s3:GetAnalyticsConfiguration
+            - s3:GetBucketAbac
+            - s3:GetBucketCORS
+            - s3:GetBucketLogging
+            - s3:GetBucketMetadataTableConfiguration
+            - s3:GetBucketNotification
+            - s3:GetBucketObjectLockConfiguration
+            - s3:GetBucketVersioning
+            - s3:GetBucketWebsite
+            - s3:GetIntelligentTieringConfiguration
+            - s3:GetInventoryConfiguration
+            - s3:GetMetricsConfiguration
+            - s3:GetReplicationConfiguration
+            - s3:ListTagsForResource
+            - s3:TagResource
+            - s3:UntagResource
+            Resource: arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1
+          - Sid: PreventKeyDestructionFromDeployment
+            Effect: Deny
+            Action:
+            - kms:DisableKey
+            - kms:ScheduleKeyDeletion
+            Resource: arn:aws:kms:eu-west-1:365470560685:key/*
+      - PolicyName: bridge-runtime-receive-provisioning
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: PassOnlyInboundRuntime
+            Effect: Allow
+            Action:
+            - iam:PassRole
+            Resource: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime
+            Condition:
+              StringEquals:
+                iam:PassedToService: lambda.amazonaws.com
+          - Sid: InboundFunctionProvisioning
+            Effect: Allow
+            Action:
+            - lambda:CreateFunction
+            - lambda:GetFunction
+            - lambda:GetFunctionConfiguration
+            - lambda:GetFunctionCodeSigningConfig
+            - lambda:GetFunctionConcurrency
+            - lambda:UpdateFunctionCode
+            - lambda:UpdateFunctionConfiguration
+            - lambda:DeleteFunction
+            - lambda:PutFunctionConcurrency
+            - lambda:DeleteFunctionConcurrency
+            - lambda:TagResource
+            - lambda:UntagResource
+            - lambda:ListTags
+            Resource: arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: CreateOnlyInboundMapping
+            Effect: Allow
+            Action:
+            - lambda:CreateEventSourceMapping
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+              ArnEquals:
+                lambda:FunctionArn: arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound
+          - Sid: ManageOnlyInboundMapping
+            Effect: Allow
+            Action:
+            - lambda:GetEventSourceMapping
+            - lambda:UpdateEventSourceMapping
+            - lambda:DeleteEventSourceMapping
+            Resource: arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+              ArnEquals:
+                lambda:FunctionArn: arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound
+          - Sid: OwnStateTableProvisioning
+            Effect: Allow
+            Action:
+            - dynamodb:CreateTable
+            - dynamodb:DeleteTable
+            - dynamodb:DescribeTable
+            - dynamodb:UpdateTable
+            - dynamodb:UpdateTimeToLive
+            - dynamodb:DescribeTimeToLive
+            - dynamodb:TagResource
+            - dynamodb:UntagResource
+            - dynamodb:ListTagsOfResource
+            Resource: arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: EmptySigningSecretMetadata
+            Effect: Allow
+            Action:
+            - secretsmanager:CreateSecret
+            - secretsmanager:DescribeSecret
+            - secretsmanager:TagResource
+            - secretsmanager:UntagResource
+            - secretsmanager:ListSecretVersionIds
+            - secretsmanager:GetResourcePolicy
+            Resource: arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-??????
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: OwnLogGroupProvisioning
+            Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:DeleteLogGroup
+            - logs:PutRetentionPolicy
+            - logs:DeleteRetentionPolicy
+            - logs:TagResource
+            - logs:UntagResource
+            - logs:ListTagsForResource
+            Resource:
+            - arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound
+            - arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound:*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: RegionalLogGroupMetadata
+            Effect: Allow
+            Action:
+            - logs:DescribeLogGroups
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: ReadReviewedArtifact
+            Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource: arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/releases/*/bridge.zip
+          - Sid: AllowAwsSamTransformInIreland
+            Effect: Allow
+            Action:
+            - cloudformation:CreateChangeSet
+            Resource: arn:aws:cloudformation:eu-west-1:aws:transform/Serverless-2016-10-31
+          - Sid: OwnStateProviderLifecycle
+            Effect: Allow
+            Action:
+            - dynamodb:DescribeContinuousBackups
+            - dynamodb:UpdateContinuousBackups
+            - dynamodb:DescribeContributorInsights
+            - dynamodb:DescribeKinesisStreamingDestination
+            - dynamodb:GetResourcePolicy
+            Resource: arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: OwnInboundProviderConfigurationRead
+            Effect: Allow
+            Action:
+            - lambda:GetFunctionRecursionConfig
+            - lambda:GetRuntimeManagementConfig
+            - lambda:GetFunctionScalingConfig
+            Resource: arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: OwnMappingSystemTagBootstrap
+            Effect: Allow
+            Action:
+            - lambda:TagResource
+            Resource: arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+                aws:RequestTag/aws:cloudformation:stack-name: muserelay-aws-bridge-stage
+                aws:RequestTag/aws:cloudformation:logical-id: InboundFunctionInput
+          - Sid: OwnMappingTagRead
+            Effect: Allow
+            Action:
+            - lambda:ListTags
+            Resource: arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+                aws:ResourceTag/aws:cloudformation:stack-name: muserelay-aws-bridge-stage
+                aws:ResourceTag/aws:cloudformation:logical-id: InboundFunctionInput
+          - Sid: OwnInboundDataProtectionMetadata
+            Effect: Allow
+            Action:
+            - logs:GetDataProtectionPolicy
+            Resource:
+            - arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound
+            - arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound:*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: RegionalProviderPolicyMetadata
+            Effect: Allow
+            Action:
+            - logs:DescribeIndexPolicies
+            - logs:DescribeResourcePolicies
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: OwnSecretProviderRead
+            Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource: arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-??????
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+                aws:ResourceTag/Component: aws-engagement-bridge
+                aws:ResourceTag/Environment: staging
+      - PolicyName: bridge-runtime-send-provisioning
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: PassOnlySendRuntimes
+            Effect: Allow
+            Action:
+            - iam:PassRole
+            Resource:
+            - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-enqueue-runtime
+            - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-sender-runtime
+            Condition:
+              StringEquals:
+                iam:PassedToService: lambda.amazonaws.com
+          - Sid: SendFunctionsProvisioning
+            Effect: Allow
+            Action:
+            - lambda:CreateFunction
+            - lambda:GetFunction
+            - lambda:GetFunctionConfiguration
+            - lambda:GetFunctionCodeSigningConfig
+            - lambda:GetFunctionConcurrency
+            - lambda:UpdateFunctionCode
+            - lambda:UpdateFunctionConfiguration
+            - lambda:DeleteFunction
+            - lambda:PutFunctionConcurrency
+            - lambda:DeleteFunctionConcurrency
+            - lambda:TagResource
+            - lambda:UntagResource
+            - lambda:ListTags
+            - lambda:GetFunctionRecursionConfig
+            - lambda:GetRuntimeManagementConfig
+            - lambda:GetFunctionScalingConfig
+            - lambda:AddPermission
+            - lambda:RemovePermission
+            - lambda:GetPolicy
+            Resource:
+            - arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-enqueue
+            - arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-sender
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: CreateOnlySenderMapping
+            Effect: Allow
+            Action:
+            - lambda:CreateEventSourceMapping
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+              ArnEquals:
+                lambda:FunctionArn: arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-sender
+          - Sid: ManageOnlySenderMapping
+            Effect: Allow
+            Action:
+            - lambda:GetEventSourceMapping
+            - lambda:UpdateEventSourceMapping
+            - lambda:DeleteEventSourceMapping
+            Resource: arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+              ArnEquals:
+                lambda:FunctionArn: arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-sender
+          - Sid: SenderMappingSystemTagBootstrap
+            Effect: Allow
+            Action:
+            - lambda:TagResource
+            Resource: arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+                aws:RequestTag/aws:cloudformation:stack-name: muserelay-aws-bridge-stage
+                aws:RequestTag/aws:cloudformation:logical-id: SenderFunctionOutput
+          - Sid: SenderMappingTagRead
+            Effect: Allow
+            Action:
+            - lambda:ListTags
+            Resource: arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+                aws:ResourceTag/aws:cloudformation:stack-name: muserelay-aws-bridge-stage
+                aws:ResourceTag/aws:cloudformation:logical-id: SenderFunctionOutput
+          - Sid: OutboundQueuesOnly
+            Effect: Allow
+            Action:
+            - sqs:CreateQueue
+            - sqs:DeleteQueue
+            - sqs:GetQueueUrl
+            - sqs:GetQueueAttributes
+            - sqs:SetQueueAttributes
+            - sqs:TagQueue
+            - sqs:UntagQueue
+            - sqs:ListQueueTags
+            Resource:
+            - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-queue
+            - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-dlq
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: SendLogGroupsProvisioning
+            Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:DeleteLogGroup
+            - logs:PutRetentionPolicy
+            - logs:DeleteRetentionPolicy
+            - logs:TagResource
+            - logs:UntagResource
+            - logs:ListTagsForResource
+            - logs:GetDataProtectionPolicy
+            Resource:
+            - arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-enqueue
+            - arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-enqueue:*
+            - arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-sender
+            - arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-sender:*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: OutboundSigningSecretMetadata
+            Effect: Allow
+            Action:
+            - secretsmanager:CreateSecret
+            - secretsmanager:DescribeSecret
+            - secretsmanager:TagResource
+            - secretsmanager:UntagResource
+            - secretsmanager:ListSecretVersionIds
+            - secretsmanager:GetResourcePolicy
+            Resource: arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-outbound-??????
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+          - Sid: OutboundSecretProviderRead
+            Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource: arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-outbound-??????
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+                aws:ResourceTag/Component: aws-engagement-bridge
+                aws:ResourceTag/Environment: staging
+          - Sid: OutboundHttpApiProvisioning
+            Effect: Allow
+            Action:
+            - apigateway:GET
+            - apigateway:POST
+            - apigateway:PUT
+            - apigateway:PATCH
+            - apigateway:DELETE
+            - apigateway:TagResource
+            - apigateway:UntagResource
+            Resource:
+            - arn:aws:apigateway:eu-west-1::/apis
+            - arn:aws:apigateway:eu-west-1::/apis/*
+            - arn:aws:apigateway:eu-west-1::/tags/*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  KmsRecoveryRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RoleName: muserelay-aws-bridge-kms-recovery
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: arn:aws:iam::365470560685:root
+          Action: sts:AssumeRole
+          Condition:
+            ArnLike:
+              aws:PrincipalArn: arn:aws:iam::365470560685:role/aws-reserved/sso.amazonaws.com/eu-west-1/AWSReservedSSO_AdministratorAccess_*
+      MaxSessionDuration: 3600
+      Policies:
+      - PolicyName: bridge-stage-scoped
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: RecoverTaggedStageKeyPolicy
+            Effect: Allow
+            Action:
+            - kms:DescribeKey
+            - kms:GetKeyPolicy
+            - kms:PutKeyPolicy
+            Resource: arn:aws:kms:eu-west-1:365470560685:key/*
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: eu-west-1
+                aws:ResourceTag/Company: ScreenArt
+                aws:ResourceTag/Component: aws-engagement-bridge
+                aws:ResourceTag/Environment: staging
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  InboundExecutionRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RoleName: muserelay-aws-bridge-stage-inbound-runtime
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: bridge-runtime
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: OwnState
+            Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            Resource: arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state
+          - Sid: OwnSigningSecret
+            Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource: arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-??????
+          - Sid: OwnLogs
+            Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-inbound:*
+          - Sid: OwnQueue
+            Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource: arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  EnqueueExecutionRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RoleName: muserelay-aws-bridge-stage-enqueue-runtime
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: bridge-runtime
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: OwnState
+            Effect: Allow
+            Action:
+            - dynamodb:PutItem
+            Resource: arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state
+          - Sid: OwnSigningSecret
+            Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource: arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-outbound-??????
+          - Sid: OwnLogs
+            Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-enqueue:*
+          - Sid: OwnOutboundQueue
+            Effect: Allow
+            Action:
+            - sqs:SendMessage
+            Resource: arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-queue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  SenderExecutionRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RoleName: muserelay-aws-bridge-stage-sender-runtime
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: bridge-runtime
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: OwnState
+            Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            Resource: arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state
+          - Sid: OwnSigningSecret
+            Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource: arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-??????
+          - Sid: OwnLogs
+            Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-sender:*
+          - Sid: OwnQueue
+            Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource: arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-queue
+          - Fn::If:
+            - GrantSocialSend
+            - Sid: OnlyDemoPhone
+              Effect: Allow
+              Action:
+              - social-messaging:SendWhatsAppMessage
+              Resource: arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/b1e7f9e53c454f15be065a2e2b5a1f00
+            - Ref: AWS::NoValue
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+Outputs:
+  CloudFormationExecutionRoleArn:
+    Value:
+      Fn::GetAtt:
+      - StageCloudFormationRole
+      - Arn
+  KmsRecoveryRoleArn:
+    Value:
+      Fn::GetAtt:
+      - KmsRecoveryRole
+      - Arn
+  InboundExecutionRoleArn:
+    Value:
+      Fn::GetAtt:
+      - InboundExecutionRole
+      - Arn
+  EnqueueExecutionRoleArn:
+    Value:
+      Fn::GetAtt:
+      - EnqueueExecutionRole
+      - Arn
+  SenderExecutionRoleArn:
+    Value:
+      Fn::GetAtt:
+      - SenderExecutionRole
+      - Arn
+Parameters:
+  GrantSocialSend:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Separate approval required; first receipt review must leave false
+Conditions:
+  GrantSocialSend:
+    Fn::Equals:
+    - Ref: GrantSocialSend
+    - 'true'
+

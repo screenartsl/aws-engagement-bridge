@@ -38,8 +38,12 @@ def review():
  assert not rules(t,dict(values,DeployProcessing='true'))
  assert p['DeployProcessing']['Default']==p['ProcessingEnabled']['Default']==p['LiveSend']['Default']=='false'
  assert p['BindingsJson']['Default']=='[]'
- assert p['DailySendLimit']['Default']==p['DailySendLimit']['MaxValue']==6
- assert p['DailyInboundLimit']['Default']==p['DailyInboundLimit']['MaxValue']==6
+ # Production beta: 0 = no daily cap (Lambda and Core share the rule); a positive value still caps.
+ for n in ['DailySendLimit','DailyInboundLimit']:
+  assert p[n]['Default']==p[n]['MinValue']==0 and p[n]['MaxValue']==100000
+ # Account Lambda concurrency is 10: no reserved concurrency; consumers are capped by their mappings.
+ assert all('ReservedConcurrentExecutions' not in r[n]['Properties'] for n in ['InboundFunction','EnqueueFunction','SenderFunction'])
+ assert r['SenderFunction']['Properties']['Events']['Output']['Properties']['ScalingConfig']=={'MaximumConcurrency':2}
  assert t['Globals']['Function']['CodeUri']=={'Bucket':ref('ArtifactBucket'),'Key':ref('RuntimeArtifactKey')}
  assert t['Globals']['Function']['Environment']['Variables']['BRIDGE_RUNTIME_ENABLED']==ref('ProcessingEnabled')
  topic=r['InboundTopic']['Properties'];assert topic['FifoTopic'] is False and topic['MaximumMessageSize']==262144

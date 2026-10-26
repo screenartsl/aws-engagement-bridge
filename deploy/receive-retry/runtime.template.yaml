@@ -629,8 +629,8 @@ Resources:
     Type: AWS::Serverless::HttpApi
     Properties:
       DefaultRouteSettings:
-        ThrottlingBurstLimit: 2
-        ThrottlingRateLimit: 1
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 20
       Tags:
         Company: ScreenArt
         Project: MuseRelay
@@ -670,7 +670,6 @@ Resources:
   EnqueueFunction:
     Type: AWS::Serverless::Function
     Properties:
-      ReservedConcurrentExecutions: 1
       FunctionName:
         Fn::Sub: ${AWS::StackName}-enqueue
       Role:
@@ -697,7 +696,6 @@ Resources:
   SenderFunction:
     Type: AWS::Serverless::Function
     Properties:
-      ReservedConcurrentExecutions: 1
       FunctionName:
         Fn::Sub: ${AWS::StackName}-sender
       Role:
@@ -712,6 +710,8 @@ Resources:
               - OutboundQueue
               - Arn
             BatchSize: 1
+            ScalingConfig:
+              MaximumConcurrency: 2
             FunctionResponseTypes:
             - ReportBatchItemFailures
             Enabled:
