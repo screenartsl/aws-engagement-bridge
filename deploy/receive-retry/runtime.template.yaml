@@ -37,14 +37,14 @@ Parameters:
     AllowedPattern: phase4_[A-Za-z0-9_-]{4,56}
   DailySendLimit:
     Type: Number
-    Default: 6
-    MinValue: 1
-    MaxValue: 6
+    Default: 0
+    MinValue: 0
+    MaxValue: 100000
   DailyInboundLimit:
     Type: Number
-    Default: 6
-    MinValue: 1
-    MaxValue: 6
+    Default: 0
+    MinValue: 0
+    MaxValue: 100000
   KmsAdministratorArn:
     Type: String
     AllowedValues:

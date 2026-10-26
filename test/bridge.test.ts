@@ -74,9 +74,14 @@ test('delivery/read events stay statuses, never become customer prompts', () => 
   const events = normalize(envelope([], [{ id: 'wamid.out', timestamp: '1792860000', status: 'read' }]), [binding]);
   assert.equal(events[0]?.kind, 'status'); assert.equal(events[0]?.text, undefined);
 });
-test('MVP ignores media and users outside its explicit allowlist', () => {
+test('MVP ignores media; empty allowlist = open number, non-empty list restricts senders', () => {
   assert.equal(normalize(envelope([{ type: 'image' }]), [binding]).length, 0);
-  assert.equal(normalize(envelope(), [{ ...binding, allowedRecipients: [] }]).length, 0);
+  assert.equal(normalize(envelope(), [{ ...binding, allowedRecipients: [] }]).length, 1);
+  assert.equal(normalize(envelope(), [{ ...binding, allowedRecipients: ['+34600000000'] }]).length, 0);
+});
+test('open binding still validates the outbound recipient format', () => {
+  assert.doesNotThrow(() => outbound({ ...command, recipient: '+12025550124' }, [{ ...binding, allowedRecipients: [] }]));
+  assert.throws(() => outbound({ ...command, recipient: 'not-a-phone' }, [{ ...binding, allowedRecipients: [] }]), /invalid_recipient|invalid_string/);
 });
 test('outbound cannot select another channel or recipient', () => {
   assert.throws(() => outbound({ ...command, channelRef: 'other-tenant' }, [binding]), /channel_mismatch/);
@@ -139,6 +144,12 @@ test('ingress deduplicates and retries a failed Core delivery', async () => {
   await assert.rejects(ingest(envelope(), [binding], store, core)); assert.equal(store.entries.size, 0);
   core.fail = false; await ingest(envelope(), [binding], store, core); await ingest(envelope(), [binding], store, core);
   assert.equal(core.events.length, 1);
+});
+test('daily limit 0 means no cap: inbound is forwarded without spending budget', async () => {
+  const store = new MemoryState(); const core = new Core(); store.allowSpend = false;
+  await ingest(envelope(), [binding], store, core, 0);
+  assert.equal(core.events.length, 1);
+  await assert.rejects(ingest(envelope(), [binding], store, core, -1), /invalid_daily_limit/);
 });
 test('statuses do not consume agent turn budget and inbound budget blocks forwarding', async () => {
   const store = new MemoryState(); const core = new Core(); store.allowSpend = false;

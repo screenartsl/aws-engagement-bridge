@@ -28,7 +28,8 @@ export function normalize(envelope: unknown, bindings: Binding[]): InboundEvent[
       if (msg.type !== 'text') continue; // MVP: no media downloads or automatic media replies.
       const from = string(msg.from, 15);
       if (!/^[1-9]\d{6,14}$/.test(from)) throw new BridgeError('invalid_sender');
-      if (!binding.allowedRecipients.includes(`+${from}`)) continue;
+      // Empty list = open number (anyone may write); a non-empty list restricts senders.
+      if (binding.allowedRecipients.length && !binding.allowedRecipients.includes(`+${from}`)) continue;
       const id = string(msg.id);
       const text = string(record(msg.text).body, 4096);
       events.push({ version: 1, eventId: stableId(binding.id, 'message', id), bindingId: binding.id,

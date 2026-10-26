@@ -103,7 +103,8 @@ export function outbound(value: unknown, bindings: Binding[]): { command: Outbou
   if (!/^[a-zA-Z0-9_-]{8,100}$/.test(commandId)) throw new BridgeError('invalid_command_id');
   if (c.channelRef !== binding.channelRef) throw new BridgeError('channel_mismatch');
   const recipient = string(c.recipient, 16);
-  if (!binding.allowedRecipients.includes(recipient)) throw new BridgeError('recipient_not_allowed');
+  if (!/^\+[1-9]\d{6,14}$/.test(recipient)) throw new BridgeError('invalid_recipient');
+  if (binding.allowedRecipients.length && !binding.allowedRecipients.includes(recipient)) throw new BridgeError('recipient_not_allowed');
   const text = string(c.text, 4096);
   if (!text.trim()) throw new BridgeError('empty_text');
   return { binding, command: { version: 1, commandId, bindingId, channelRef: binding.channelRef, recipient, text } };

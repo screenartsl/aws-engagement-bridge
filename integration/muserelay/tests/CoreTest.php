@@ -429,6 +429,19 @@ final class CoreTest extends TestCase
         $b = $this->store->binding('demo'); $this->outbox->enqueue($b, '+12025550123', 'Synthetic one', 1, null);
         $this->expectExceptionMessage('daily_outbound_limit'); $this->outbox->enqueue($b, '+12025550123', 'Synthetic two', 2, null);
     }
+    public function testOpenBindingAcceptsAnySenderWithoutDailyCap(): void
+    {
+        // Empty allowed_recipients = open number; daily limits 0 = no cap.
+        $this->store->db->table('aws_bridge_bindings')->update(['allowed_recipients' => '[]', 'daily_inbound_limit' => 0, 'daily_outbound_limit' => 0]);
+        foreach (['wamid.open1', 'wamid.open2', 'wamid.open3'] as $id) {
+            $event = $this->event($id); $event['sender'] = '+34600000001';
+            self::assertSame('accepted', $this->store->accept('demo', $event)['status']);
+        }
+        $b = $this->store->binding('demo');
+        self::assertArrayHasKey('message_id', $this->outbox->enqueue($b, '+12025550124', 'Synthetic open reply', null, null));
+        try { $this->outbox->enqueue($b, 'not-a-phone', 'Synthetic', null, null); self::fail('must reject'); }
+        catch (BridgeException $e) { self::assertSame('recipient_not_allowed', $e->reason); }
+    }
     public function testSigningKeysCannotComeFromDevelopmentOrReplicatedDirectory(): void
     {
         $this->expectExceptionMessage('protected_signing_keys_required');

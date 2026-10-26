@@ -28,7 +28,9 @@ final class Protocol
         if ($kind === 'message') {
             $sender = $input['sender'] ?? '';
             $text = $input['text'] ?? '';
-            if (!is_string($sender) || !preg_match('/^\+[1-9][0-9]{6,14}$/D', $sender) || !in_array($sender, json_decode($b->allowed_recipients, true, 8, JSON_THROW_ON_ERROR), true)) throw new BridgeException('recipient_not_allowed', 403);
+            // Empty allowed_recipients = open number; a non-empty list restricts senders.
+            $allowed = json_decode($b->allowed_recipients, true, 8, JSON_THROW_ON_ERROR);
+            if (!is_string($sender) || !preg_match('/^\+[1-9][0-9]{6,14}$/D', $sender) || ($allowed !== [] && !in_array($sender, $allowed, true))) throw new BridgeException('recipient_not_allowed', 403);
             if (!is_string($text) || trim($text) === '' || mb_strlen($text) > 4096) throw new BridgeException('invalid_text');
             $event += ['sender' => $sender, 'text' => $text];
         } else $event['status'] = $input['status'];

@@ -92,9 +92,8 @@ final class Store
                 return ['status' => 'duplicate', 'id' => $event['eventId']];
             }
             if ($event['kind'] === 'message') {
-                $limit = (int) $b->daily_inbound_limit;
-                $used = $this->db->table('aws_bridge_events')->where('binding_id', $b->id)->where('kind', 'message')->where('created_epoch', '>=', (int) (floor($this->now() / 86400) * 86400))->count();
-                if ($limit < 1 || $limit > 100 || $used >= $limit) throw new BridgeException('daily_inbound_limit', 429);
+                $limit = (int) $b->daily_inbound_limit; // 0 = no daily cap
+                if ($limit > 0 && $this->db->table('aws_bridge_events')->where('binding_id', $b->id)->where('kind', 'message')->where('created_epoch', '>=', (int) (floor($this->now() / 86400) * 86400))->count() >= $limit) throw new BridgeException('daily_inbound_limit', 429);
             }
             $this->db->table('aws_bridge_events')->insert(['id' => $event['eventId'], 'binding_id' => $b->id, 'kind' => $event['kind'],
                 'digest' => $digest, 'payload' => $this->encode($event), 'created_epoch' => $this->now(), 'event_timestamp' => $event['timestamp']]);

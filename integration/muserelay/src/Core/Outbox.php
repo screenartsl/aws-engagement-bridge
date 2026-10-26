@@ -10,16 +10,17 @@ final class Outbox
     {
         $this->store->requireOperation('send');
         $b = $this->store->binding($binding->id, $binding->channel_ref);
-        if (!preg_match('/^\+[1-9][0-9]{6,14}$/D', $recipient) || !in_array($recipient, json_decode($b->allowed_recipients, true, 8, JSON_THROW_ON_ERROR), true)) throw new BridgeException('recipient_not_allowed', 403);
+        // Empty allowed_recipients = open number; a non-empty list restricts recipients.
+        $allowed = json_decode($b->allowed_recipients, true, 8, JSON_THROW_ON_ERROR);
+        if (!preg_match('/^\+[1-9][0-9]{6,14}$/D', $recipient) || ($allowed !== [] && !in_array($recipient, $allowed, true))) throw new BridgeException('recipient_not_allowed', 403);
         if (trim($text) === '' || mb_strlen($text) > 4096) throw new BridgeException('invalid_text');
         $id = $sourceId ? hash('sha256', $b->id.'|reply|'.$sourceId) : bin2hex(random_bytes(32));
         return $this->store->db->transaction(function () use ($b, $recipient, $text, $sourceId, $userId, $id): array {
             $this->store->db->table('aws_bridge_bindings')->where('id', $b->id)->lockForUpdate()->first();
             $old = $this->store->db->table('aws_bridge_outbox')->where('id', $id)->first();
             if ($old) return ['success' => true, 'message_id' => (int) $old->message_id, 'queued' => true, 'duplicate' => true];
-            $limit = (int) $b->daily_outbound_limit;
-            $used = $this->store->db->table('aws_bridge_outbox')->where('binding_id', $b->id)->where('created_epoch', '>=', (int) (floor($this->store->now() / 86400) * 86400))->count();
-            if ($limit < 1 || $limit > 100 || $used >= $limit) throw new BridgeException('daily_outbound_limit', 429);
+            $limit = (int) $b->daily_outbound_limit; // 0 = no daily cap
+            if ($limit > 0 && $this->store->db->table('aws_bridge_outbox')->where('binding_id', $b->id)->where('created_epoch', '>=', (int) (floor($this->store->now() / 86400) * 86400))->count() >= $limit) throw new BridgeException('daily_outbound_limit', 429);
             $messageId = $this->core->outgoing($b, $recipient, $text, $sourceId, $userId);
             $payload = ['version' => 1, 'commandId' => $id, 'bindingId' => $b->id, 'channelRef' => $b->channel_ref, 'recipient' => $recipient, 'text' => $text];
             $this->store->db->table('aws_bridge_outbox')->insert(['id' => $id, 'binding_id' => $b->id, 'message_id' => $messageId,
