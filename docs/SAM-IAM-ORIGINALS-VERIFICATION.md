@@ -15,6 +15,13 @@ exactamente la primera. Esa declaración añade solo
 permanecen idénticos. El valor real del parámetro y Replacement deben verificarse
 en AWS; el default de la plantilla no basta.
 
+Corrección 26/10/2026: DescribeChangeSet no devuelve RoleARN en su esquema oficial.
+El octavo PASS de la versión anterior, rotulado «Sin nuevo rol de servicio», no
+acreditaba esa afirmación. El verificador actual lo limita al formato de respuesta;
+la identidad de ejecución exige DescribeStacks y revisar la solicitud CreateChangeSet
+en CloudTrail. El null de una consulta a un campo ausente no es evidencia del rol.
+Para el runtime usar [la revisión posterior](../deploy/receive-retry/POST-CREATION-REVIEW.md).
+
 ## Lecturas desde CloudShell AdministratorAccess
 
 En la cuenta 365470560685, sin cambiar permisos ni ejecutar conjuntos:
@@ -51,7 +58,7 @@ Solo utiliza la biblioteca estándar, lee los archivos locales y escribe un
 resumen en pantalla. No llama a AWS, consulta credenciales, ejecuta cambios ni
 imprime TemplateBody. Comprueba los hashes completos de ambas plantillas,
 cuenta/región/pila/conjunto, estado, un único Modify del ejecutor, Replacement=False,
-Scope=Properties, GrantSocialSend=false y ausencia de nuevo service role IAM.
+Scope=Properties y GrantSocialSend=false. No acredita el service role IAM.
 Acepta YAML idéntico byte por byte o JSON estructuralmente idéntico; un YAML
 reformateado requiere revisión y nunca se acepta por aproximación.
 

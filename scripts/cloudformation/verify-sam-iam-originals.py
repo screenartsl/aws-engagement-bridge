@@ -73,7 +73,9 @@ def verify(current, proposed, metadata):
         and isinstance(parameters[0],dict)
         and parameters[0].get('ParameterKey')=='GrantSocialSend'
         and parameters[0].get('ParameterValue')=='false')
-    checks['Sin nuevo rol de servicio en la pila IAM'] = metadata.get('RoleARN') in (None, '')
+    # DescribeChangeSet does not expose RoleARN. Absence only validates the
+    # response shape; it cannot prove the stack has no service role.
+    checks['DescribeChangeSet sin RoleARN ajeno al esquema documentado'] = metadata.get('RoleARN') in (None, '')
     return checks
 
 
@@ -91,6 +93,7 @@ def main():
     checks = verify(*data)
     for label,ok in checks.items():
         print(('PASS' if ok else 'REVISAR')+' — '+label)
+    print('NOTA: DescribeChangeSet no acredita el rol de ejecución. Verificar DescribeStacks y el RoleARN de la solicitud en CloudTrail por separado.')
     if not all(checks.values()):
         print('VERIFICACIÓN PENDIENTE. Puede requerir revisar contenido/formato o metadatos; no ejecutar.')
         return 1
