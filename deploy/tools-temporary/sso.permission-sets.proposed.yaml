@@ -1,0 +1,515 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'PROPOSAL ONLY: dedicated temporary Bridge tools permission sets; assignments disabled by default; deploy by
+  Identity Center admin only'
+Parameters:
+  IdentityCenterInstanceArn:
+    Type: String
+    Description: Actual authorized Identity Center instance ARN; do not invent
+  ApprovedHumanPrincipalId:
+    Type: String
+    Description: Existing verified dedicated workforce USER ID with MFA; not an email or IAM role
+  AssignPrepare:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+  AssignDeployClosed:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+Rules:
+  OnlyOneWriteProfile:
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::And:
+          - Fn::Equals:
+            - Ref: AssignPrepare
+            - 'true'
+          - Fn::Equals:
+            - Ref: AssignDeployClosed
+            - 'true'
+      AssertDescription: Do not assign both write profiles simultaneously
+Conditions:
+  PrepareApproved:
+    Fn::Equals:
+    - Ref: AssignPrepare
+    - 'true'
+  DeployApproved:
+    Fn::Equals:
+    - Ref: AssignDeployClosed
+    - 'true'
+Resources:
+  PreparePermissionSet:
+    Type: AWS::SSO::PermissionSet
+    Properties:
+      InstanceArn:
+        Ref: IdentityCenterInstanceArn
+      Name: BridgeToolsPrepare
+      Description: Temporary scoped Bridge tools proposal; no admin or automatic activation
+      SessionDuration: PT1H
+      InlinePolicy:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: CallerIdentity
+          Effect: Allow
+          Action:
+          - sts:GetCallerIdentity
+          Resource: '*'
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeStackMetadata
+          Effect: Allow
+          Action:
+          - cloudformation:DescribeStacks
+          - cloudformation:DescribeStackEvents
+          - cloudformation:DescribeStackResources
+          - cloudformation:ListStackResources
+          - cloudformation:GetTemplate
+          Resource:
+          - arn:aws:cloudformation:eu-west-1:365470560685:stack/muserelay-aws-bridge-stage/*
+          - arn:aws:cloudformation:eu-west-1:365470560685:stack/muserelay-aws-bridge-iam-foundation/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: ReviewedChangeSetMetadata
+          Effect: Allow
+          Action:
+          - cloudformation:DescribeChangeSet
+          Resource:
+          - arn:aws:cloudformation:eu-west-1:365470560685:changeSet/sam-transform-iam-review-d60476a283b7/*
+          - arn:aws:cloudformation:eu-west-1:365470560685:changeSet/receive-sam-review-88161733676d-82707086-fix1/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeRoleMetadata
+          Effect: Allow
+          Action:
+          - iam:GetRole
+          - iam:ListRolePolicies
+          - iam:GetRolePolicy
+          - iam:ListAttachedRolePolicies
+          Resource:
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-enqueue-runtime
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-sender-runtime
+        - Sid: BridgeLambdaMetadata
+          Effect: Allow
+          Action:
+          - lambda:GetFunctionConcurrency
+          - lambda:GetPolicy
+          - lambda:ListTags
+          Resource:
+          - arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound
+          - arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-enqueue
+          - arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-sender
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeSnsMetadata
+          Effect: Allow
+          Action:
+          - sns:GetTopicAttributes
+          - sns:ListSubscriptionsByTopic
+          Resource: arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeQueueMetadata
+          Effect: Allow
+          Action:
+          - sqs:GetQueueUrl
+          - sqs:GetQueueAttributes
+          Resource:
+          - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue
+          - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-dlq
+          - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-sns-delivery-dlq
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeBucketMetadata
+          Effect: Allow
+          Action:
+          - s3:GetBucketLocation
+          - s3:GetBucketPublicAccessBlock
+          - s3:GetEncryptionConfiguration
+          - s3:GetBucketOwnershipControls
+          - s3:GetBucketPolicy
+          - s3:GetLifecycleConfiguration
+          - s3:GetBucketTagging
+          Resource: arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeKeyMetadata
+          Effect: Allow
+          Action:
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          Resource: arn:aws:kms:eu-west-1:365470560685:key/d712bd69-6b20-48b2-918a-fea097f7241a
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: PrepareOnlyBridgeRuntime
+          Effect: Allow
+          Action:
+          - cloudformation:CreateChangeSet
+          Resource: arn:aws:cloudformation:eu-west-1:365470560685:stack/muserelay-aws-bridge-stage/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+              cloudformation:RoleArn: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-tools-cfn-execution
+            StringLike:
+              cloudformation:ChangeSetName: bridge-tools-closed-*
+        - Sid: OwnReviewMetadata
+          Effect: Allow
+          Action:
+          - cloudformation:DescribeChangeSet
+          Resource: arn:aws:cloudformation:eu-west-1:365470560685:changeSet/bridge-tools-closed-*/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: PassOnlyBoundedExecutor
+          Effect: Allow
+          Action:
+          - iam:PassRole
+          Resource: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-tools-cfn-execution
+          Condition:
+            StringEquals:
+              iam:PassedToService: cloudformation.amazonaws.com
+        - Sid: InspectBoundedExecutor
+          Effect: Allow
+          Action:
+          - iam:GetRole
+          - iam:ListRolePolicies
+          - iam:GetRolePolicy
+          - iam:ListAttachedRolePolicies
+          Resource: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-tools-cfn-execution
+        - Sid: NewReviewArtifactsOnly
+          Effect: Allow
+          Action:
+          - s3:PutObject
+          Resource: arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/tooling-review/20261026/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+              s3:if-none-match: '*'
+              s3:x-amz-server-side-encryption: AES256
+        - Sid: ReviewArtifactsOnly
+          Effect: Allow
+          Action:
+          - s3:GetObject
+          Resource:
+          - arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/tooling-review/20261026/*
+          - arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/releases/82707086af6e0597d741c3e44e7ce843c074a326/bridge.zip
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: DenyUnlistedActions
+          Effect: Deny
+          NotAction:
+          - cloudformation:CreateChangeSet
+          - cloudformation:DescribeChangeSet
+          - cloudformation:DescribeStackEvents
+          - cloudformation:DescribeStackResources
+          - cloudformation:DescribeStacks
+          - cloudformation:GetTemplate
+          - cloudformation:ListStackResources
+          - iam:GetRole
+          - iam:GetRolePolicy
+          - iam:ListAttachedRolePolicies
+          - iam:ListRolePolicies
+          - iam:PassRole
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          - lambda:GetFunctionConcurrency
+          - lambda:GetPolicy
+          - lambda:ListTags
+          - s3:GetBucketLocation
+          - s3:GetBucketOwnershipControls
+          - s3:GetBucketPolicy
+          - s3:GetBucketPublicAccessBlock
+          - s3:GetBucketTagging
+          - s3:GetEncryptionConfiguration
+          - s3:GetLifecycleConfiguration
+          - s3:GetObject
+          - s3:PutObject
+          - sns:GetTopicAttributes
+          - sns:ListSubscriptionsByTopic
+          - sqs:GetQueueAttributes
+          - sqs:GetQueueUrl
+          - sts:GetCallerIdentity
+          Resource: '*'
+        - Sid: ExpireAllAccess
+          Effect: Deny
+          Action: '*'
+          Resource: '*'
+          Condition:
+            DateGreaterThanEquals:
+              aws:CurrentTime: '2026-10-27T00:00:00Z'
+  PrepareAssignment:
+    Type: AWS::SSO::Assignment
+    Condition: PrepareApproved
+    Properties:
+      InstanceArn:
+        Ref: IdentityCenterInstanceArn
+      PermissionSetArn:
+        Fn::GetAtt:
+        - PreparePermissionSet
+        - PermissionSetArn
+      PrincipalId:
+        Ref: ApprovedHumanPrincipalId
+      PrincipalType: USER
+      TargetId: '365470560685'
+      TargetType: AWS_ACCOUNT
+  DeployClosedPermissionSet:
+    Type: AWS::SSO::PermissionSet
+    Properties:
+      InstanceArn:
+        Ref: IdentityCenterInstanceArn
+      Name: BridgeToolsDeployClosed
+      Description: Temporary scoped Bridge tools proposal; no admin or automatic activation
+      SessionDuration: PT1H
+      InlinePolicy:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: CallerIdentity
+          Effect: Allow
+          Action:
+          - sts:GetCallerIdentity
+          Resource: '*'
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeStackMetadata
+          Effect: Allow
+          Action:
+          - cloudformation:DescribeStacks
+          - cloudformation:DescribeStackEvents
+          - cloudformation:DescribeStackResources
+          - cloudformation:ListStackResources
+          - cloudformation:GetTemplate
+          Resource:
+          - arn:aws:cloudformation:eu-west-1:365470560685:stack/muserelay-aws-bridge-stage/*
+          - arn:aws:cloudformation:eu-west-1:365470560685:stack/muserelay-aws-bridge-iam-foundation/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: ReviewedChangeSetMetadata
+          Effect: Allow
+          Action:
+          - cloudformation:DescribeChangeSet
+          Resource:
+          - arn:aws:cloudformation:eu-west-1:365470560685:changeSet/sam-transform-iam-review-d60476a283b7/*
+          - arn:aws:cloudformation:eu-west-1:365470560685:changeSet/receive-sam-review-88161733676d-82707086-fix1/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeRoleMetadata
+          Effect: Allow
+          Action:
+          - iam:GetRole
+          - iam:ListRolePolicies
+          - iam:GetRolePolicy
+          - iam:ListAttachedRolePolicies
+          Resource:
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-kms-recovery
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-inbound-runtime
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-enqueue-runtime
+          - arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-sender-runtime
+        - Sid: BridgeLambdaMetadata
+          Effect: Allow
+          Action:
+          - lambda:GetFunctionConcurrency
+          - lambda:GetPolicy
+          - lambda:ListTags
+          Resource:
+          - arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-inbound
+          - arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-enqueue
+          - arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-sender
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeSnsMetadata
+          Effect: Allow
+          Action:
+          - sns:GetTopicAttributes
+          - sns:ListSubscriptionsByTopic
+          Resource: arn:aws:sns:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeQueueMetadata
+          Effect: Allow
+          Action:
+          - sqs:GetQueueUrl
+          - sqs:GetQueueAttributes
+          Resource:
+          - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue
+          - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-dlq
+          - arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-sns-delivery-dlq
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeBucketMetadata
+          Effect: Allow
+          Action:
+          - s3:GetBucketLocation
+          - s3:GetBucketPublicAccessBlock
+          - s3:GetEncryptionConfiguration
+          - s3:GetBucketOwnershipControls
+          - s3:GetBucketPolicy
+          - s3:GetLifecycleConfiguration
+          - s3:GetBucketTagging
+          Resource: arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: BridgeKeyMetadata
+          Effect: Allow
+          Action:
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          Resource: arn:aws:kms:eu-west-1:365470560685:key/d712bd69-6b20-48b2-918a-fea097f7241a
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: PrepareOnlyBridgeRuntime
+          Effect: Allow
+          Action:
+          - cloudformation:CreateChangeSet
+          Resource: arn:aws:cloudformation:eu-west-1:365470560685:stack/muserelay-aws-bridge-stage/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+              cloudformation:RoleArn: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-tools-cfn-execution
+            StringLike:
+              cloudformation:ChangeSetName: bridge-tools-closed-*
+        - Sid: OwnReviewMetadata
+          Effect: Allow
+          Action:
+          - cloudformation:DescribeChangeSet
+          Resource: arn:aws:cloudformation:eu-west-1:365470560685:changeSet/bridge-tools-closed-*/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: PassOnlyBoundedExecutor
+          Effect: Allow
+          Action:
+          - iam:PassRole
+          Resource: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-tools-cfn-execution
+          Condition:
+            StringEquals:
+              iam:PassedToService: cloudformation.amazonaws.com
+        - Sid: InspectBoundedExecutor
+          Effect: Allow
+          Action:
+          - iam:GetRole
+          - iam:ListRolePolicies
+          - iam:GetRolePolicy
+          - iam:ListAttachedRolePolicies
+          Resource: arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-tools-cfn-execution
+        - Sid: NewReviewArtifactsOnly
+          Effect: Allow
+          Action:
+          - s3:PutObject
+          Resource: arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/tooling-review/20261026/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+              s3:if-none-match: '*'
+              s3:x-amz-server-side-encryption: AES256
+        - Sid: ReviewArtifactsOnly
+          Effect: Allow
+          Action:
+          - s3:GetObject
+          Resource:
+          - arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/tooling-review/20261026/*
+          - arn:aws:s3:::muserelay-aws-bridge-stage-artifacts-365470560685-eu-west-1/releases/82707086af6e0597d741c3e44e7ce843c074a326/bridge.zip
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: ExecuteReviewedRuntimeOnly
+          Effect: Allow
+          Action:
+          - cloudformation:ExecuteChangeSet
+          Resource: arn:aws:cloudformation:eu-west-1:365470560685:stack/muserelay-aws-bridge-stage/*
+          Condition:
+            StringEquals:
+              aws:RequestedRegion: eu-west-1
+        - Sid: DenyUnlistedActions
+          Effect: Deny
+          NotAction:
+          - cloudformation:CreateChangeSet
+          - cloudformation:DescribeChangeSet
+          - cloudformation:DescribeStackEvents
+          - cloudformation:DescribeStackResources
+          - cloudformation:DescribeStacks
+          - cloudformation:ExecuteChangeSet
+          - cloudformation:GetTemplate
+          - cloudformation:ListStackResources
+          - iam:GetRole
+          - iam:GetRolePolicy
+          - iam:ListAttachedRolePolicies
+          - iam:ListRolePolicies
+          - iam:PassRole
+          - kms:DescribeKey
+          - kms:GetKeyPolicy
+          - lambda:GetFunctionConcurrency
+          - lambda:GetPolicy
+          - lambda:ListTags
+          - s3:GetBucketLocation
+          - s3:GetBucketOwnershipControls
+          - s3:GetBucketPolicy
+          - s3:GetBucketPublicAccessBlock
+          - s3:GetBucketTagging
+          - s3:GetEncryptionConfiguration
+          - s3:GetLifecycleConfiguration
+          - s3:GetObject
+          - s3:PutObject
+          - sns:GetTopicAttributes
+          - sns:ListSubscriptionsByTopic
+          - sqs:GetQueueAttributes
+          - sqs:GetQueueUrl
+          - sts:GetCallerIdentity
+          Resource: '*'
+        - Sid: ExpireAllAccess
+          Effect: Deny
+          Action: '*'
+          Resource: '*'
+          Condition:
+            DateGreaterThanEquals:
+              aws:CurrentTime: '2026-10-27T00:00:00Z'
+  DeployClosedAssignment:
+    Type: AWS::SSO::Assignment
+    Condition: DeployApproved
+    Properties:
+      InstanceArn:
+        Ref: IdentityCenterInstanceArn
+      PermissionSetArn:
+        Fn::GetAtt:
+        - DeployClosedPermissionSet
+        - PermissionSetArn
+      PrincipalId:
+        Ref: ApprovedHumanPrincipalId
+      PrincipalType: USER
+      TargetId: '365470560685'
+      TargetType: AWS_ACCOUNT
+Outputs:
+  PreparePermissionSetArn:
+    Value:
+      Fn::GetAtt:
+      - PreparePermissionSet
+      - PermissionSetArn
+  DeployClosedPermissionSetArn:
+    Value:
+      Fn::GetAtt:
+      - DeployClosedPermissionSet
+      - PermissionSetArn

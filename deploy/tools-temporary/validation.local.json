@@ -1,0 +1,41 @@
+{
+  "status": "LOCAL_VALIDATION_ONLY_NO_AWS_CALLS",
+  "newContractTests": 14,
+  "relatedRegressionTests": 17,
+  "cloudFormationLint": {
+    "foundation.update.proposed.yaml": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "sso.permission-sets.proposed.yaml": {
+      "errors": 0,
+      "warnings": 0
+    }
+  },
+  "historyHeuristicScan": "PASS_ZERO_FINDINGS",
+  "foundationDelta": {
+    "Add": 4,
+    "ModifyBoundaryOnly": 3,
+    "previousExecutorRecoveryAndPoliciesPreserved": true
+  },
+  "filesSha256": {
+    "INSTALL-AFTER-APPROVAL.md": "44421be1e6af90decf647eae58cb9410ef2d9c8207ba57be412bdfc247f5fc74",
+    "README.md": "996ebd1d539571658ee9f61459592a869223a7f7ad8e1f33490a3191bf2a8014",
+    "executor.closed.policy.json": "2818696bbe5202915672bd30a39792dc4da20284826cbe5ede553b46ff23c8d7",
+    "executor.trust.json": "196c925d7763e3dbfbc46574d78e83b16b1ef2276e948ce1e7775fb86015d198",
+    "foundation.update.proposed.yaml": "9f5e01f4cdd2184c06565448c8f8efcdb38b8e9186d2ae8a01372e21197cb68e",
+    "ingress.stack-policy.proposed.json": "5797e1777c62d6a8ce34c5551a0c1922f36337053f465dbd6864291677170ba2",
+    "review-manifest.json": "132aa4bf6ebd2509faf4c235b878038182f4bc65240b22fd3f755df458e3ee7c",
+    "runtime.enqueue.closed.boundary.json": "f98f0f5803aace84349b55788d03bdd9cde659fd570a8fa17213e6763297f2f7",
+    "runtime.inbound.closed.boundary.json": "18a549e9ff7954dbd292b16e2bfb6029d379266ccbca67ea701140f7a379fc47",
+    "runtime.sender.closed.boundary.json": "20528b5de54bf64a233565bcb0ee9566fdc2abf08fb202c6afcc590f1cedbad3",
+    "sso.permission-sets.proposed.yaml": "84bbaa4f915a1709c25aa4a78062d30cc92df27f1bfcaee4c9d9cee85f890288",
+    "tools.deploy-closed.policy.json": "e16028c9c2658631c634f54c14d321af66d0ac1b50140815a6222b7ed73341ff",
+    "tools.prepare.policy.json": "f204b388d4c050d5f3ac48dbd1c8b992b4663650df137aa86fc9449619c2fdb3"
+  },
+  "awsAccessAnalyzerAndEffectivePermissions": "NOT_EXECUTED",
+  "trustedRunner": "NOT_IMPLEMENTED",
+  "linuxAccount": "NOT_CREATED_ROOT_REQUIRED",
+  "cloudFormationChangeSets": "NOT_CREATED_OR_EXECUTED",
+  "credentials": "NOT_CONFIGURED"
+}

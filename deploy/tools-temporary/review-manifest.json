@@ -1,0 +1,38 @@
+{
+  "status": "PROPOSAL_ONLY_NOT_AUTHORIZATION",
+  "account": "365470560685",
+  "region": "eu-west-1",
+  "stack": "muserelay-aws-bridge-stage",
+  "toolsExecutorArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-tools-cfn-execution",
+  "policyExpiry": "2026-10-27T00:00:00Z",
+  "sessionDurationSeconds": 3600,
+  "ssoInteractiveSessionHours": 8,
+  "maxWriteWindowHours": 24,
+  "requiresFoundationApproval": true,
+  "requiresExecutorAndAllRuntimeBoundariesVerified": true,
+  "requiresTrustedRunnerBeforeDeployCredentialExposure": true,
+  "trustedRunnerImplemented": false,
+  "requiresCloudTrailAuditVerified": true,
+  "initialScope": "INBOUND_ONLY",
+  "controls": {
+    "ProcessingEnabled": false,
+    "ReceiveEnabled": false,
+    "SendEnabled": false,
+    "LiveSend": false,
+    "DeployOutbound": false,
+    "GrantSocialSend": false
+  },
+  "requiresZeroAllowedRecipients": true,
+  "requiresDisabledBindings": true,
+  "requiresNoIngressResourceChanges": true,
+  "separateApprovals": [
+    "IAM_FOUNDATION",
+    "RUNTIME_DEPLOY_CLOSED",
+    "CONSUMERS_REAL_MESSAGES",
+    "WHATSAPP_SEND",
+    "CORE_PRODUCTION",
+    "REAL_MESSAGE_OR_SIGNIFICANT_COST_TEST"
+  ],
+  "sendPolicyPrepared": false,
+  "notes": "No execute permission in prepare profile. Deploy-closed profile cannot itself enforce template hash, parameter values or change set association; trusted runner and independent boundaries are mandatory."
+}

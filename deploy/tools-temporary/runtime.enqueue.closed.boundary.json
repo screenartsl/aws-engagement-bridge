@@ -1,0 +1,66 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OwnState",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem"
+      ],
+      "Resource": "arn:aws:dynamodb:eu-west-1:365470560685:table/muserelay-aws-bridge-stage-state"
+    },
+    {
+      "Sid": "OwnSigningSecret",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-outbound-??????"
+    },
+    {
+      "Sid": "OwnLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-enqueue:*"
+    },
+    {
+      "Sid": "OwnOutboundQueue",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:SendMessage"
+      ],
+      "Resource": "arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-queue"
+    },
+    {
+      "Sid": "DenyUnlistedActions",
+      "Effect": "Deny",
+      "NotAction": [
+        "dynamodb:PutItem",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "secretsmanager:GetSecretValue",
+        "sqs:SendMessage"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "BlockRealDataBeforeSeparateApproval",
+      "Effect": "Deny",
+      "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:ChangeMessageVisibility",
+        "sqs:SendMessage",
+        "secretsmanager:GetSecretValue",
+        "social-messaging:*",
+        "bedrock:*",
+        "sts:AssumeRole",
+        "sts:AssumeRoleWithWebIdentity"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

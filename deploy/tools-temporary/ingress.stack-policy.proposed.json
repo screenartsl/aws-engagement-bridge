@@ -1,0 +1,29 @@
+{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "Update:*",
+      "Principal": "*",
+      "Resource": "*"
+    },
+    {
+      "Effect": "Deny",
+      "Action": "Update:*",
+      "Principal": "*",
+      "Resource": [
+        "LogicalResourceId/SnsKey",
+        "LogicalResourceId/SnsKeyAlias",
+        "LogicalResourceId/InboundTopic",
+        "LogicalResourceId/TopicPolicy",
+        "LogicalResourceId/InboundDlq",
+        "LogicalResourceId/InboundQueue",
+        "LogicalResourceId/InboundQueuePolicy",
+        "LogicalResourceId/DeliveryDlq",
+        "LogicalResourceId/DeliveryDlqPolicy",
+        "LogicalResourceId/Subscription",
+        "LogicalResourceId/ArtifactBucket",
+        "LogicalResourceId/ArtifactBucketPolicy"
+      ]
+    }
+  ]
+}
