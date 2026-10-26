@@ -342,6 +342,15 @@ final class CoreTest extends TestCase
         (new Worker($this->store, $this->core, $this->scope))->once();
         self::assertSame(0, $this->core->turns); self::assertCount(1, $this->core->statuses);
     }
+    public function testStatusCarriesTheEchoedCommandRefAndRejectsAForgedOne(): void
+    {
+        // Meta returns biz_opaque_callback_data (our outbox commandId): the only link from the wamid to the outbox row.
+        $this->store->accept('demo', $this->event('wamid.out', 'status') + ['commandRef' => 'cmd_synthetic_0001']);
+        (new Worker($this->store, $this->core, $this->scope))->once();
+        self::assertSame('cmd_synthetic_0001', $this->core->statuses[0]['commandRef'] ?? null);
+        $this->expectException(BridgeException::class);
+        $this->store->accept('demo', $this->event('wamid.out2', 'status') + ['commandRef' => '../../x']);
+    }
     public function testTicketCheckpointSurvivesAnInterruptedTurnWithoutDuplicatingTheAction(): void
     {
         $this->store->accept('demo', $this->event());

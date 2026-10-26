@@ -74,6 +74,12 @@ test('delivery/read events stay statuses, never become customer prompts', () => 
   const events = normalize(envelope([], [{ id: 'wamid.out', timestamp: '1792860000', status: 'read' }]), [binding]);
   assert.equal(events[0]?.kind, 'status'); assert.equal(events[0]?.text, undefined);
 });
+test('status echoes our commandId as commandRef; malformed callback data is ignored', () => {
+  const ok = normalize(envelope([], [{ id: 'wamid.out', timestamp: '1792860000', status: 'delivered', biz_opaque_callback_data: 'cmd_synthetic_0001' }]), [binding]);
+  assert.equal(ok[0]?.commandRef, 'cmd_synthetic_0001'); assert.equal(ok[0]?.providerMessageId, 'wamid.out');
+  const bad = normalize(envelope([], [{ id: 'wamid.out', timestamp: '1792860000', status: 'delivered', biz_opaque_callback_data: '../x' }]), [binding]);
+  assert.equal(bad[0]?.commandRef, undefined);
+});
 test('MVP ignores media; empty allowlist = open number, non-empty list restricts senders', () => {
   assert.equal(normalize(envelope([{ type: 'image' }]), [binding]).length, 0);
   assert.equal(normalize(envelope(), [{ ...binding, allowedRecipients: [] }]).length, 1);
@@ -100,7 +106,8 @@ test('adapter invokes actual SDK command with AWS identity and UTF-8 payload', a
     assert.equal(c.input.metaApiVersion, 'v23.0');
     const data = JSON.parse(new TextDecoder().decode(c.input.message));
     assert.equal(data.to, '+12025550123'); assert.equal(data.text.body, command.text); // AWS Social requires E.164 with '+'
-    assert.equal(data.messaging_product, 'whatsapp'); return { messageId: 'aws.synthetic' };
+    assert.equal(data.messaging_product, 'whatsapp'); assert.equal(data.biz_opaque_callback_data, command.commandId);
+    return { messageId: 'aws.synthetic' };
   } }, 'v23.0', true);
   assert.deepEqual(await adapter.send(command, binding), { state: 'accepted', providerMessageId: 'aws.synthetic' }); assert.equal(calls, 1);
 });

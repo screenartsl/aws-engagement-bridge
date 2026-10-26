@@ -21,7 +21,9 @@ export class SocialAdapter {
         metaApiVersion: this.metaApiVersion,
         message: new TextEncoder().encode(JSON.stringify({ messaging_product: 'whatsapp',
           // AWS End User Messaging Social requires E.164 WITH '+' ("Invalid destination phone number" without it).
-          to: command.recipient, type: 'text', text: { body: command.text, preview_url: false } })),
+          to: command.recipient, type: 'text', text: { body: command.text, preview_url: false },
+          // Meta echoes this in every status webhook: the only reliable link between the AWS messageId and the wamid.
+          biz_opaque_callback_data: command.commandId })),
       }));
       evidence('social_api_result', { id: command.commandId, requestId: result.$metadata?.requestId, httpStatus: result.$metadata?.httpStatusCode, status: result.messageId ? 'accepted' : 'uncertain' });
       if (!result.messageId) return { state: 'uncertain', errorCode: 'missing_provider_id' };

@@ -42,8 +42,11 @@ export function normalize(envelope: unknown, bindings: Binding[]): InboundEvent[
       const id = string(status.id);
       const at = timestamp(status.timestamp);
       const state = status.status as NonNullable<InboundEvent['status']>;
-      events.push({ version: 1, eventId: stableId(binding.id, 'status', id, state, String(at)), bindingId: binding.id,
-        channelRef: binding.channelRef, resource, kind: 'status', providerMessageId: id, timestamp: at, status: state });
+      const event: InboundEvent = { version: 1, eventId: stableId(binding.id, 'status', id, state, String(at)), bindingId: binding.id,
+        channelRef: binding.channelRef, resource, kind: 'status', providerMessageId: id, timestamp: at, status: state };
+      const ref = status.biz_opaque_callback_data;
+      if (typeof ref === 'string' && /^[a-zA-Z0-9_-]{8,100}$/.test(ref)) event.commandRef = ref;
+      events.push(event);
     }
   }
   return events;

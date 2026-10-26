@@ -33,7 +33,14 @@ final class Protocol
             if (!is_string($sender) || !preg_match('/^\+[1-9][0-9]{6,14}$/D', $sender) || ($allowed !== [] && !in_array($sender, $allowed, true))) throw new BridgeException('recipient_not_allowed', 403);
             if (!is_string($text) || trim($text) === '' || mb_strlen($text) > 4096) throw new BridgeException('invalid_text');
             $event += ['sender' => $sender, 'text' => $text];
-        } else $event['status'] = $input['status'];
+        } else {
+            $event['status'] = $input['status'];
+            // Optional: our outbox commandId, echoed by Meta (biz_opaque_callback_data). Statuses carry the wamid,
+            // not the AWS messageId stored at send time, so this is the reliable link back to the outbox row.
+            $ref = $input['commandRef'] ?? null;
+            if ($ref !== null && (!is_string($ref) || !preg_match('/^[a-zA-Z0-9_-]{8,100}$/D', $ref))) throw new BridgeException('invalid_event');
+            if ($ref !== null) $event['commandRef'] = $ref;
+        }
         return $event;
     }
 }

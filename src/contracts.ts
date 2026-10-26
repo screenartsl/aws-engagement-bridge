@@ -28,6 +28,8 @@ export interface InboundEvent {
   sender?: string;
   text?: string;
   status?: 'sent' | 'delivered' | 'read' | 'failed';
+  /** Status only: our outbox commandId, echoed back by Meta as biz_opaque_callback_data. */
+  commandRef?: string;
 }
 
 export interface OutboundCommand {
