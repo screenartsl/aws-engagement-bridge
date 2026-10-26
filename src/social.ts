@@ -20,7 +20,8 @@ export class SocialAdapter {
         originationPhoneNumberId: binding.awsPhoneNumberId,
         metaApiVersion: this.metaApiVersion,
         message: new TextEncoder().encode(JSON.stringify({ messaging_product: 'whatsapp',
-          to: command.recipient.slice(1), type: 'text', text: { body: command.text, preview_url: false } })),
+          // AWS End User Messaging Social requires E.164 WITH '+' ("Invalid destination phone number" without it).
+          to: command.recipient, type: 'text', text: { body: command.text, preview_url: false } })),
       }));
       evidence('social_api_result', { id: command.commandId, requestId: result.$metadata?.requestId, httpStatus: result.$metadata?.httpStatusCode, status: result.messageId ? 'accepted' : 'uncertain' });
       if (!result.messageId) return { state: 'uncertain', errorCode: 'missing_provider_id' };

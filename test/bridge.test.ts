@@ -99,7 +99,7 @@ test('adapter invokes actual SDK command with AWS identity and UTF-8 payload', a
     assert.equal(c.input.originationPhoneNumberId, binding.awsPhoneNumberId);
     assert.equal(c.input.metaApiVersion, 'v23.0');
     const data = JSON.parse(new TextDecoder().decode(c.input.message));
-    assert.equal(data.to, '12025550123'); assert.equal(data.text.body, command.text);
+    assert.equal(data.to, '+12025550123'); assert.equal(data.text.body, command.text); // AWS Social requires E.164 with '+'
     assert.equal(data.messaging_product, 'whatsapp'); return { messageId: 'aws.synthetic' };
   } }, 'v23.0', true);
   assert.deepEqual(await adapter.send(command, binding), { state: 'accepted', providerMessageId: 'aws.synthetic' }); assert.equal(calls, 1);
