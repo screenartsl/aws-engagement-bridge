@@ -1,0 +1,75 @@
+{
+  "status": "LOCAL_PREPARATION_ONLY_NOT_CREATED_IN_AWS",
+  "account": "365470560685",
+  "region": "eu-west-1",
+  "stack": "muserelay-aws-bridge-stage",
+  "changeSet": "receive-sam-review-88161733676d-82707086-fix1",
+  "executionRoleArn": "arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-cfn-execution",
+  "iamPrerequisite": {
+    "stack": "muserelay-aws-bridge-iam-foundation",
+    "changeSet": "sam-transform-iam-review-d60476a283b7",
+    "originalVerificationSource": "Eight PASS reported by owner; not independently queried from this server",
+    "technicalGo": "Exact reviewed SAM permission only; owner execution authorization still required",
+    "requireUpdateCompleteAndEffectivePolicyReadBeforeRuntimeRetry": true
+  },
+  "expected": {
+    "inboundReservedConcurrency": null,
+    "inboundSqsMaximumConcurrency": 2,
+    "expectedAdds": [
+      {
+        "LogicalResourceId": "State",
+        "ResourceType": "AWS::DynamoDB::Table",
+        "Action": "Add"
+      },
+      {
+        "LogicalResourceId": "InboundFunction",
+        "ResourceType": "AWS::Lambda::Function",
+        "Action": "Add"
+      },
+      {
+        "LogicalResourceId": "InboundFunctionInput",
+        "ResourceType": "AWS::Lambda::EventSourceMapping",
+        "Action": "Add"
+      },
+      {
+        "LogicalResourceId": "InboundLogs",
+        "ResourceType": "AWS::Logs::LogGroup",
+        "Action": "Add"
+      },
+      {
+        "LogicalResourceId": "SigningSecret",
+        "ResourceType": "AWS::SecretsManager::Secret",
+        "Action": "Add"
+      }
+    ],
+    "expectedModifications": [],
+    "expectedRemovals": [],
+    "expectedReplacements": [],
+    "preserveOriginalIngressResources": 12
+  },
+  "runtimeExecutionAuthorized": false,
+  "consumerAuthorized": false,
+  "sendAuthorized": false,
+  "productionModificationAuthorized": false,
+  "newArtifactsUploaded": false,
+  "awsCalls": 0,
+  "existingS3ObjectEvidenceSource": "Owner-reported upload and checksum; not a fresh S3 read",
+  "coreEndpointConfigured": "https://aws-bridge-staging.muserelay.com",
+  "coreEndpointVerified": false,
+  "finalInbox": "Existing MuseRelay native inbox; no separate commercial installation",
+  "demoOrganizationId": 227,
+  "demoWorkspaceId": 312,
+  "requiresDemoScopeReverificationBeforeInstallation": true,
+  "parametersSha256": "c4c2ecbf6e47f3600dc5246523d19d3a43010af22bcf45d62f5d78dadee3fb83",
+  "templateSha256": "88161733676dae8d788eff092cf75c6430c5ca28860e7f7048804e5ce3f694ac",
+  "artifactSourceCommit": "82707086af6e0597d741c3e44e7ce843c074a326",
+  "artifactSha256": "9e377f798018aae44aa7aa93a6e9eb3887d991a1347b87b2a2d0a725826747db",
+  "controls": {
+    "DeployProcessing": "true",
+    "DeployOutbound": "false",
+    "ProcessingEnabled": "false",
+    "ReceiveEnabled": "false",
+    "SendEnabled": "false",
+    "LiveSend": "false"
+  }
+}

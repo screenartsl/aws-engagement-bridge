@@ -1,6 +1,6 @@
 # Conectar la demo: trabajo en paralelo y autorizaciones
 
-**HOLD — 26/10/2026:** el conjunto runtime falló al preparar la transformación SAM. El propietario no autoriza modificaciones IAM ni nuevos intentos antes de revisar la [corrección mínima y alternativa nativa](SAM-TRANSFORM-REVIEW-2026-10-26.md). Las instrucciones de preparación siguientes son históricas hasta escoger y autorizar una ruta; no repetirlas automáticamente. La subida S3 ya está verificada y no se repite.
+**Ruta vigente — 26/10/2026:** priorizar la [corrección SAM y reintento de recepción cerrado](../deploy/receive-retry/README.md), sin esperar BridgeTools. GO técnico limitado a la corrección mínima revisada y las ocho comprobaciones que comunica el propietario; su ejecución aún necesita autorización expresa. El reintento runtime se prepara después de UPDATE_COMPLETE y lectura del permiso efectivo. Las instrucciones/nombres siguientes son históricos: no reutilizar el conjunto FAILED ni repetir la subida S3. No ejecutar runtime, activar consumidores, enviar o cambiar Core por esta preparación.
 
 25/10/2026, Europe/Paris. Se mantiene el alcance de recepción primero. No se interpretan «vamos a conectarlo todo» ni la creación del usuario demo como autorización para desplegar recursos, modificar producción o consumir/envíar mensajes reales.
 
