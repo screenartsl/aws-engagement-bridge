@@ -23,7 +23,14 @@ final class BridgeServiceProvider extends ServiceProvider
     }
     public function boot(): void
     {
-        if ($this->app->runningInConsole()) $this->commands([DrainCommand::class]);
+        if ($this->app->runningInConsole()) {
+            $this->commands([DrainCommand::class]);
+            // The Core scheduler drains the durable inbox every 10 s, only while the extension is enabled.
+            $this->callAfterResolving(\Illuminate\Console\Scheduling\Schedule::class, function ($schedule): void {
+                $schedule->command('aws-bridge:drain --limit=10')->everyTenSeconds()->withoutOverlapping(5)
+                    ->when(fn (): bool => $this->app->make(RuntimeSettings::class)->enabled());
+            });
+        }
         // Migrations are deliberately not auto-registered: apply the reviewed path only after authorization.
         // Installed routes remain registered: runtime guards enforce disconnect even in long-lived workers.
         if ($this->app->routesAreCached()) return;
