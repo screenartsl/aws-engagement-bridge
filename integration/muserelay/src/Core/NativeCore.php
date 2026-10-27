@@ -75,7 +75,7 @@ final class NativeCore implements CorePort
         }
     }
 
-    public function outgoing(object $b, string $recipient, string $text, ?int $sourceId, ?int $userId): int
+    public function outgoing(object $b, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null): int
     {
         $this->store->requireOperation('send');
         $this->sameConnection();
@@ -90,14 +90,20 @@ final class NativeCore implements CorePort
         }
         if ($conversation->status === 'closed' || (!$userId && $conversation->automation_paused)) throw new BridgeException('conversation_paused', 409);
         if ($userId && !$conversation->userCanWrite(\App\Models\User::findOrFail($userId))) throw new BridgeException('write_not_authorized', 403);
-        $lastInbound = Message::where('channel_id', $channel->id)->where('conversation_id', $conversation->id)->where('direction', 'inbound')->latest('created_at')->first();
-        if (!$lastInbound || Carbon::parse($lastInbound->created_at)->getTimestamp() < $this->store->now() - 86400) throw new BridgeException('customer_window_closed', 409);
-        $payload = ['messaging_product' => 'whatsapp', 'type' => 'text', 'to' => ltrim($recipient, '+'), 'text' => ['body' => $text]];
+        // Free text needs the customer's 24 h window; an approved template is exactly what WhatsApp allows outside it.
+        if (!$template) {
+            $lastInbound = Message::where('channel_id', $channel->id)->where('conversation_id', $conversation->id)->where('direction', 'inbound')->latest('created_at')->first();
+            if (!$lastInbound || Carbon::parse($lastInbound->created_at)->getTimestamp() < $this->store->now() - 86400) throw new BridgeException('customer_window_closed', 409);
+        }
+        $payload = $template
+            ? ['messaging_product' => 'whatsapp', 'type' => 'template', 'to' => ltrim($recipient, '+'), 'template' => ['name' => $template['name'], 'language' => ['code' => $template['language']]]]
+            : ['messaging_product' => 'whatsapp', 'type' => 'text', 'to' => ltrim($recipient, '+'), 'text' => ['body' => $text]];
         app(\App\Services\MetaMessagingPolicyService::class)->assertPayloadAllowed($channel, $contact, $payload, $userId);
         if (app(\App\Services\Billing\WhatsAppPlanLimits::class)->blockMessage($channel, $contact, $payload) !== null) throw new BridgeException('plan_limit', 409);
-        $message = Message::create(['conversation_id' => $conversation->id, 'channel_id' => $channel->id, 'direction' => 'outbound', 'message_type' => 'text',
+        $message = Message::create(['conversation_id' => $conversation->id, 'channel_id' => $channel->id, 'direction' => 'outbound', 'message_type' => $template ? 'template' : 'text',
             'content' => $text, 'status' => 'pending', 'sender_type' => $userId ? 'agent' : 'bot', 'sender_id' => $userId, 'is_from_bot' => !$userId,
-            'metadata' => ['sent_via' => 'aws_engagement_bridge', 'source_message_id' => $sourceId]]);
+            'metadata' => ['sent_via' => 'aws_engagement_bridge', 'source_message_id' => $sourceId]
+                + ($template ? ['template_name' => $template['name'], 'template_lang' => $template['language'], 'template_params' => $template['parameters']] : [])]);
         $conversation->update(['last_message_at' => now()]);
         $this->store->db->afterCommit(function () use ($message, $conversation, $userId): void {
             try { InboxBroadcaster::messageSent($message, $conversation, $userId); } catch (\Throwable) {}
@@ -123,6 +129,7 @@ final class NativeCore implements CorePort
         if ($conversation->status === 'closed' || ($outbox->source_message_id && ($conversation->automation_paused || $channel->aiRepliesAsDraft()))) throw new BridgeException('conversation_paused', 409);
         if ($outbox->source_message_id) $this->authorizeTurn($b, (object) ['conversation_id' => $conversation->id, 'message_id' => $outbox->source_message_id]);
         if ($message->sender_id && !$conversation->userCanWrite(\App\Models\User::findOrFail($message->sender_id))) throw new BridgeException('write_not_authorized', 403);
+        if (isset($command['template'])) return;
         $last = Message::where('conversation_id', $conversation->id)->where('channel_id', $b->channel_id)->where('direction', 'inbound')->latest('created_at')->first();
         if (!$last || Carbon::parse($last->created_at)->getTimestamp() < $this->store->now() - 86400) throw new BridgeException('customer_window_closed', 409);
     }

@@ -6,7 +6,7 @@ final class Outbox
 {
     public function __construct(private Store $store, private CorePort $core) {}
 
-    public function enqueue(object $binding, string $recipient, string $text, ?int $sourceId, ?int $userId): array
+    public function enqueue(object $binding, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null): array
     {
         $this->store->requireOperation('send');
         $b = $this->store->binding($binding->id, $binding->channel_ref);
@@ -14,19 +14,32 @@ final class Outbox
         $allowed = json_decode($b->allowed_recipients, true, 8, JSON_THROW_ON_ERROR);
         if (!preg_match('/^\+[1-9][0-9]{6,14}$/D', $recipient) || ($allowed !== [] && !in_array($recipient, $allowed, true))) throw new BridgeException('recipient_not_allowed', 403);
         if (trim($text) === '' || mb_strlen($text) > 4096) throw new BridgeException('invalid_text');
+        if ($template !== null) $template = self::template($template);
         $id = $sourceId ? hash('sha256', $b->id.'|reply|'.$sourceId) : bin2hex(random_bytes(32));
-        return $this->store->db->transaction(function () use ($b, $recipient, $text, $sourceId, $userId, $id): array {
+        return $this->store->db->transaction(function () use ($b, $recipient, $text, $sourceId, $userId, $id, $template): array {
             $this->store->db->table('aws_bridge_bindings')->where('id', $b->id)->lockForUpdate()->first();
             $old = $this->store->db->table('aws_bridge_outbox')->where('id', $id)->first();
             if ($old) return ['success' => true, 'message_id' => (int) $old->message_id, 'queued' => true, 'duplicate' => true];
             $limit = (int) $b->daily_outbound_limit; // 0 = no daily cap
             if ($limit > 0 && $this->store->db->table('aws_bridge_outbox')->where('binding_id', $b->id)->where('created_epoch', '>=', (int) (floor($this->store->now() / 86400) * 86400))->count() >= $limit) throw new BridgeException('daily_outbound_limit', 429);
-            $messageId = $this->core->outgoing($b, $recipient, $text, $sourceId, $userId);
-            $payload = ['version' => 1, 'commandId' => $id, 'bindingId' => $b->id, 'channelRef' => $b->channel_ref, 'recipient' => $recipient, 'text' => $text];
+            $messageId = $this->core->outgoing($b, $recipient, $text, $sourceId, $userId, $template);
+            $payload = ['version' => 1, 'commandId' => $id, 'bindingId' => $b->id, 'channelRef' => $b->channel_ref, 'recipient' => $recipient, 'text' => $text]
+                + ($template ? ['template' => $template] : []);
             $this->store->db->table('aws_bridge_outbox')->insert(['id' => $id, 'binding_id' => $b->id, 'message_id' => $messageId,
                 'source_message_id' => $sourceId, 'payload' => $this->store->encode($payload), 'created_epoch' => $this->store->now()]);
             return ['success' => true, 'message_id' => $messageId, 'queued' => true, 'command_id' => $id];
         });
+    }
+
+    /** Same rules as the AWS side (contracts.ts templateRef): Meta template name, language code, up to 20 body parameters. */
+    public static function template(array $t): array
+    {
+        $name = $t['name'] ?? null; $language = $t['language'] ?? null; $parameters = $t['parameters'] ?? [];
+        if (!is_string($name) || strlen($name) > 512 || !preg_match('/^[a-z0-9_]+$/D', $name)
+            || !is_string($language) || !preg_match('/^[a-z]{2,3}(?:_[A-Za-z]{2,4})?$/D', $language)
+            || !is_array($parameters) || !array_is_list($parameters) || count($parameters) > 20) throw new BridgeException('invalid_template');
+        foreach ($parameters as $p) if (!is_string($p) || trim($p) === '' || mb_strlen($p) > 1024) throw new BridgeException('invalid_template');
+        return ['name' => $name, 'language' => $language, 'parameters' => $parameters];
     }
 
     public function receipt(string $authenticatedBinding, array $receipt): array

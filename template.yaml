@@ -692,6 +692,13 @@ Resources:
               Ref: HttpApi
             Path: /outbound
             Method: POST
+        Templates:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /templates
+            Method: POST
     Condition: DeployOutboundRuntime
   SenderFunction:
     Type: AWS::Serverless::Function

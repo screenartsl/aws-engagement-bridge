@@ -49,3 +49,21 @@ test('invalid JSON, oversized body and unknown routes cannot enqueue', async () 
   const e = event(); e.rawPath = '/unknown'; assert.equal((await enqueueRequest(e, p)).statusCode, 404);
   assert.equal(p.sent.length, 0);
 });
+function templatesEvent(body = JSON.stringify({ version: 1, bindingId: 'demo' }), signedPath = '/templates'): APIGatewayProxyEventV2 {
+  const e = event(body); const h = sign(secret, 'POST', signedPath, body);
+  e.rawPath = '/templates'; e.requestContext.http.path = '/templates';
+  e.headers = { 'x-bridge-binding': 'demo', 'x-bridge-timestamp': h.timestamp, 'x-bridge-nonce': h.nonce, 'x-bridge-signature': h.signature };
+  return e;
+}
+test('signed /templates lists templates once, never enqueues, and rejects replays', async () => {
+  const p = port(); const listed: string[] = [];
+  p.templates = async b => { listed.push(b.id); return [{ name: 'hello_world', language: 'en_US', category: 'UTILITY', components: [] }]; };
+  const e = templatesEvent(); const result = await enqueueRequest(e, p);
+  assert.equal(result.statusCode, 200); assert.equal(JSON.parse(result.body!).templates[0].name, 'hello_world');
+  assert.equal((await enqueueRequest(e, p)).statusCode, 409); assert.deepEqual(listed, ['demo']); assert.equal(p.sent.length, 0);
+});
+test('/templates rejects a signature made for /outbound and requests for another binding', async () => {
+  const p = port(); p.templates = async () => { throw new Error('must not be called'); };
+  assert.equal((await enqueueRequest(templatesEvent(undefined, '/outbound'), p)).statusCode, 401);
+  assert.equal((await enqueueRequest(templatesEvent(JSON.stringify({ version: 1, bindingId: 'other' })), p)).statusCode, 403);
+});

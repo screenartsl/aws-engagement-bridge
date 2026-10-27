@@ -1,28 +1,39 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { verify } from './auth.js';
-import { Binding, BridgeError, OutboundCommand, outbound, stableId } from './contracts.js';
+import { Binding, BridgeError, OutboundCommand, TemplateSummary, outbound, record, stableId, string } from './contracts.js';
 
 export interface EnqueuePort {
   bindings: Binding[];
   secret(bindingId: string): string | undefined;
   nonce(key: string): Promise<boolean>;
   queue(command: OutboundCommand): Promise<void>;
+  templates?(binding: Binding): Promise<TemplateSummary[]>;
 }
 export function jsonResponse(statusCode: number, body: unknown): APIGatewayProxyStructuredResultV2 {
   return { statusCode, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' }, body: JSON.stringify(body) };
 }
 export async function enqueueRequest(event: APIGatewayProxyEventV2, port: EnqueuePort): Promise<APIGatewayProxyStructuredResultV2> {
   try {
-    if (event.requestContext.http.method !== 'POST' || event.rawPath !== '/outbound') return jsonResponse(404, { error: 'not_found' });
+    const path = event.rawPath;
+    if (event.requestContext.http.method !== 'POST' || (path !== '/outbound' && path !== '/templates')) return jsonResponse(404, { error: 'not_found' });
     const body = event.isBase64Encoded ? Buffer.from(event.body ?? '', 'base64').toString('utf8') : event.body ?? '';
     if (Buffer.byteLength(body) > 20_000) return jsonResponse(413, { error: 'payload_too_large' });
     const id = event.headers['x-bridge-binding'] ?? '';
     const secret = port.secret(id);
     if (!secret) return jsonResponse(401, { error: 'unauthorized' });
     const nonce = event.headers['x-bridge-nonce'] ?? '';
-    verify(secret, 'POST', '/outbound', body, { nonce, timestamp: event.headers['x-bridge-timestamp'] ?? '', signature: event.headers['x-bridge-signature'] ?? '' });
+    verify(secret, 'POST', path, body, { nonce, timestamp: event.headers['x-bridge-timestamp'] ?? '', signature: event.headers['x-bridge-signature'] ?? '' });
     let value: unknown;
     try { value = JSON.parse(body); } catch { return jsonResponse(400, { error: 'invalid_json' }); }
+    if (path === '/templates') {
+      // Read-only listing for the inbox; signed and replay-protected like a send.
+      const request = record(value);
+      if (request.version !== 1 || string(request.bindingId, 80) !== id) return jsonResponse(403, { error: 'binding_mismatch' });
+      const binding = port.bindings.find(b => b.id === id && b.enabled);
+      if (!binding || !port.templates) return jsonResponse(422, { error: 'binding_disabled_or_unknown' });
+      if (!await port.nonce(stableId(id, nonce))) return jsonResponse(409, { error: 'replayed_request' });
+      return jsonResponse(200, { templates: await port.templates(binding) });
+    }
     const { command } = outbound(value, port.bindings);
     if (command.bindingId !== id) return jsonResponse(403, { error: 'binding_mismatch' });
     if (!await port.nonce(stableId(id, nonce))) return jsonResponse(409, { error: 'replayed_request' });
@@ -31,7 +42,7 @@ export async function enqueueRequest(event: APIGatewayProxyEventV2, port: Enqueu
   } catch (error) {
     const code = error instanceof BridgeError ? error.code : 'temporary_failure';
     const auth = ['expired_signature', 'invalid_signature', 'weak_secret'];
-    const validation = ['binding_disabled_or_unknown', 'recipient_not_allowed', 'channel_mismatch', 'invalid_command_id', 'empty_text', 'unsupported_version', 'invalid_string', 'invalid_object'];
+    const validation = ['binding_disabled_or_unknown', 'recipient_not_allowed', 'channel_mismatch', 'invalid_command_id', 'empty_text', 'unsupported_version', 'invalid_string', 'invalid_object', 'invalid_template', 'templates_not_configured'];
     return jsonResponse(auth.includes(code) ? 401 : validation.includes(code) ? 422 : 503, { error: code });
   }
 }

@@ -32,9 +32,10 @@ final class FixtureCore implements CorePort
     public function turn(object $b, object $event): void { $this->turns++; if ($this->onTurn) ($this->onTurn)($b, $event); }
     public function authorizeTurn(object $b, object $event): void { if ($this->blocked) throw new BridgeException('conversation_paused', 409); }
     public function authorizeOutgoing(object $b, object $outbox, array $command): void { if ($this->blocked) throw new BridgeException('conversation_paused', 409); }
-    public function outgoing(object $b, string $recipient, string $text, ?int $sourceId, ?int $userId): int
+    public ?array $lastTemplate = null;
+    public function outgoing(object $b, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null): int
     {
-        $this->outgoingCalls++;
+        $this->outgoingCalls++; $this->lastTemplate = $template;
         return $this->store->db->table('test_messages')->insertGetId(['conversation_id' => 1, 'content' => $this->store->encode(['text' => $text])]);
     }
     public function receipt(object $b, object $outbox, array $receipt): void { $this->receipts[] = $receipt; }
@@ -482,6 +483,34 @@ final class CoreTest extends TestCase
     {
         $this->expectExceptionMessage('protected_signing_keys_required');
         (new SigningKeys(__FILE__))->get('demo', 'core');
+    }
+    public function testTemplateReplyCarriesTheValidatedTemplateToCoreAndTheAwsCommand(): void
+    {
+        $this->controls=['receive'=>false,'agent'=>false,'send'=>true];
+        $template=['name'=>'appointment_reminder','language'=>'es','parameters'=>['Ana']];
+        $out=$this->outbox->enqueue($this->store->binding('demo'),'+12025550123','Hola Ana, te recordamos tu cita',null,99,$template);
+        self::assertTrue($out['queued']); self::assertSame($template,$this->core->lastTemplate);
+        $row=$this->store->db->table('aws_bridge_outbox')->where('id',$out['command_id'])->first();
+        self::assertSame($template,$this->store->decode($row->payload)['template']);
+        foreach ([['name'=>'Bad Name','language'=>'es','parameters'=>[]],['name'=>'ok','language'=>'es; x','parameters'=>[]],['name'=>'ok','language'=>'es','parameters'=>['']]] as $bad) {
+            try { $this->outbox->enqueue($this->store->binding('demo'),'+12025550123','x',null,99,$bad); self::fail('accepted '.json_encode($bad)); }
+            catch (BridgeException $e) { self::assertSame('invalid_template',$e->reason); }
+        }
+    }
+    public function testPublisherListsTemplatesWithASignatureBoundToTheTemplatesPath(): void
+    {
+        $secret = $this->secret;
+        $keys = new class($secret) implements KeySource { public function __construct(private string $secret) {} public function get(string $binding, string $direction): string { return $this->secret; } };
+        Illuminate\Support\Facades\Http::preventStrayRequests();
+        Illuminate\Support\Facades\Http::fake(function ($request) use ($secret) {
+            self::assertSame('https://synthetic.execute-api.eu-west-1.amazonaws.com/templates', $request->url());
+            BridgeSignature::verify($secret, 'POST', '/templates', $request->body(), [
+                'timestamp' => $request->header('x-bridge-timestamp')[0], 'nonce' => $request->header('x-bridge-nonce')[0], 'signature' => $request->header('x-bridge-signature')[0],
+            ]);
+            return Illuminate\Support\Facades\Http::response(['templates' => [['name' => 'hello_world', 'language' => 'en_US', 'category' => 'UTILITY', 'components' => []]]], 200);
+        });
+        $list = (new Publisher('https://synthetic.execute-api.eu-west-1.amazonaws.com/outbound', $keys))->templates('demo');
+        self::assertSame('hello_world', $list[0]['name']);
     }
     public function testPublisherSignsExactCommandBytesAgainstAFakeHttpTransport(): void
     {

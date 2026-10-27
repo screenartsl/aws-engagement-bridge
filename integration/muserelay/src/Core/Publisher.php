@@ -10,13 +10,27 @@ final class Publisher
     public function __construct(private string $url, private KeySource $keys) {}
     public function publish(string $binding, array $command): void
     {
+        $result = $this->post($binding, '/outbound', $command, 10);
+        if ($result->status() !== 202 || $result->json('id') !== $command['commandId'] || $result->json('status') !== 'accepted') throw new BridgeException('publish_not_acknowledged', 503);
+    }
+
+    /** Approved WhatsApp templates of the binding's WABA, read from AWS (signed, read-only). */
+    public function templates(string $binding): array
+    {
+        $result = $this->post($binding, '/templates', ['version' => 1, 'bindingId' => $binding], 20);
+        $templates = $result->status() === 200 ? $result->json('templates') : null;
+        if (!is_array($templates)) throw new BridgeException('templates_unavailable', 503);
+        return $templates;
+    }
+
+    private function post(string $binding, string $path, array $data, int $timeout): \Illuminate\Http\Client\Response
+    {
         $url = parse_url($this->url);
         if (!$url || ($url['scheme'] ?? '') !== 'https' || ($url['path'] ?? '') !== '/outbound' || isset($url['user']) || isset($url['pass'])
             || isset($url['query']) || isset($url['fragment']) || isset($url['port']) || !preg_match('/^[a-z0-9-]+\.execute-api\.eu-west-1\.amazonaws\.com$/D', $url['host'] ?? '')) throw new BridgeException('invalid_outbound_url', 503);
-        $body = json_encode($command, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-        $headers = BridgeSignature::sign($this->keys->get($binding, 'outbound'), 'POST', '/outbound', $body);
-        $result = Http::withHeaders(['x-bridge-binding' => $binding, 'x-bridge-timestamp' => $headers['timestamp'], 'x-bridge-nonce' => $headers['nonce'], 'x-bridge-signature' => $headers['signature']])
-            ->withBody($body, 'application/json')->withoutRedirecting()->connectTimeout(3)->timeout(10)->post($this->url);
-        if ($result->status() !== 202 || $result->json('id') !== $command['commandId'] || $result->json('status') !== 'accepted') throw new BridgeException('publish_not_acknowledged', 503);
+        $body = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $headers = BridgeSignature::sign($this->keys->get($binding, 'outbound'), 'POST', $path, $body);
+        return Http::withHeaders(['x-bridge-binding' => $binding, 'x-bridge-timestamp' => $headers['timestamp'], 'x-bridge-nonce' => $headers['nonce'], 'x-bridge-signature' => $headers['signature']])
+            ->withBody($body, 'application/json')->withoutRedirecting()->connectTimeout(3)->timeout($timeout)->post('https://'.$url['host'].$path);
     }
 }

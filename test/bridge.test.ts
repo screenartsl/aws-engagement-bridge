@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SendWhatsAppMessageCommand, SocialMessagingClient } from '@aws-sdk/client-socialmessaging';
+import { ListWhatsAppMessageTemplatesCommand, SendWhatsAppMessageCommand, SocialMessagingClient } from '@aws-sdk/client-socialmessaging';
 import { sign, verify } from '../src/auth.js';
 import { Binding, BridgeError, InboundEvent, OutboundCommand, SendResult, outbound, parseBindings } from '../src/contracts.js';
 import { normalize } from '../src/normalize.js';
@@ -110,6 +110,36 @@ test('adapter invokes actual SDK command with AWS identity and UTF-8 payload', a
     return { messageId: 'aws.synthetic' };
   } }, 'v23.0', true);
   assert.deepEqual(await adapter.send(command, binding), { state: 'accepted', providerMessageId: 'aws.synthetic' }); assert.equal(calls, 1);
+});
+test('template command sends a WhatsApp template with body parameters; invalid templates are rejected', async () => {
+  const tpl: OutboundCommand = { ...command, template: { name: 'appointment_reminder', language: 'es', parameters: ['Ana', 'lunes'] } };
+  let data: any;
+  const adapter = new SocialAdapter({ send: async c => { data = JSON.parse(new TextDecoder().decode(c.input.message)); return { messageId: 'aws.tpl' }; } }, 'v23.0', true);
+  assert.equal((await adapter.send(tpl, binding)).state, 'accepted');
+  assert.equal(data.type, 'template'); assert.equal(data.text, undefined); assert.equal(data.template.name, 'appointment_reminder');
+  assert.equal(data.template.language.code, 'es'); assert.deepEqual(data.template.components[0].parameters, [{ type: 'text', text: 'Ana' }, { type: 'text', text: 'lunes' }]);
+  assert.equal(data.biz_opaque_callback_data, tpl.commandId);
+  for (const template of [{ name: 'Bad Name', language: 'es', parameters: [] }, { name: 'ok', language: 'es; drop', parameters: [] }, { name: 'ok', language: 'es', parameters: [''] }]) {
+    assert.throws(() => outbound({ ...command, template }, [binding]), /invalid_template/);
+  }
+});
+test('templates lists only approved ones of the binding WABA, with their components', async () => {
+  const calls: string[] = [];
+  const adapter = new SocialAdapter({ send: async (c: any) => {
+    calls.push(c.constructor.name);
+    if (c instanceof ListWhatsAppMessageTemplatesCommand) {
+      assert.equal(c.input.id, 'waba-' + 'a'.repeat(32));
+      return { templates: [{ templateName: 'hello_world', templateLanguage: 'en_US', templateStatus: 'APPROVED', templateCategory: 'UTILITY', metaTemplateId: '1' },
+        { templateName: 'draft', templateLanguage: 'es', templateStatus: 'PENDING', metaTemplateId: '2' }] };
+    }
+    assert.equal(c.input.metaTemplateId, '1');
+    return { template: JSON.stringify({ components: [{ type: 'BODY', text: 'Hello {{1}}' }] }) };
+  } }, 'v23.0');
+  await assert.rejects(adapter.templates(binding), /templates_not_configured/);
+  const list = await adapter.templates({ ...binding, awsWabaId: 'waba-' + 'a'.repeat(32) });
+  assert.deepEqual(list, [{ name: 'hello_world', language: 'en_US', category: 'UTILITY', components: [{ type: 'BODY', text: 'Hello {{1}}' }] }]);
+  assert.deepEqual(calls, ['ListWhatsAppMessageTemplatesCommand', 'GetWhatsAppMessageTemplateCommand']);
+  assert.throws(() => parseBindings(JSON.stringify([{ ...binding, awsWabaId: 'waba-../x' }])), /invalid_aws_waba_id/);
 });
 test('official SDK serialization executes against an in-process HTTP handler, no network', async () => {
   let requests = 0;

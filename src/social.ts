@@ -1,8 +1,8 @@
-import { SocialMessagingClient, SendWhatsAppMessageCommand } from '@aws-sdk/client-socialmessaging';
+import { SocialMessagingClient, SendWhatsAppMessageCommand, ListWhatsAppMessageTemplatesCommand, GetWhatsAppMessageTemplateCommand } from '@aws-sdk/client-socialmessaging';
 import { evidence } from './evidence.js';
-import { Binding, BridgeError, OutboundCommand, SendResult, outbound } from './contracts.js';
+import { Binding, BridgeError, OutboundCommand, SendResult, TemplateSummary, outbound } from './contracts.js';
 
-export interface SocialTransport { send(command: SendWhatsAppMessageCommand): Promise<{ messageId?: string; $metadata?: { requestId?: string; httpStatusCode?: number } }>; }
+export interface SocialTransport { send(command: any): Promise<any>; }
 export class SocialAdapter {
   constructor(private readonly client: SocialTransport, private readonly metaApiVersion: string, private readonly liveEnabled = false) {}
 
@@ -15,13 +15,18 @@ export class SocialAdapter {
     outbound(command, [binding]);
     if (!this.liveEnabled) throw new BridgeError('live_sending_disabled');
     if (!/^v\d+\.\d+$/.test(this.metaApiVersion)) throw new BridgeError('invalid_meta_api_version');
+    // A template opens a conversation outside the 24 h window; Meta has already approved its text.
+    const content = command.template
+      ? { type: 'template', template: { name: command.template.name, language: { code: command.template.language },
+          ...(command.template.parameters.length ? { components: [{ type: 'body', parameters: command.template.parameters.map(text => ({ type: 'text', text })) }] } : {}) } }
+      : { type: 'text', text: { body: command.text, preview_url: false } };
     try {
       const result = await this.client.send(new SendWhatsAppMessageCommand({
         originationPhoneNumberId: binding.awsPhoneNumberId,
         metaApiVersion: this.metaApiVersion,
         message: new TextEncoder().encode(JSON.stringify({ messaging_product: 'whatsapp',
           // AWS End User Messaging Social requires E.164 WITH '+' ("Invalid destination phone number" without it).
-          to: command.recipient, type: 'text', text: { body: command.text, preview_url: false },
+          to: command.recipient, ...content,
           // Meta echoes this in every status webhook: the only reliable link between the AWS messageId and the wamid.
           biz_opaque_callback_data: command.commandId })),
       }));
@@ -36,5 +41,33 @@ export class SocialAdapter {
       if (name === 'ThrottledRequestException') throw new BridgeError('provider_throttled');
       return { state: 'uncertain', errorCode: 'provider_result_unknown' };
     }
+  }
+
+  /** Approved templates of the binding's WABA, read-only. Templates are created and approved in AWS/Meta, not here. */
+  async templates(binding: Binding, max = 50): Promise<TemplateSummary[]> {
+    if (!binding.awsWabaId) throw new BridgeError('templates_not_configured');
+    const approved: { metaTemplateId: string; name: string; language: string; category: string }[] = [];
+    let nextToken: string | undefined;
+    do {
+      const page = await this.client.send(new ListWhatsAppMessageTemplatesCommand({ id: binding.awsWabaId, maxResults: 100, nextToken }));
+      for (const t of page.templates ?? []) {
+        if (String(t.templateStatus ?? '').toUpperCase() === 'APPROVED' && t.metaTemplateId && t.templateName && t.templateLanguage) {
+          approved.push({ metaTemplateId: t.metaTemplateId, name: t.templateName, language: t.templateLanguage, category: t.templateCategory ?? '' });
+        }
+      }
+      nextToken = page.nextToken;
+    } while (nextToken && approved.length < max);
+    const result: TemplateSummary[] = [];
+    for (const t of approved.slice(0, max)) {
+      // The summary has no text; the full definition carries the components shown and filled in the inbox.
+      const full = await this.client.send(new GetWhatsAppMessageTemplateCommand({ id: binding.awsWabaId, metaTemplateId: t.metaTemplateId }));
+      let components: unknown[] = [];
+      try {
+        const parsed = JSON.parse(full.template ?? '{}');
+        if (Array.isArray(parsed?.components)) components = parsed.components;
+      } catch { /* keep the template listed without components */ }
+      result.push({ name: t.name, language: t.language, category: t.category, components });
+    }
+    return result;
   }
 }

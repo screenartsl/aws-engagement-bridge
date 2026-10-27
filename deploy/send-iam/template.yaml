@@ -518,6 +518,12 @@ Resources:
             Action:
             - sqs:SendMessage
             Resource: arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-queue
+          - Sid: ReadDemoWabaTemplates
+            Effect: Allow
+            Action:
+            - social-messaging:ListWhatsAppMessageTemplates
+            - social-messaging:GetWhatsAppMessageTemplate
+            Resource: arn:aws:social-messaging:eu-west-1:365470560685:waba/3fe299c6d9f34872bb25fcf4c0a5c44b
       Tags:
       - Key: Company
         Value: ScreenArt

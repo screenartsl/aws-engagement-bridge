@@ -10,6 +10,8 @@ export interface Binding {
   wabaId: string;
   metaPhoneNumberId: string;
   awsPhoneNumberId: string;
+  /** AWS id of the linked WABA (waba-…); needed only to list its message templates. */
+  awsWabaId?: string;
   region: string;
   channelRef: string;
   enabled: boolean;
@@ -38,8 +40,14 @@ export interface OutboundCommand {
   bindingId: string;
   channelRef: string;
   recipient: string;
+  /** Plain text, or the rendered body of the template (kept for the inbox; not what is sent). */
   text: string;
+  template?: TemplateRef;
 }
+
+export interface TemplateRef { name: string; language: string; parameters: string[]; }
+
+export interface TemplateSummary { name: string; language: string; category: string; components: unknown[]; }
 
 export interface SendResult {
   state: 'accepted' | 'rejected' | 'uncertain';
@@ -83,6 +91,11 @@ export function parseBindings(raw: string): Binding[] {
     if (!new RegExp(`^arn:aws:social-messaging:${region}:${account}:phone-number-id/[a-zA-Z0-9][a-zA-Z0-9-]*$`).test(awsPhoneNumberId)) {
       throw new BridgeError('invalid_aws_phone_arn');
     }
+    let awsWabaId: string | undefined;
+    if (b.awsWabaId !== undefined) {
+      awsWabaId = string(b.awsWabaId, 80);
+      if (!/^waba-[a-f0-9]{32}$/.test(awsWabaId)) throw new BridgeError('invalid_aws_waba_id');
+    }
     const identity = `${topicArn}:${wabaId}:${metaPhoneNumberId}`;
     const channelRef = string(b.channelRef, 80);
     if (ids.has(id) || identities.has(identity) || channels.has(channelRef)) throw new BridgeError('duplicate_binding');
@@ -90,7 +103,7 @@ export function parseBindings(raw: string): Binding[] {
     if (!Array.isArray(b.allowedRecipients) || b.allowedRecipients.length > 20 || !b.allowedRecipients.every(p => typeof p === 'string' && /^\+[1-9]\d{6,14}$/.test(p))) {
       throw new BridgeError('invalid_allowlist');
     }
-    return { id, topicArn, region, wabaId, metaPhoneNumberId, awsPhoneNumberId,
+    return { id, topicArn, region, wabaId, metaPhoneNumberId, awsPhoneNumberId, ...(awsWabaId ? { awsWabaId } : {}),
       channelRef, enabled: b.enabled === true, allowedRecipients: b.allowedRecipients as string[] };
   });
 }
@@ -109,5 +122,18 @@ export function outbound(value: unknown, bindings: Binding[]): { command: Outbou
   if (binding.allowedRecipients.length && !binding.allowedRecipients.includes(recipient)) throw new BridgeError('recipient_not_allowed');
   const text = string(c.text, 4096);
   if (!text.trim()) throw new BridgeError('empty_text');
-  return { binding, command: { version: 1, commandId, bindingId, channelRef: binding.channelRef, recipient, text } };
+  const command: OutboundCommand = { version: 1, commandId, bindingId, channelRef: binding.channelRef, recipient, text };
+  if (c.template !== undefined) command.template = templateRef(c.template);
+  return { binding, command };
+}
+
+export function templateRef(value: unknown): TemplateRef {
+  const t = record(value);
+  const name = string(t.name, 512);
+  const language = string(t.language, 15);
+  if (!/^[a-z0-9_]+$/.test(name)) throw new BridgeError('invalid_template');
+  if (!/^[a-z]{2,3}(?:_[A-Za-z]{2,4})?$/.test(language)) throw new BridgeError('invalid_template');
+  if (!Array.isArray(t.parameters) || t.parameters.length > 20
+    || !t.parameters.every(p => typeof p === 'string' && p.trim() !== '' && p.length <= 1024)) throw new BridgeError('invalid_template');
+  return { name, language, parameters: t.parameters as string[] };
 }

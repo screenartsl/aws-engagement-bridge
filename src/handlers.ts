@@ -54,10 +54,10 @@ export async function sender(event: SQSEvent, context?: Context): Promise<SQSBat
   return batch(event, async body => deliver(JSON.parse(body), rt.bindings, rt.store, rt.core, adapter, Number(env('BRIDGE_DAILY_SEND_LIMIT'))), context);
 }
 
-/** Only POST /outbound; no registration, permission changes, or management operations. */
+/** Only POST /outbound and the read-only POST /templates; no registration, permission changes, or management operations. */
 export async function enqueue(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
   try {
-    if (event.requestContext.http.method !== 'POST' || event.rawPath !== '/outbound') return jsonResponse(404, { error: 'not_found' });
+    if (event.requestContext.http.method !== 'POST' || (event.rawPath !== '/outbound' && event.rawPath !== '/templates')) return jsonResponse(404, { error: 'not_found' });
     if (!event.headers['x-bridge-binding'] || !event.headers['x-bridge-signature'] || !event.headers['x-bridge-timestamp'] || !event.headers['x-bridge-nonce']) {
       return jsonResponse(401, { error: 'unauthorized' });
     }
@@ -66,7 +66,8 @@ export async function enqueue(event: APIGatewayProxyEventV2): Promise<APIGateway
     return enqueueRequest(event, { bindings: rt.bindings, secret: id => rt.secrets[id]?.outbound,
       nonce: key => rt.store.nonce(key), queue: async command => {
         await new SQSClient({ region: rt.region }).send(new SendMessageCommand({ QueueUrl: env('BRIDGE_OUTBOUND_QUEUE_URL'), MessageBody: JSON.stringify(command) }));
-      } });
+      },
+      templates: binding => SocialAdapter.aws(rt.region, 'v23.0', false).templates(binding) });
   } catch {
     return jsonResponse(503, { error: 'temporary_failure' });
   }
