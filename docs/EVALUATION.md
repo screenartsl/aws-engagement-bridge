@@ -36,6 +36,8 @@ Recorded in MuseRelay for the demo WhatsApp channel; message contents omitted:
 | 6737 | outbound | accepted by `SendWhatsAppMessage` and received on the handset (before status correlation existed, so the inbox shows it as sent) |
 | 6741 | outbound | accepted, then **read**: the status came back through AWS and updated the inbox (commit `38983a0`) |
 
+Signed probe against the live MuseRelay endpoint (a status event for a non-existent message, so nothing changes in the inbox): valid signature → `202`, the same request repeated → `409` (replay rejected), forged signature → `401`.
+
 Not yet demonstrated: an AI agent reply (Bedrock) and its tools through this bridge.
 
 ## 4. What is new

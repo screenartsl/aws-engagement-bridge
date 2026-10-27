@@ -1,115 +1,184 @@
 # MuseRelay AWS Engagement Bridge
 
-WhatsApp for the MuseRelay customer-service platform, carried end to end by **AWS End User Messaging Social**. Conversations land in MuseRelay's native inbox, where a person or an AI agent replies; the reply goes back to WhatsApp through the official AWS SDK (`SendWhatsAppMessage`). MuseRelay never holds a Meta access token for these channels.
+**Real-time WhatsApp customer engagement powered by AWS End User Messaging Social.**
 
-**Owner:** Screen Art S.L. (Spain). This module is the original work of Screen Art S.L., created from 2026-10-24 for the AWS CDS Partner Hackathon. Commercialization may be handled by a related company under common ownership.
+An AWS-native WhatsApp transport that connects customer conversations to MuseRelay's existing unified inbox, enabling human replies and preparing the same channel for AI-powered customer service.
 
-## What is new and what already existed
+**Live SaaS platform:** https://muserelay.com  
+**Project owner and hackathon entrant:** Screen Art S.L. (Spain)  
+**AWS CDS Partner Hackathon · October 2026**
 
-| New in this repository (from 2026-10-24) | Pre-existing (MuseRelay, not in this repository) |
-| --- | --- |
-| AWS infrastructure template (SNS, SQS, Lambda, API Gateway, DynamoDB, KMS, Secrets Manager) | Unified inbox, organizations and workspaces |
-| Lambda handlers: inbound, enqueue, sender (`src/`) | AI agents, Bedrock integration and their tools (tickets, calendar, leads) |
-| `SendWhatsAppMessage` adapter on the official SDK (`src/social.ts`) | Ticket system, CRM, reseller panel |
-| Signed AWS ⇄ MuseRelay contract (HMAC, idempotency, leases) | |
-| MuseRelay connector package (`integration/muserelay/`) and Core hook patches | |
+*Versión en español: [README.es.md](README.es.md)*
 
-Git history keeps every original commit and date: `git log --all --format='%h %cI %s'`. More detail in [docs/PROVENANCE.md](docs/PROVENANCE.md).
+## The problem
 
-## Message flow
+Businesses need to connect WhatsApp conversations to customer service teams, AI agents and business workflows without maintaining separate inboxes or embedding long-lived Meta API tokens in their application.
+
+MuseRelay AWS Engagement Bridge solves the transport and integration problem by using **AWS End User Messaging Social** for WhatsApp messaging, while retaining MuseRelay's existing customer-service experience.
+
+Customers can communicate through WhatsApp, and their conversations appear in the same native inbox used by MuseRelay's other channels.
+
+## What we built
+
+The Bridge is a new, independently developed AWS integration created during the hackathon submission period, beginning October 24, 2026.
+
+It provides:
+
+- **AWS-native WhatsApp reception:** events travel through AWS End User Messaging Social, SNS, SQS and Lambda into MuseRelay.
+- **Human replies through AWS:** outbound messages are sent using the official AWS SDK and `SendWhatsAppMessage`.
+- **Native inbox integration:** messages, contacts, conversations and delivery statuses use MuseRelay's existing data model.
+- **Signed communication:** authenticated HTTPS messages connect AWS Lambda and MuseRelay.
+- **Reliable processing:** idempotency, duplicate protection, retry handling and durable state.
+- **Channel isolation:** bindings associate WhatsApp numbers with the correct MuseRelay organization and channel.
+
+The Bridge runs on AWS infrastructure without requiring MuseRelay's application servers or PostgreSQL database to be hosted on AWS.
+
+## Architecture
 
 ```mermaid
-flowchart LR
-  U[WhatsApp user] --> S[AWS End User Messaging Social]
-  S --> T[SNS topic, KMS-encrypted]
-  T --> IQ[SQS inbound + DLQ]
-  IQ --> IL[Inbound Lambda]
-  IL -->|HMAC-signed event| C[MuseRelay native inbox]
-  C --> H[Human agent or AI agent]
-  H -->|HMAC-signed command| API[API Gateway /outbound]
-  API --> EL[Enqueue Lambda]
-  EL --> OQ[SQS outbound + DLQ]
-  OQ --> SL[Sender Lambda]
-  SL -->|SendWhatsAppMessage| S
-  SL -->|signed receipt| C
-  S -->|delivered / read status| T
+flowchart TD
+    WA["Customer WhatsApp"] --> SOCIAL["AWS End User Messaging Social"]
+    SOCIAL --> SNS["Amazon SNS"]
+    SNS --> SQS["Amazon SQS"]
+    SQS --> IN["Inbound Lambda"]
+    IN -->|Signed HTTPS| CORE["MuseRelay Core"]
+    CORE --> INBOX["Native Inbox"]
+    INBOX --> HUMAN["Human Agent"]
+    INBOX -.-> AI["Existing AI Agent Framework"]
+    HUMAN --> OUT["Signed Outbound API"]
+    AI -.-> OUT
+    OUT --> ENQ["Enqueue Lambda"]
+    ENQ --> OQ["Outbound SQS"]
+    OQ --> SEND["Sender Lambda"]
+    SEND -->|AWS SDK SendWhatsAppMessage| SOCIAL
+    SOCIAL --> WA
 ```
 
-1. A customer writes on WhatsApp. AWS End User Messaging Social publishes the event to an SNS topic, which feeds an SQS queue.
-2. The **Inbound Lambda** normalizes the text or status event and posts it, HMAC-signed, to MuseRelay. MuseRelay checks the signature, deduplicates the event and resolves the channel, organization and agent from its own binding (never from the request body).
-3. The message appears in the native inbox. A person replies, or the channel's AI agent replies using MuseRelay's existing tools.
-4. MuseRelay sends a signed command to `/outbound`. The **Enqueue Lambda** verifies it and queues it; the **Sender Lambda** calls `SendWhatsAppMessage` and returns a signed receipt.
-5. Delivered/read statuses come back by the same inbound path and update the message in the inbox (double check).
+*Solid paths represent the implemented messaging flow. AI integration is available in MuseRelay's existing framework but has not yet been verified end to end through this Bridge.* Delivered and read statuses return along the inbound path (SNS → SQS → Inbound Lambda) and update the message in the inbox.
 
-## How the AWS SDK is used
+## AWS SDK integration
 
-The SDK runs **in AWS, inside the Sender Lambda**, not on the MuseRelay server ([src/social.ts](src/social.ts)):
+The official AWS SDK for JavaScript runs **inside the Sender Lambda on AWS**, not on the MuseRelay application server.
 
-```ts
-import { SocialMessagingClient, SendWhatsAppMessageCommand } from '@aws-sdk/client-socialmessaging';
-// …
-const result = await this.client.send(new SendWhatsAppMessageCommand({
-  originationPhoneNumberId: binding.awsPhoneNumberId,   // the number's AWS resource ARN
-  metaApiVersion: this.metaApiVersion,
-  message: new TextEncoder().encode(JSON.stringify({ messaging_product: 'whatsapp',
-    to: command.recipient, type: 'text', text: { body: command.text, preview_url: false },
-    biz_opaque_callback_data: command.commandId })),
-}));
+The implementation uses:
+
+```typescript
+import {
+  SocialMessagingClient,
+  SendWhatsAppMessageCommand
+} from "@aws-sdk/client-socialmessaging";
+
+// Sender Lambda
+const result = await client.send(
+  new SendWhatsAppMessageCommand(payload)
+);
 ```
 
-- The Lambda authenticates with its own IAM role. Only the sender role may call `social-messaging:SendWhatsAppMessage`, and only for the bound phone ARN.
-- The payload carries `biz_opaque_callback_data` with the command id. Meta echoes it in every status webhook, which links the AWS message id to the WhatsApp message id so delivered/read reach the right inbox message.
-- SDK automatic retries are off for sends; an unclear send is marked `uncertain` instead of being sent twice.
+**Source:** [src/social.ts](https://github.com/screenartsl/aws-engagement-bridge/blob/main/src/social.ts)
 
-## Security
+The Lambda uses its dedicated IAM execution role, with permission to send WhatsApp messages through the authorized AWS phone-number resource.
 
-- **No Meta tokens and no AWS keys in MuseRelay.** The Lambdas run with three separate least-privilege roles.
-- **Two HMAC keys per binding** (per WhatsApp number): one for AWS → MuseRelay, one for MuseRelay → AWS. They are stored in AWS Secrets Manager and in a root-protected file on the MuseRelay host, never in source control.
-- **No fallback to Meta directly:** if AWS is unavailable the message fails visibly; it is never rerouted.
-- Event idempotency, nonces and leases are stored in DynamoDB; SNS/SQS are KMS-encrypted; queue payloads are never written to logs.
-- Each binding can restrict recipients and set daily inbound/outbound caps (`0` = unlimited).
+AWS End User Messaging Social is invoked at runtime, not merely provisioned or referenced in the infrastructure.
 
-## Status (2026-10-26)
+## Verified live results
 
-Deployed in AWS account `365470560685`, region `eu-west-1`, stack `muserelay-aws-bridge-stage`, connector 0.5.5.
+The Bridge has been deployed and tested using a real WhatsApp number and the existing MuseRelay demo organization.
 
-Verified live with a real WhatsApp number:
-- inbound message → MuseRelay inbox;
-- human reply from the inbox → `SendWhatsAppMessage` → delivered to the handset;
-- delivered and read statuses shown in the inbox.
+| Capability | Result |
+|---|---|
+| WhatsApp text received through AWS | Verified |
+| Contact and conversation created in the native inbox | Verified |
+| Human reply sent using `SendWhatsAppMessage` | Verified |
+| WhatsApp delivered status | Verified |
+| WhatsApp read status | Verified |
+| Invalid signature and duplicate rejection | Verified |
+| AI-generated reply through the Bridge | Pending live verification |
+| Ticket or calendar action through Bedrock | Pending live verification |
 
-Pending: the full AI turn (Bedrock agent reply and ticket tool) through this bridge. Text messages only; inbound media is ignored.
+A real outbound message was accepted by AWS and subsequently marked as read on the recipient's handset.
 
-## Repository layout
+**Evidence and reproduction instructions:** [docs/EVALUATION.md](https://github.com/screenartsl/aws-engagement-bridge/blob/main/docs/EVALUATION.md)
 
-| Path | Contents |
-| --- | --- |
-| `src/` | Lambda handlers (TypeScript): normalization, signing, SDK sender, state |
-| `test/` | Node tests, no AWS or network access |
-| `template.yaml` | AWS SAM/CloudFormation template for the runtime stack |
-| `integration/muserelay/` | Laravel connector package installed in MuseRelay, with its PHPUnit tests |
-| `deploy/` | Current templates and the reviewed change sets of each deployment step ([index](deploy/README.md)) |
-| `docs/` | [Evaluation guide](docs/EVALUATION.md), provenance, deployment and integration guides; development record in `docs/history/` |
+Current limitations: text messages only; inbound media is not yet processed. Automated AI replies must be verified before being presented as a completed capability.
+
+## Security and reliability
+
+- Separate IAM execution roles for inbound, enqueue and sender Lambdas.
+- No Meta access tokens stored in MuseRelay for AWS transport channels.
+- No AWS access keys required by the production messaging runtime.
+- Independent HMAC signing keys per binding and communication direction.
+- AWS Secrets Manager for AWS-side secrets.
+- Signature verification, expiration checks and replay protection.
+- DynamoDB-backed idempotency and durable processing state.
+- Encrypted messaging infrastructure and restricted log contents.
+- No direct Meta API fallback when AWS transport fails.
+
+Administrative deployment credentials are separate from the messaging runtime.
+
+## New work vs. existing platform
+
+| Developed for this hackathon | Pre-existing MuseRelay capabilities |
+|---|---|
+| AWS Engagement Bridge module | SaaS application and unified inbox |
+| AWS SAM/CloudFormation infrastructure | Organizations, workspaces and CRM |
+| Inbound, enqueue and sender Lambda handlers | AI agent framework and Bedrock integrations |
+| Official AWS SDK WhatsApp sender | Ticketing, calendar and business tools |
+| Signed HTTPS communication contract | Existing customer-service interfaces |
+| Native Core connector and integration patches | Existing Core and database models |
+| WhatsApp status synchronization through AWS | Existing message presentation components |
+
+The submitted Bridge module is original work owned by **Screen Art S.L.** Commercialization may subsequently be handled by a related company under common ownership.
+
+The pre-existing MuseRelay platform is not represented as newly developed hackathon work.
+
+Development history and provenance: [docs/PROVENANCE.md](https://github.com/screenartsl/aws-engagement-bridge/blob/main/docs/PROVENANCE.md).
+
+## Repository structure
+
+| Path | Purpose |
+|---|---|
+| `src/` | TypeScript Lambda handlers and AWS SDK integration |
+| `test/` | Automated tests |
+| `template.yaml` | AWS SAM/CloudFormation runtime template |
+| `integration/muserelay/` | Laravel connector and Core integration |
+| `deploy/` | Deployment templates and reviewed procedures |
+| `docs/EVALUATION.md` | Judge instructions and live evidence |
+| `docs/PROVENANCE.md` | Development history and ownership |
+| `docs/history/` | Archived development and infrastructure reviews |
 
 ## Build and test
 
-Node 22 and PHP 8.1+. No AWS account, database or credentials needed.
+Requirements: Node.js 22 and PHP 8.1+ for the connector.
 
-```sh
+```bash
 npm ci --ignore-scripts
-npm test          # Node tests
-npm run bundle    # build/handlers.mjs for Lambda
+npm test
+npm run bundle
 ```
 
-The PHP connector tests run with `integration/muserelay/phpunit.xml` on in-memory SQLite fixtures; see [docs/STAGING.md](docs/STAGING.md).
+These commands build and test the Node.js module locally without requiring AWS credentials.
 
-## Deploy
+Connector test instructions are documented in [docs/STAGING.md](https://github.com/screenartsl/aws-engagement-bridge/blob/main/docs/STAGING.md).
 
-Summary; the full procedure is in [docs/CLOUDFORMATION-DEPLOYMENT.md](docs/CLOUDFORMATION-DEPLOYMENT.md).
+## Deployment and evaluation
 
-1. Link the WABA and phone number in AWS End User Messaging Social. AWS assigns the number its phone ARN.
-2. Deploy `template.yaml` with that phone ARN, the MuseRelay base URL and the Secrets Manager secret holding the binding's two HMAC keys.
-3. Set the stack's SNS topic as the WhatsApp event destination.
-4. Install the connector in MuseRelay, create the binding and enable it for the organization.
+The verified deployment runs in AWS region `eu-west-1`, integrated with the MuseRelay demo environment.
 
-Third-party AWS accounts (customers bringing their own AWS) are planned but not implemented.
+For deployment prerequisites, CloudFormation configuration, signing keys, channel binding and controlled activation, see:
+
+- [Deployment guide](https://github.com/screenartsl/aws-engagement-bridge/blob/main/docs/CLOUDFORMATION-DEPLOYMENT.md)
+- [Evaluation guide](https://github.com/screenartsl/aws-engagement-bridge/blob/main/docs/EVALUATION.md)
+
+A new customer's independent AWS account onboarding is planned, but is not yet available as a self-service feature.
+
+## Roadmap
+
+- Verify AI-generated replies through the AWS WhatsApp transport using Amazon Bedrock.
+- Demonstrate a real customer-service tool action, such as ticket creation.
+- Extend support to inbound WhatsApp media.
+- Introduce self-service AWS account onboarding and channel binding for customer-owned AWS accounts.
+
+---
+
+**Screen Art S.L. · AWS CDS Partner Hackathon 2026**  
+**MuseRelay:** https://muserelay.com
