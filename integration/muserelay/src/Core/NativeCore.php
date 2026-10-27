@@ -5,10 +5,12 @@ namespace MuseRelay\AwsEngagementBridge\Core;
 use App\Models\Channel;
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Jobs\PrepareInboundMedia;
 use App\Models\Message;
 use App\Services\AutomationService;
 use App\Services\ContactManagerService;
 use App\Services\InboxBroadcaster;
+use App\Services\MediaStorageService;
 use Carbon\Carbon;
 
 /** Reuses the existing application; this class is loaded only after installation/activation. */
@@ -33,20 +35,47 @@ final class NativeCore implements CorePort
         $conversation->update(['last_message_at' => now(), 'status' => $conversation->status === 'closed' ? 'active' : $conversation->status]);
         $message = Message::where('channel_id', $b->channel_id)->where('external_message_id', $event['providerMessageId'])->first();
         if ($message && (int) $message->conversation_id !== (int) $conversation->id) throw new BridgeException('provider_id_conflict', 409);
+        $media = $event['media'] ?? null;
+        $fresh = !$message;
         if (!$message) {
+            $type = $event['messageType'] ?? 'text';
+            $meta = ['event_id' => $event['eventId'], 'binding_id' => $b->id];
+            // The presigned URL expires; only the media id and type are kept.
+            if ($media) $meta['media'] = array_intersect_key($media, array_flip(['id', 'mimeType', 'size', 'fileName']));
             $message = new Message();
             $message->forceFill(['conversation_id' => $conversation->id, 'channel_id' => $b->channel_id, 'external_message_id' => $event['providerMessageId'],
-            'direction' => 'inbound', 'message_type' => 'text', 'content' => $event['text'], 'status' => 'received', 'sender_type' => 'user', 'is_from_bot' => false,
-            'created_at' => Carbon::createFromTimestampUTC($event['timestamp']), 'metadata' => ['aws_bridge' => ['event_id' => $event['eventId'], 'binding_id' => $b->id]]]);
+            'direction' => 'inbound', 'message_type' => $type, 'content' => self::content($type, $event['text'], $media), 'status' => 'received', 'sender_type' => 'user', 'is_from_bot' => false,
+            'created_at' => Carbon::createFromTimestampUTC($event['timestamp']), 'metadata' => ['aws_bridge' => $meta]]);
             $message->save();
         }
-        $this->store->db->afterCommit(function () use ($created, $message, $conversation, $channel): void {
+        $this->store->db->afterCommit(function () use ($created, $message, $conversation, $channel, $media, $fresh): void {
             try {
                 if ($created) InboxBroadcaster::conversationCreated($conversation);
                 InboxBroadcaster::messageReceived($message, $conversation, $channel);
             } catch (\Throwable) { /* persisted data can be reloaded even if WS is unavailable */ }
+            // Same path as Meta media: stored encrypted on the organization's disk, then described/transcribed for the agent.
+            // Synchronous on purpose: the agent turn runs right after this, in the same process, and must see the file.
+            if ($fresh && isset($media['url'])) {
+                try {
+                    PrepareInboundMedia::markPreparing((int) $message->id);
+                    (new PrepareInboundMedia((int) $message->id, $media['url'], 'whatsapp', $media['mimeType']))->handle(app(MediaStorageService::class));
+                } catch (\Throwable) { /* the message stays in the inbox without the file */ }
+            }
         });
         return ['message_id' => (int) $message->id, 'conversation_id' => (int) $conversation->id];
+    }
+
+    /** Same placeholders as Meta WhatsApp (WebhookController): AutomationService recognises them as "media only". */
+    private static function content(string $type, string $caption, ?array $media): string
+    {
+        if (trim($caption) !== '') return $caption;
+        if ($type === 'document' && isset($media['fileName'])) return 'Documento: '.$media['fileName'];
+        return match ($type) {
+            'image' => '[Imagen enviada por el usuario]',
+            'audio' => '[Audio enviado por el usuario]',
+            'document' => '[Documento enviado por el usuario]',
+            default => $caption,
+        };
     }
 
     public function turn(object $b, object $event): void
@@ -61,7 +90,7 @@ final class NativeCore implements CorePort
         if (!$automation->shouldProcessWithAutomation($channel, $conversation)) return;
         // Human-only channel (no AI linked/enabled in the panel): the message stays in the inbox, no turn, no retry.
         if ($channel->processing_type !== 'ai_agent' || !$channel->ai_agent_enabled || !$channel->ai_agent_id) return;
-        if (!$automation->sendToAIAgent($message, $conversation, $channel, [], 0, 'text')) throw new BridgeException('agent_turn_failed', 503);
+        if (!$automation->sendToAIAgent($message, $conversation, $channel, [], 0, (string) ($message->message_type ?: 'text'))) throw new BridgeException('agent_turn_failed', 503);
     }
 
     public function authorizeTurn(object $b, object $event): void

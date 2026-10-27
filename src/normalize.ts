@@ -1,4 +1,7 @@
-import { Binding, BridgeError, InboundEvent, record, stableId, string } from './contracts.js';
+import { Binding, BridgeError, InboundEvent, MEDIA_MIME, MediaType, record, stableId, string } from './contracts.js';
+
+/** WhatsApp message types handled; voice notes arrive as `audio`. Video, stickers, locations… are ignored for now. */
+const MEDIA_TYPES: Record<string, MediaType> = { image: 'image', audio: 'audio', document: 'document' };
 
 /** Input is an SNS envelope delivered ONLY by the policy-restricted SQS queue. */
 export function normalize(envelope: unknown, bindings: Binding[]): InboundEvent[] {
@@ -25,16 +28,28 @@ export function normalize(envelope: unknown, bindings: Binding[]): InboundEvent[
       metaPhoneNumberId: binding.metaPhoneNumberId, awsPhoneNumberArn: binding.awsPhoneNumberId };
     for (const msgValue of list(value.messages)) {
       const msg = record(msgValue);
-      if (msg.type !== 'text') continue; // MVP: no media downloads or automatic media replies.
+      const type = String(msg.type);
+      if (type !== 'text' && !MEDIA_TYPES[type]) continue;
       const from = string(msg.from, 15);
       if (!/^[1-9]\d{6,14}$/.test(from)) throw new BridgeError('invalid_sender');
       // Empty list = open number (anyone may write); a non-empty list restricts senders.
       if (binding.allowedRecipients.length && !binding.allowedRecipients.includes(`+${from}`)) continue;
       const id = string(msg.id);
-      const text = string(record(msg.text).body, 4096);
-      events.push({ version: 1, eventId: stableId(binding.id, 'message', id), bindingId: binding.id,
+      const base: InboundEvent = { version: 1, eventId: stableId(binding.id, 'message', id), bindingId: binding.id,
         channelRef: binding.channelRef, resource, kind: 'message', providerMessageId: id,
-        timestamp: timestamp(msg.timestamp), sender: `+${from}`, text });
+        timestamp: timestamp(msg.timestamp), sender: `+${from}` };
+      if (type === 'text') { events.push({ ...base, text: string(record(msg.text).body, 4096) }); continue; }
+      const messageType = MEDIA_TYPES[type]!;
+      const m = record(msg[type]);
+      // "audio/ogg; codecs=opus" → "audio/ogg"; a type outside the allowlist is not downloaded or shown.
+      const mimeType = string(m.mime_type, 100).split(';')[0]!.trim().toLowerCase();
+      if (!MEDIA_MIME[messageType].test(mimeType)) continue;
+      const mediaId = string(m.id, 128);
+      if (!/^[a-zA-Z0-9_.-]+$/.test(mediaId)) throw new BridgeError('invalid_media_id');
+      const event: InboundEvent = { ...base, messageType, media: { id: mediaId, mimeType } };
+      if (typeof m.filename === 'string' && m.filename.trim()) event.media!.fileName = m.filename.trim().slice(0, 240);
+      if (typeof m.caption === 'string' && m.caption.trim()) event.text = m.caption.slice(0, 1024);
+      events.push(event);
     }
     for (const statusValue of list(value.statuses)) {
       const status = record(statusValue);

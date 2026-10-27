@@ -8,6 +8,7 @@ import { SocialAdapter } from '../src/social.js';
 import { CoreClient, CorePort } from '../src/core-client.js';
 import { Claim, StateStore } from '../src/state.js';
 import { deliver, ingest } from '../src/workers.js';
+import { S3Media } from '../src/media.js';
 
 const secret = 'test-only-secret-never-use-in-a-deployment';
 const at = 1792860000000;
@@ -80,8 +81,33 @@ test('status echoes our commandId as commandRef; malformed callback data is igno
   const bad = normalize(envelope([], [{ id: 'wamid.out', timestamp: '1792860000', status: 'delivered', biz_opaque_callback_data: '../x' }]), [binding]);
   assert.equal(bad[0]?.commandRef, undefined);
 });
-test('MVP ignores media; empty allowlist = open number, non-empty list restricts senders', () => {
-  assert.equal(normalize(envelope([{ type: 'image' }]), [binding]).length, 0);
+test('images, voice notes and PDFs become media events; other types and MIME types are ignored', () => {
+  const msg = (type: string, body: Record<string, unknown>) => ({ id: `wamid.${type}`, from: '12025550123', timestamp: '1792860000', type, [type]: body });
+  const [image, audio, pdf] = normalize(envelope([msg('image', { id: 'm1', mime_type: 'image/jpeg', caption: 'My router' }),
+    msg('audio', { id: 'm2', mime_type: 'audio/ogg; codecs=opus', voice: true }), msg('document', { id: 'm3', mime_type: 'application/pdf', filename: 'invoice.pdf' })]), [binding]);
+  assert.deepEqual([image?.messageType, image?.media, image?.text], ['image', { id: 'm1', mimeType: 'image/jpeg' }, 'My router']);
+  assert.deepEqual([audio?.messageType, audio?.media?.mimeType, audio?.text], ['audio', 'audio/ogg', undefined]);
+  assert.deepEqual([pdf?.messageType, pdf?.media?.fileName], ['document', 'invoice.pdf']);
+  assert.equal(normalize(envelope([msg('video', { id: 'v', mime_type: 'video/mp4' }), msg('sticker', { id: 's', mime_type: 'image/webp' }),
+    msg('document', { id: 'd', mime_type: 'application/zip' })]), [binding]).length, 0);
+  assert.throws(() => normalize(envelope([msg('image', { id: '../x', mime_type: 'image/png' })]), [binding]), /invalid_media_id/);
+});
+test('media is copied to the bucket and Core gets a presigned URL; oversized files are reported, never copied', async () => {
+  const calls: any[] = [];
+  const media = (size: number) => new S3Media({ send: async (c: any) => { calls.push(c.input); return { fileSize: size }; } }, 'bridge-media-test',
+    async (bucket, key) => `https://${bucket}.s3.eu-west-1.amazonaws.com/${key}?X-Amz-Signature=test`);
+  const store = new MemoryState(); const core = new Core();
+  const env = envelope([{ id: 'wamid.img', from: '12025550123', timestamp: '1792860000', type: 'image', image: { id: 'm1', mime_type: 'image/png' } }]);
+  await ingest(env, [binding], store, core, 0, media(1024));
+  assert.equal(calls[0].metadataOnly, true); assert.equal(calls[1].originationPhoneNumberId, binding.awsPhoneNumberId);
+  assert.deepEqual(calls[1].destinationS3File, { bucketName: 'bridge-media-test', key: `media/demo/${core.events[0]!.eventId}` });
+  assert.equal(core.events[0]!.media!.url, `https://bridge-media-test.s3.eu-west-1.amazonaws.com/media/demo/${core.events[0]!.eventId}?X-Amz-Signature=test`);
+  calls.length = 0;
+  const big = envelope([{ id: 'wamid.big', from: '12025550123', timestamp: '1792860000', type: 'image', image: { id: 'm2', mime_type: 'image/png' } }]);
+  await ingest(big, [binding], store, core, 0, media(6 * 1024 * 1024));
+  assert.equal(calls.length, 1); assert.equal(core.events[1]!.media!.url, undefined); assert.equal(core.events[1]!.media!.size, 6 * 1024 * 1024);
+});
+test('empty allowlist = open number, non-empty list restricts senders', () => {
   assert.equal(normalize(envelope(), [{ ...binding, allowedRecipients: [] }]).length, 1);
   assert.equal(normalize(envelope(), [{ ...binding, allowedRecipients: ['+34600000000'] }]).length, 0);
 });

@@ -255,6 +255,30 @@ final class CoreTest extends TestCase
         }
         self::assertSame(0, $this->store->db->table('aws_bridge_events')->count());
     }
+    public function testMediaEventCarriesOnlyAPresignedUrlForThisBindingsOwnCopy(): void
+    {
+        $event = $this->event('wamid.img'); unset($event['text']);
+        $url = 'https://bridge-media.s3.eu-west-1.amazonaws.com/media/demo/'.$event['eventId'].'?X-Amz-Signature=synthetic';
+        $media = ['id' => 'm1', 'mimeType' => 'image/jpeg', 'size' => 2048, 'url' => $url];
+        $this->store->accept('demo', $event + ['messageType' => 'image', 'media' => $media]);
+        $row = $this->store->db->table('aws_bridge_events')->first();
+        self::assertSame($url, $this->store->decode($row->payload)['media']['url']);
+        $bad = [['url' => 'http://bridge-media.s3.eu-west-1.amazonaws.com/media/demo/'.$event['eventId'].'?x'],
+            ['url' => 'https://bridge-media.s3.eu-west-1.amazonaws.com/media/other/'.$event['eventId'].'?x'],
+            ['url' => 'https://attacker.example/media/demo/'.$event['eventId'].'?x'],
+            ['url' => 'https://bridge-media.s3.us-east-1.amazonaws.com/media/demo/'.$event['eventId'].'?x'],
+            ['size' => 6 * 1024 * 1024], ['mimeType' => 'application/zip'], ['id' => '../m1']];
+        foreach ($bad as $i => $change) {
+            $e = $this->event('wamid.bad'.$i); unset($e['text']);
+            $m = array_merge($media, $change);
+            if (isset($change['url']) || !isset($change['size'])) $m['url'] = str_replace($event['eventId'], $e['eventId'], $m['url']);
+            try { $this->store->accept('demo', $e + ['messageType' => 'image', 'media' => $m]); self::fail('rejected '.$i); } catch (BridgeException) {}
+        }
+        // Oversized: reported without a URL, still accepted so the inbox shows it.
+        $big = $this->event('wamid.big'); unset($big['text']);
+        $this->store->accept('demo', $big + ['messageType' => 'image', 'media' => ['id' => 'm2', 'mimeType' => 'image/png', 'size' => 6 * 1024 * 1024]]);
+        self::assertSame(2, $this->store->db->table('aws_bridge_events')->count());
+    }
     public function testWorkerCreatesOneConversationAndDoesNotRerunDuplicateEvents(): void
     {
         $this->store->accept('demo', $this->event()); $this->store->accept('demo', $this->event());

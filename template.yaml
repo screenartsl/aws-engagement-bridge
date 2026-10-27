@@ -45,6 +45,11 @@ Parameters:
     Default: 0
     MinValue: 0
     MaxValue: 100000
+  MediaBucket:
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^muserelay-aws-bridge-stage-media-365470560685-eu-west-1$
+    Description: Transit bucket for inbound WhatsApp media (IAM foundation stack). Empty = media reaches the inbox without the file.
   KmsAdministratorArn:
     Type: String
     AllowedValues:
@@ -307,6 +312,8 @@ Globals:
           Ref: DailySendLimit
         BRIDGE_DAILY_INBOUND_LIMIT:
           Ref: DailyInboundLimit
+        BRIDGE_MEDIA_BUCKET:
+          Ref: MediaBucket
         META_API_VERSION:
           Ref: MetaApiVersion
         BRIDGE_RUN_ID:

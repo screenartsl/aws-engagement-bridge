@@ -7,6 +7,7 @@ import { enqueueRequest, jsonResponse } from './enqueue.js';
 import { CoreClient } from './core-client.js';
 import { DynamoState } from './state.js';
 import { SocialAdapter } from './social.js';
+import { S3Media } from './media.js';
 import { ingest, deliver } from './workers.js';
 
 interface Runtime {
@@ -44,7 +45,8 @@ async function runtime(direction: 'core' | 'outbound' = 'core'): Promise<Runtime
 export async function inbound(event: SQSEvent, context?: Context): Promise<SQSBatchResponse> {
   if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true' || process.env.BRIDGE_RECEIVE_ENABLED !== 'true') return disabledBatch(event);
   const rt = await runtime();
-  return batch(event, async body => ingest(JSON.parse(body), rt.bindings, rt.store, rt.core, Number(env('BRIDGE_DAILY_INBOUND_LIMIT'))), context);
+  const media = process.env.BRIDGE_MEDIA_BUCKET ? S3Media.aws(rt.region, process.env.BRIDGE_MEDIA_BUCKET) : undefined;
+  return batch(event, async body => ingest(JSON.parse(body), rt.bindings, rt.store, rt.core, Number(env('BRIDGE_DAILY_INBOUND_LIMIT')), media), context);
 }
 
 export async function sender(event: SQSEvent, context?: Context): Promise<SQSBatchResponse> {

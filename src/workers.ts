@@ -1,9 +1,10 @@
 import { Binding, BridgeError, OutboundCommand, SendResult, outbound, stableId } from './contracts.js';
 import { CorePort } from './core-client.js';
+import { MediaPort } from './media.js';
 import { normalize } from './normalize.js';
 import { StateStore } from './state.js';
 
-export async function ingest(envelope: unknown, bindings: Binding[], store: StateStore, core: CorePort, dailyLimit = 40): Promise<void> {
+export async function ingest(envelope: unknown, bindings: Binding[], store: StateStore, core: CorePort, dailyLimit = 40, media?: MediaPort): Promise<void> {
   // 0 = no daily cap.
   if (!Number.isInteger(dailyLimit) || dailyLimit < 0 || dailyLimit > 100_000) throw new BridgeError('invalid_daily_limit');
   for (const event of normalize(envelope, bindings)) {
@@ -13,8 +14,11 @@ export async function ingest(envelope: unknown, bindings: Binding[], store: Stat
     if (claim.state === 'busy') throw new BridgeError('event_busy');
     try {
       if (event.kind === 'message' && dailyLimit > 0 && !await store.spend(`in:${event.bindingId}`, dailyLimit)) throw new BridgeError('daily_limit_reached');
+      // The claim fingerprint is the normalized event; the presigned URL is added after it (it changes on every retry).
+      // Without a media bucket configured, media still reaches the inbox, only without the file.
+      const delivered = event.media && media ? { ...event, media: await media.fetch(event, bindings.find(b => b.id === event.bindingId)!) } : event;
       // Core MUST durably deduplicate eventId too: a worker can die after this POST.
-      await core.accept(event);
+      await core.accept(delivered);
       await store.complete(key, claim.token);
     } catch (error) { await store.release(key, claim.token); throw error; }
   }

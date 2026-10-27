@@ -467,6 +467,17 @@ Resources:
             - sqs:DeleteMessage
             - sqs:GetQueueAttributes
             Resource: arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-inbound-queue
+          - Sid: ReadInboundMediaOfDemoNumber
+            Effect: Allow
+            Action:
+            - social-messaging:GetWhatsAppMessageMedia
+            Resource: arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/b1e7f9e53c454f15be065a2e2b5a1f00
+          - Sid: CopyAndPresignInboundMedia
+            Effect: Allow
+            Action:
+            - s3:PutObject
+            - s3:GetObject
+            Resource: arn:aws:s3:::muserelay-aws-bridge-stage-media-365470560685-eu-west-1/media/*
       Tags:
       - Key: Company
         Value: ScreenArt
@@ -478,6 +489,61 @@ Resources:
         Value: staging
       - Key: Purpose
         Value: hackathon
+  MediaBucket:
+    # Transit copy of customers' WhatsApp media (GetWhatsAppMessageMedia) until MuseRelay downloads it; deleted after 1 day.
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: muserelay-aws-bridge-stage-media-365470560685-eu-west-1
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+        - ObjectOwnership: BucketOwnerEnforced
+      LifecycleConfiguration:
+        Rules:
+        - Id: delete-transit-media
+          Status: Enabled
+          ExpirationInDays: 1
+          AbortIncompleteMultipartUpload:
+            DaysAfterInitiation: 1
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+  MediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: MediaBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: TlsOnly
+          Effect: Deny
+          Principal: '*'
+          Action: s3:*
+          Resource:
+          - arn:aws:s3:::muserelay-aws-bridge-stage-media-365470560685-eu-west-1
+          - arn:aws:s3:::muserelay-aws-bridge-stage-media-365470560685-eu-west-1/*
+          Condition:
+            Bool:
+              aws:SecureTransport: 'false'
   EnqueueExecutionRole:
     Type: AWS::IAM::Role
     DeletionPolicy: Retain
@@ -609,6 +675,9 @@ Resources:
       PolicyDocument: {"Version":"2012-10-17","Statement":[{"Sid":"PassOnlySendRuntimes","Effect":"Allow","Action":["iam:PassRole"],"Resource":["arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-enqueue-runtime","arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-sender-runtime"],"Condition":{"StringEquals":{"iam:PassedToService":"lambda.amazonaws.com"}}},{"Sid":"SendFunctionsProvisioning","Effect":"Allow","Action":["lambda:CreateFunction","lambda:GetFunction","lambda:GetFunctionConfiguration","lambda:GetFunctionCodeSigningConfig","lambda:GetFunctionConcurrency","lambda:UpdateFunctionCode","lambda:UpdateFunctionConfiguration","lambda:DeleteFunction","lambda:PutFunctionConcurrency","lambda:DeleteFunctionConcurrency","lambda:TagResource","lambda:UntagResource","lambda:ListTags","lambda:GetFunctionRecursionConfig","lambda:GetRuntimeManagementConfig","lambda:GetFunctionScalingConfig","lambda:AddPermission","lambda:RemovePermission","lambda:GetPolicy"],"Resource":["arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-enqueue","arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-sender"],"Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1"}}},{"Sid":"CreateOnlySenderMapping","Effect":"Allow","Action":["lambda:CreateEventSourceMapping"],"Resource":"*","Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1"},"ArnEquals":{"lambda:FunctionArn":"arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-sender"}}},{"Sid":"ManageOnlySenderMapping","Effect":"Allow","Action":["lambda:GetEventSourceMapping","lambda:UpdateEventSourceMapping","lambda:DeleteEventSourceMapping"],"Resource":"arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*","Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1"},"ArnEquals":{"lambda:FunctionArn":"arn:aws:lambda:eu-west-1:365470560685:function:muserelay-aws-bridge-stage-sender"}}},{"Sid":"SenderMappingSystemTagBootstrap","Effect":"Allow","Action":["lambda:TagResource"],"Resource":"arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*","Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1","aws:RequestTag/aws:cloudformation:stack-name":"muserelay-aws-bridge-stage","aws:RequestTag/aws:cloudformation:logical-id":"SenderFunctionOutput"}}},{"Sid":"SenderMappingTagRead","Effect":"Allow","Action":["lambda:ListTags"],"Resource":"arn:aws:lambda:eu-west-1:365470560685:event-source-mapping:*","Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1","aws:ResourceTag/aws:cloudformation:stack-name":"muserelay-aws-bridge-stage","aws:ResourceTag/aws:cloudformation:logical-id":"SenderFunctionOutput"}}},{"Sid":"OutboundQueuesOnly","Effect":"Allow","Action":["sqs:CreateQueue","sqs:DeleteQueue","sqs:GetQueueUrl","sqs:GetQueueAttributes","sqs:SetQueueAttributes","sqs:TagQueue","sqs:UntagQueue","sqs:ListQueueTags"],"Resource":["arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-queue","arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-dlq"],"Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1"}}},{"Sid":"SendLogGroupsProvisioning","Effect":"Allow","Action":["logs:CreateLogGroup","logs:DeleteLogGroup","logs:PutRetentionPolicy","logs:DeleteRetentionPolicy","logs:TagResource","logs:UntagResource","logs:ListTagsForResource","logs:GetDataProtectionPolicy"],"Resource":["arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-enqueue","arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-enqueue:*","arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-sender","arn:aws:logs:eu-west-1:365470560685:log-group:/aws/lambda/muserelay-aws-bridge-stage-sender:*"],"Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1"}}},{"Sid":"OutboundSigningSecretMetadata","Effect":"Allow","Action":["secretsmanager:CreateSecret","secretsmanager:DescribeSecret","secretsmanager:TagResource","secretsmanager:UntagResource","secretsmanager:ListSecretVersionIds","secretsmanager:GetResourcePolicy"],"Resource":"arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-outbound-??????","Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1"}}},{"Sid":"OutboundSecretProviderRead","Effect":"Allow","Action":["secretsmanager:GetSecretValue"],"Resource":"arn:aws:secretsmanager:eu-west-1:365470560685:secret:muserelay-aws-bridge-stage/signing-outbound-??????","Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1","aws:ResourceTag/Component":"aws-engagement-bridge","aws:ResourceTag/Environment":"staging"}}},{"Sid":"OutboundHttpApiProvisioning","Effect":"Allow","Action":["apigateway:GET","apigateway:POST","apigateway:PUT","apigateway:PATCH","apigateway:DELETE","apigateway:TagResource","apigateway:UntagResource"],"Resource":["arn:aws:apigateway:eu-west-1::/apis","arn:aws:apigateway:eu-west-1::/apis/*","arn:aws:apigateway:eu-west-1::/tags/*"],"Condition":{"StringEquals":{"aws:RequestedRegion":"eu-west-1"}}}]}
 
 Outputs:
+  MediaBucketName:
+    Value:
+      Ref: MediaBucket
   CloudFormationExecutionRoleArn:
     Value:
       Fn::GetAtt:

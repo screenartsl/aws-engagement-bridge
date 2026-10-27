@@ -28,11 +28,28 @@ export interface InboundEvent {
   providerMessageId: string;
   timestamp: number;
   sender?: string;
+  /** Text body, or the caption of a media message. */
   text?: string;
+  /** Message only; absent = text. */
+  messageType?: MediaType;
+  media?: InboundMedia;
   status?: 'sent' | 'delivered' | 'read' | 'failed';
   /** Status only: our outbox commandId, echoed back by Meta as biz_opaque_callback_data. */
   commandRef?: string;
 }
+
+export type MediaType = 'image' | 'audio' | 'document';
+/** The Meta media id; `url` is a short-lived presigned S3 GET once the Lambda has copied the file to the media bucket. */
+export interface InboundMedia { id: string; mimeType: string; fileName?: string; size?: number; url?: string; }
+
+/** Media MuseRelay can show and pass to the agent (vision, audio transcription, PDF). Others are ignored. */
+export const MEDIA_MIME: Record<MediaType, RegExp> = {
+  image: /^image\/(jpeg|png|webp)$/,
+  audio: /^audio\/(ogg|mpeg|mp4|aac|amr)$/,
+  document: /^application\/pdf$/,
+};
+/** WhatsApp's own limits are 5 MB (image) and 16 MB (audio); PDFs are capped at 20 MB, what the agent can read inline. */
+export const MEDIA_MAX_BYTES: Record<MediaType, number> = { image: 5 * 1024 * 1024, audio: 16 * 1024 * 1024, document: 20 * 1024 * 1024 };
 
 export interface OutboundCommand {
   version: 1;
