@@ -16,7 +16,7 @@ final class Store
     public function operationEnabled(string $operation): bool
     {
         $controls = $this->controls instanceof \Closure ? ($this->controls)() : $this->controls;
-        return $this->isEnabled() && in_array($operation, ['receive', 'agent', 'send'], true) && ($controls[$operation] ?? false) === true;
+        return $this->isEnabled() && in_array($operation, ['receive', 'agent', 'send', 'notify'], true) && ($controls[$operation] ?? false) === true;
     }
     public function requireOperation(string $operation): void
     {

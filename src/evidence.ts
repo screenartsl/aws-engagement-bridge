@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 export function evidenceHash(value: string): string { return createHash('sha256').update(value).digest('hex'); }
 /** Operational metadata only. Never accepts arbitrary body, headers, phone, errors or credentials. */
-export function evidence(event: 'core_ack' | 'social_api_result' | 'lambda_record_ok', fields: {
+export function evidence(event: 'core_ack' | 'social_api_result' | 'lambda_record_ok' | 'notify_result', fields: {
   id?: string; requestId?: string; status?: string; awsRequestId?: string; httpStatus?: number;
 }): void {
   const runId = process.env.BRIDGE_RUN_ID;

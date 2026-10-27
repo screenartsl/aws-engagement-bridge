@@ -95,6 +95,63 @@ Parameters:
     - 'false'
     - 'true'
     Description: Explicit outbound processing authorization
+  DeployNotify:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: Create the email/SMS function and POST /notify (separate approval; WhatsApp unaffected)
+  NotifyExecutionRoleArn:
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^arn:aws:iam::365470560685:role/muserelay-aws-bridge-stage-notify-runtime$
+  NotifyEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+  NotifyEmailEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+  NotifySmsEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
+  NotifySmsDryRun:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+    - 'false'
+    - 'true'
+    Description: true = AWS validates the SMS without delivering or charging it
+  NotifyEmailFrom:
+    Type: String
+    Default: ''
+    Description: Verified SES identity used as From (e.g. noreply@muserelay.com)
+  NotifySmsOrigination:
+    Type: String
+    Default: ''
+    Description: Authorised origination identity (sender id, phone number or pool)
+  NotifySmsMaxPrice:
+    Type: String
+    Default: '0.10'
+    AllowedPattern: ^\d{1,2}\.\d{1,4}$
+  NotifyDailyLimit:
+    Type: Number
+    Default: 20
+    MinValue: 0
+    MaxValue: 100000
+  NotifyAllowedRecipients:
+    Type: String
+    Default: ''
+    Description: Comma-separated recipients allowed during the demo; empty = any
   DeployOutbound:
     Type: String
     Default: 'false'
@@ -707,6 +764,48 @@ Resources:
             Path: /templates
             Method: POST
     Condition: DeployOutboundRuntime
+  NotifyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-notify
+      Role:
+        Ref: NotifyExecutionRoleArn
+      Handler: handlers.notify
+      Environment:
+        Variables:
+          BRIDGE_SECRET_ARN:
+            Fn::If:
+            - HasExternalOutboundSecret
+            - Ref: OutboundSecretArn
+            - Ref: OutboundSigningSecret
+          NOTIFY_ENABLED:
+            Ref: NotifyEnabled
+          NOTIFY_EMAIL_ENABLED:
+            Ref: NotifyEmailEnabled
+          NOTIFY_SMS_ENABLED:
+            Ref: NotifySmsEnabled
+          NOTIFY_SMS_DRY_RUN:
+            Ref: NotifySmsDryRun
+          NOTIFY_EMAIL_FROM:
+            Ref: NotifyEmailFrom
+          NOTIFY_SMS_ORIGINATION:
+            Ref: NotifySmsOrigination
+          NOTIFY_SMS_MAX_PRICE:
+            Ref: NotifySmsMaxPrice
+          NOTIFY_DAILY_LIMIT:
+            Ref: NotifyDailyLimit
+          NOTIFY_ALLOWED_RECIPIENTS:
+            Ref: NotifyAllowedRecipients
+      Events:
+        Notify:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /notify
+            Method: POST
+    Condition: DeployNotifyRuntime
   SenderFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -770,6 +869,24 @@ Resources:
       - Key: Purpose
         Value: hackathon
     Condition: DeployOutboundRuntime
+  NotifyLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/${NotifyFunction}
+      RetentionInDays: 7
+      Tags:
+      - Key: Company
+        Value: ScreenArt
+      - Key: Project
+        Value: MuseRelay
+      - Key: Component
+        Value: aws-engagement-bridge
+      - Key: Environment
+        Value: staging
+      - Key: Purpose
+        Value: hackathon
+    Condition: DeployNotifyRuntime
   SenderLogs:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -1004,6 +1121,16 @@ Conditions:
     - Fn::Equals:
       - Ref: DeployOutbound
       - 'true'
+  DeployNotifyRuntime:
+    Fn::And:
+    - Condition: DeployOutboundRuntime
+    - Fn::Equals:
+      - Ref: DeployNotify
+      - 'true'
+    - Fn::Not:
+      - Fn::Equals:
+        - Ref: NotifyExecutionRoleArn
+        - ''
   RunInboundConsumer:
     Fn::And:
     - Condition: DeployRuntime

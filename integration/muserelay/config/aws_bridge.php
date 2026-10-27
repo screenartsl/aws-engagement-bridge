@@ -5,6 +5,8 @@ return [
     'receive_enabled' => env('AWS_BRIDGE_RECEIVE_ENABLED', false) === true,
     'agent_enabled' => env('AWS_BRIDGE_AGENT_ENABLED', false) === true,
     'send_enabled' => env('AWS_BRIDGE_SEND_ENABLED', false) === true,
+    // Transactional email (SES) / SMS (End User Messaging SMS) through POST /notify. Off by default.
+    'notify_enabled' => env('AWS_BRIDGE_NOTIFY_ENABLED', false) === true,
     'organization_ids' => array_values(array_filter(array_map('intval', explode(',', (string) env('AWS_BRIDGE_ORGANIZATION_IDS', ''))))),
     'signing_keys_file' => env('AWS_BRIDGE_SIGNING_KEYS_FILE', '/run/secrets/muserelay-aws-bridge.json'),
     'outbound_url' => env('AWS_BRIDGE_OUTBOUND_URL', ''),

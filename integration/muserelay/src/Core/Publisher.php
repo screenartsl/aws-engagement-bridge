@@ -23,6 +23,22 @@ final class Publisher
         return $templates;
     }
 
+    /**
+     * Transactional email/SMS (POST /notify). Synchronous: returns AWS's result. A definitive refusal (disabled, not allowed,
+     * daily cap, replay) comes back as `rejected`; transport failures throw so the caller can retry with the same notifyId.
+     * @return array{state: string, providerMessageId?: string, errorCode?: string, duplicate?: bool}
+     */
+    public function notify(string $binding, array $command): array
+    {
+        $result = $this->post($binding, '/notify', $command, 15);
+        if ($result->status() === 200 && $result->json('id') === $command['notifyId'] && in_array($result->json('state'), ['accepted', 'rejected', 'uncertain'], true)) {
+            return array_filter(['state' => $result->json('state'), 'providerMessageId' => $result->json('providerMessageId'),
+                'errorCode' => $result->json('errorCode'), 'duplicate' => $result->json('duplicate') === true ?: null], fn ($v) => $v !== null);
+        }
+        if (in_array($result->status(), [409, 422, 429], true) && is_string($result->json('error'))) return ['state' => 'rejected', 'errorCode' => $result->json('error')];
+        throw new BridgeException('notify_unavailable', 503);
+    }
+
     private function post(string $binding, string $path, array $data, int $timeout): \Illuminate\Http\Client\Response
     {
         $url = parse_url($this->url);

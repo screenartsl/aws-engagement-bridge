@@ -94,12 +94,15 @@ El Bridge está desplegado y probado con un número de WhatsApp real y la organi
 | Rechazo de firmas inválidas y de duplicados | Verificado |
 | Respuesta generada por IA a través del Bridge | Pendiente de verificar en vivo |
 | Acción de ticket o calendario con Bedrock | Pendiente de verificar en vivo |
+| Plantillas de WhatsApp listadas y enviadas por AWS | Implementado; envío pendiente de verificar en vivo |
+| Foto, nota de voz y PDF entrantes (`GetWhatsAppMessageMedia`) | Implementado; pendiente de verificar en vivo |
+| Confirmaciones por email (Amazon SES) y SMS (End User Messaging SMS) | Implementado, sin desplegar ([detalles](docs/NOTIFY-SES-SMS.md)) |
 
 Un mensaje saliente real fue aceptado por AWS y después marcado como leído en el móvil del destinatario.
 
 **Evidencias e instrucciones para reproducirlo:** [docs/EVALUATION.md](https://github.com/screenartsl/aws-engagement-bridge/blob/main/docs/EVALUATION.md)
 
-Limitaciones actuales: solo mensajes de texto; los archivos multimedia entrantes todavía no se procesan. Las respuestas automáticas por IA deben verificarse antes de presentarlas como una capacidad terminada.
+Limitaciones actuales: se ignoran vídeos, stickers y documentos que no sean PDF. Lo que no figura como «Verificado» no debe presentarse como una capacidad terminada.
 
 ## Seguridad y fiabilidad
 
@@ -175,7 +178,7 @@ El alta de clientes con su propia cuenta de AWS está prevista, pero todavía no
 
 - Verificar respuestas generadas por IA con Amazon Bedrock a través del transporte de WhatsApp por AWS.
 - Demostrar una acción real de atención al cliente, como la creación de un ticket.
-- Procesar archivos multimedia entrantes de WhatsApp.
+- Verificar en vivo la multimedia entrante y, cuando se autorice, las confirmaciones por email y SMS.
 - Alta en autoservicio de cuentas de AWS propias del cliente y enlace de sus canales.
 
 ---

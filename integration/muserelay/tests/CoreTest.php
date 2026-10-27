@@ -9,7 +9,7 @@ use Illuminate\Encryption\Encrypter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Facade;
 use MuseRelay\AwsEngagementBridge\BridgeSignature;
-use MuseRelay\AwsEngagementBridge\Core\{BridgeException, Controller, CorePort, KeySource, Outbox, Protocol, Publisher, Schema, Scope, SigningKeys, Store, ToolGuard, Worker};
+use MuseRelay\AwsEngagementBridge\Core\{BridgeException, Controller, CorePort, KeySource, Notifier, Outbox, Protocol, Publisher, Schema, Scope, SigningKeys, Store, ToolGuard, Worker};
 use PHPUnit\Framework\TestCase;
 
 final class FixtureCore implements CorePort
@@ -94,6 +94,7 @@ final class CoreTest extends TestCase
         $s->create('test_tickets', function (Blueprint $t) { $t->increments('id'); $t->string('subject'); });
         // Disposable synthetic tables, never an application migration command.
         Schema::create($s);
+        Schema::createNotifications($s);
         $db->table('workspaces')->insert(['id' => 10, 'organization_id' => 1]);
         $db->table('channels')->insert(['id' => 20, 'organization_id' => 1, 'workspace_id' => 10, 'ai_agent_id' => 30, 'type' => 'whatsapp', 'status' => 'active', 'managed_provider' => 'aws_social']);
         $db->table('ai_agents')->insert(['id' => 30, 'organization_id' => 1, 'workspace_id' => 10, 'ai_provider_id' => 40]);
@@ -551,6 +552,63 @@ final class CoreTest extends TestCase
         Illuminate\Support\Facades\Http::assertSentCount(1);
         $this->expectExceptionMessage('invalid_outbound_url');
         (new Publisher('https://attacker.invalid/outbound', $keys))->publish('demo', ['commandId' => 'synthetic-command']);
+    }
+    private function notifier(array &$sent, callable $respond): Notifier
+    {
+        $secret = $this->secret;
+        $keys = new class($secret) implements KeySource { public function __construct(private string $secret) {} public function get(string $binding, string $direction): string { return $this->secret; } };
+        Illuminate\Support\Facades\Http::preventStrayRequests();
+        Illuminate\Support\Facades\Http::fake(function ($request) use ($secret, &$sent, $respond) {
+            self::assertSame('https://synthetic.execute-api.eu-west-1.amazonaws.com/notify', $request->url());
+            BridgeSignature::verify($secret, 'POST', '/notify', $request->body(), [
+                'timestamp' => $request->header('x-bridge-timestamp')[0], 'nonce' => $request->header('x-bridge-nonce')[0], 'signature' => $request->header('x-bridge-signature')[0],
+            ]);
+            $sent[] = json_decode($request->body(), true);
+            return $respond(end($sent));
+        });
+        return new Notifier($this->store, new Publisher('https://synthetic.execute-api.eu-west-1.amazonaws.com/outbound', $keys));
+    }
+    private function contact(?string $choice): object
+    {
+        return (object) ['id' => 5, 'organization_id' => 1, 'workspace_id' => 10, 'phone' => '34600000001', 'email' => 'Customer@Example.com', 'preferred_reminder_channel' => $choice];
+    }
+    public function testNotifyNeedsTheCustomersOwnChoiceAndSendsOncePerOperation(): void
+    {
+        $this->controls['notify'] = true; $sent = [];
+        $n = $this->notifier($sent, fn ($c) => Illuminate\Support\Facades\Http::response(['id' => $c['notifyId'], 'state' => 'accepted', 'providerMessageId' => 'sms-1'], 200));
+        $channel = (object) ['id' => 20];
+        foreach ([null, 'none', 'whatsapp', 'email'] as $choice) {
+            self::assertSame('no_consent', $n->send($channel, $this->contact($choice), 'sms', null, 'Confirmed', 'appointment', '42')['error']);
+        }
+        self::assertSame([], $sent);
+        $first = $n->send($channel, $this->contact('sms'), 'sms', null, 'Your appointment is confirmed.', 'appointment', '42');
+        self::assertTrue($first['success']);
+        self::assertSame(['+34600000001', 'sms', ['type' => 'appointment', 'id' => '42']], [$sent[0]['to'], $sent[0]['kind'], $sent[0]['reference']]);
+        $again = $n->send($channel, $this->contact('sms'), 'sms', null, 'Your appointment is confirmed.', 'appointment', '42');
+        self::assertTrue($again['duplicate']); self::assertCount(1, $sent);
+        $row = $this->store->db->table('aws_bridge_notifications')->first();
+        self::assertSame(['accepted', 'sms-1', hash('sha256', '+34600000001')], [$row->state, $row->provider_message_id, $row->recipient_hash]);
+        $email = $n->send($channel, $this->contact('email'), 'email', 'Appointment confirmed', 'See you on Tuesday.', 'appointment', '42');
+        self::assertTrue($email['success']); self::assertSame(['customer@example.com', 'Appointment confirmed'], [$sent[1]['to'], $sent[1]['subject']]);
+        self::assertSame('invalid_subject', $n->send($channel, $this->contact('email'), 'email', "Hi\r\nBcc: x@y.z", 'x', 'ticket', '7')['error']);
+    }
+    public function testNotifyIsOffByDefaultAndKeepsFailedTransportsRetryableWithTheSameId(): void
+    {
+        $sent = []; $replies = [503, 200];
+        $n = $this->notifier($sent, function ($c) use (&$replies) {
+            $status = array_shift($replies);
+            return $status === 200 ? Illuminate\Support\Facades\Http::response(['id' => $c['notifyId'], 'state' => 'accepted', 'providerMessageId' => 'ses-1'], 200)
+                : Illuminate\Support\Facades\Http::response(['error' => 'temporary_failure'], 503);
+        });
+        $channel = (object) ['id' => 20];
+        self::assertSame('bridge_notify_disabled', $n->send($channel, $this->contact('email'), 'email', 'S', 'T', 'ticket', '7')['error']);
+        $this->controls['notify'] = true;
+        self::assertSame('notify_unavailable', $n->send($channel, $this->contact('email'), 'email', 'S', 'T', 'ticket', '7')['error']);
+        self::assertSame('pending', $this->store->db->table('aws_bridge_notifications')->value('state'));
+        self::assertTrue($n->send($channel, $this->contact('email'), 'email', 'S', 'T', 'ticket', '7')['success']);
+        self::assertSame($sent[0]['notifyId'], $sent[1]['notifyId']);
+        $other = (object) ['id' => 6, 'organization_id' => 2, 'workspace_id' => 99, 'phone' => '34600000002', 'email' => 'x@example.com', 'preferred_reminder_channel' => 'sms'];
+        self::assertSame('contact_ownership_mismatch', $n->send($channel, $other, 'sms', null, 'T', 'ticket', '7')['error']);
     }
     public function testActualLegacyMetaAndTelnyxConfigurationBranchesRemainIntact(): void
     {

@@ -94,12 +94,15 @@ The Bridge has been deployed and tested using a real WhatsApp number and the exi
 | Invalid signature and duplicate rejection | Verified |
 | AI-generated reply through the Bridge | Pending live verification |
 | Ticket or calendar action through Bedrock | Pending live verification |
+| WhatsApp templates listed and sent through AWS | Implemented; send pending live verification |
+| Inbound photo, voice note and PDF (`GetWhatsAppMessageMedia`) | Implemented; pending live verification |
+| Email (Amazon SES) and SMS (End User Messaging SMS) confirmations | Implemented, not deployed ([details](docs/NOTIFY-SES-SMS.md)) |
 
 A real outbound message was accepted by AWS and subsequently marked as read on the recipient's handset.
 
 **Evidence and reproduction instructions:** [docs/EVALUATION.md](https://github.com/screenartsl/aws-engagement-bridge/blob/main/docs/EVALUATION.md)
 
-Current limitations: text messages only; inbound media is not yet processed. Automated AI replies must be verified before being presented as a completed capability.
+Current limitations: video, stickers and documents other than PDF are ignored. Rows not marked "Verified" must not be presented as completed capabilities.
 
 ## Security and reliability
 
@@ -175,7 +178,7 @@ A new customer's independent AWS account onboarding is planned, but is not yet a
 
 - Verify AI-generated replies through the AWS WhatsApp transport using Amazon Bedrock.
 - Demonstrate a real customer-service tool action, such as ticket creation.
-- Extend support to inbound WhatsApp media.
+- Verify inbound media and, once authorized, email/SMS confirmations end to end.
 - Introduce self-service AWS account onboarding and channel binding for customer-owned AWS accounts.
 
 ---

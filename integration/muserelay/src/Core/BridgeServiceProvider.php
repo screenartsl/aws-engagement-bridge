@@ -14,7 +14,8 @@ final class BridgeServiceProvider extends ServiceProvider
         $this->app->scoped(Store::class, fn ($app) => new Store($app['db']->connection(), $app['encrypter'],
             fn()=>$app->make(RuntimeSettings::class)->enabled(),fn()=>$app->make(RuntimeSettings::class)->organizations(), null,
             fn()=>['receive'=>$app['config']->get('aws_bridge.receive_enabled',false),
-                'agent'=>$app['config']->get('aws_bridge.agent_enabled',false),'send'=>$app['config']->get('aws_bridge.send_enabled',false)]));
+                'agent'=>$app['config']->get('aws_bridge.agent_enabled',false),'send'=>$app['config']->get('aws_bridge.send_enabled',false),
+                'notify'=>$app['config']->get('aws_bridge.notify_enabled',false)]));
         $this->app->scoped(Scope::class, fn () => new Scope());
         $this->app->bind(CorePort::class, NativeCore::class);
         $this->app->bind(SigningKeys::class, fn ($app) => new SigningKeys((string) $app['config']->get('aws_bridge.signing_keys_file', '')));
@@ -24,7 +25,7 @@ final class BridgeServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([DrainCommand::class]);
+            $this->commands([DrainCommand::class, NotifyCommand::class]);
             // The Core scheduler drains the durable inbox every 10 s, only while the extension is enabled.
             $this->callAfterResolving(\Illuminate\Console\Scheduling\Schedule::class, function ($schedule): void {
                 $schedule->command('aws-bridge:drain --limit=10')->everyTenSeconds()->withoutOverlapping(5)

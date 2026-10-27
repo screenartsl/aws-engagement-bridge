@@ -73,8 +73,32 @@ final class Schema
         });
     }
 
+    /** Email/SMS sends: one row per notifyId (operation + kind + recipient). No message text, recipient only as a hash. */
+    public static function createNotifications(Builder $schema): void
+    {
+        $schema->create('aws_bridge_notifications', function (Blueprint $t): void {
+            $t->string('id', 64)->primary();
+            $t->string('binding_id', 80)->index();
+            $t->unsignedBigInteger('organization_id')->index();
+            $t->unsignedBigInteger('workspace_id');
+            $t->unsignedBigInteger('contact_id')->nullable();
+            $t->unsignedBigInteger('user_id')->nullable();
+            $t->string('kind', 8);
+            $t->string('recipient_hash', 64);
+            $t->string('reference_type', 20);
+            $t->string('reference_id', 64);
+            $t->string('state', 20)->default('pending')->index();
+            $t->string('provider_message_id')->nullable();
+            $t->string('error_code', 80)->nullable();
+            $t->unsignedBigInteger('created_epoch')->index();
+            $t->unsignedBigInteger('updated_epoch');
+            $t->index(['reference_type', 'reference_id']);
+        });
+    }
+
     public static function drop(Builder $schema): void
     {
+        $schema->dropIfExists('aws_bridge_notifications');
         foreach (['aws_bridge_actions', 'aws_bridge_outbox', 'aws_bridge_events', 'aws_bridge_nonces', 'aws_bridge_bindings'] as $table) {
             $schema->dropIfExists($table);
         }

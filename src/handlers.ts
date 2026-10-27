@@ -8,6 +8,7 @@ import { CoreClient } from './core-client.js';
 import { DynamoState } from './state.js';
 import { SocialAdapter } from './social.js';
 import { S3Media } from './media.js';
+import { NotifyAdapter, notifyConfig, notifyRequest } from './notify.js';
 import { ingest, deliver } from './workers.js';
 
 interface Runtime {
@@ -70,6 +71,23 @@ export async function enqueue(event: APIGatewayProxyEventV2): Promise<APIGateway
         await new SQSClient({ region: rt.region }).send(new SendMessageCommand({ QueueUrl: env('BRIDGE_OUTBOUND_QUEUE_URL'), MessageBody: JSON.stringify(command) }));
       },
       templates: binding => SocialAdapter.aws(rt.region, 'v23.0', false).templates(binding) });
+  } catch {
+    return jsonResponse(503, { error: 'temporary_failure' });
+  }
+}
+
+/** POST /notify: transactional email (SES) or SMS (End User Messaging SMS). Own function and role; WhatsApp untouched. */
+export async function notify(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
+  try {
+    if (event.requestContext.http.method !== 'POST' || event.rawPath !== '/notify') return jsonResponse(404, { error: 'not_found' });
+    if (!event.headers['x-bridge-binding'] || !event.headers['x-bridge-signature'] || !event.headers['x-bridge-timestamp'] || !event.headers['x-bridge-nonce']) {
+      return jsonResponse(401, { error: 'unauthorized' });
+    }
+    if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true' || process.env.NOTIFY_ENABLED !== 'true') return jsonResponse(503, { error: 'notify_disabled' });
+    // Same per-binding Core→AWS key as /outbound; the signature is bound to the /notify path.
+    const rt = await runtime('outbound');
+    return notifyRequest(event, { bindings: rt.bindings, secret: id => rt.secrets[id]?.outbound, nonce: key => rt.store.nonce(key),
+      store: rt.store, config: notifyConfig(process.env), adapter: NotifyAdapter.aws(rt.region) });
   } catch {
     return jsonResponse(503, { error: 'temporary_failure' });
   }
