@@ -1,6 +1,13 @@
 # Email (Amazon SES) and SMS (AWS End User Messaging SMS) confirmations
 
-Status (2026-10-27): **implemented and tested with fakes; not deployed, no real message sent.** Nothing here should be presented as verified until a real email or SMS has been delivered.
+Status (2026-10-27):
+
+| Transport | Status |
+|---|---|
+| Email (SES) | **Verified live.** One confirmation sent from MuseRelay (`aws-bridge:notify`) through `POST /notify` and SESv2 `SendEmail`, from `noreply@muserelay.com` to a verified test recipient. Delivered in 1 s, SPF/DKIM/DMARC pass. Repeating the same operation returned `duplicate` and sent nothing. |
+| SMS | Deployed with `DryRun=true`, sender ID `MUSERELAY` (ES), one allowed test recipient. The account is in the SMS sandbox, and the Spanish sender ID is **not registered** yet (`ES_SENDER_ID_REGISTRATION` is required in Spain), so no real SMS should be sent until AWS approves that registration. |
+
+Both transports stay restricted to the test recipients (`NotifyAllowedRecipients`) and the daily cap of 5. Core's `AWS_BRIDGE_NOTIFY_ENABLED` stays off; the test was run with it set for that single process only.
 
 ## What it does
 

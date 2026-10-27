@@ -96,7 +96,8 @@ The Bridge has been deployed and tested using a real WhatsApp number and the exi
 | Ticket or calendar action through Bedrock | Pending live verification |
 | WhatsApp templates listed and sent through AWS | Implemented; send pending live verification |
 | Inbound photo, voice note and PDF (`GetWhatsAppMessageMedia`) | Implemented; pending live verification |
-| Email (Amazon SES) and SMS (End User Messaging SMS) confirmations | Implemented, not deployed ([details](docs/NOTIFY-SES-SMS.md)) |
+| Confirmation email sent through Amazon SES from MuseRelay | Verified (delivered in 1 s; SPF, DKIM and DMARC pass) |
+| SMS confirmation through End User Messaging SMS | Deployed in DryRun; real send pending Spain sender ID registration ([details](docs/NOTIFY-SES-SMS.md)) |
 
 A real outbound message was accepted by AWS and subsequently marked as read on the recipient's handset.
 
