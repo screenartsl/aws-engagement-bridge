@@ -131,22 +131,34 @@ final class NativeCore implements CorePort
     {
         // Match only inside this binding. Statuses carry Meta's wamid while the outbox stored AWS's messageId,
         // so the commandId echoed back (commandRef) wins; provider_message_id stays as fallback.
-        $this->store->db->transaction(function () use ($event, $b): void {
+        $message = $this->store->db->transaction(function () use ($event, $b): ?Message {
             $outbox = fn () => $this->store->db->table('aws_bridge_outbox')->where('binding_id', $b->id);
             $row = isset($event['commandRef']) ? $outbox()->where('id', $event['commandRef'])->lockForUpdate()->first() : null;
             $row ??= $outbox()->where('provider_message_id', $event['providerMessageId'])->lockForUpdate()->first();
-            if (!$row) return;
+            if (!$row) return null;
             $rank = ['sent' => 1, 'delivered' => 2, 'read' => 3];
             $current = $row->delivery_status;
-            if ($current && ($rank[$current] ?? 0) >= ($rank[$event['status']] ?? 0)) return;
-            if ($event['status'] === 'failed' && in_array($current, ['delivered', 'read'], true)) return;
+            if ($current && ($rank[$current] ?? 0) >= ($rank[$event['status']] ?? 0)) return null;
+            if ($event['status'] === 'failed' && in_array($current, ['delivered', 'read'], true)) return null;
             $this->store->db->table('aws_bridge_outbox')->where('id', $row->id)->update(['delivery_status' => $event['status']]);
             $message = Message::where('id', $row->message_id)->where('channel_id', $b->channel_id)->lockForUpdate()->firstOrFail();
             $changes = ['status' => $event['status'], 'metadata' => array_merge($message->metadata ?? [], ['meta_message_id' => $event['providerMessageId']])];
             if ($event['status'] === 'delivered') $changes['delivered_at'] = $message->delivered_at ?? Carbon::createFromTimestampUTC($event['timestamp']);
             if ($event['status'] === 'read') $changes['read_at'] = $message->read_at ?? Carbon::createFromTimestampUTC($event['timestamp']);
             $message->update($changes);
+            return $message;
         });
+        // Like the Meta webhook: without this the open inbox only shows the new checks after a reload.
+        $conversation = $message?->conversation;
+        if (!$conversation) return;
+        try {
+            match ($event['status']) {
+                'delivered' => InboxBroadcaster::messageDelivered($message, $conversation),
+                'read' => InboxBroadcaster::messageRead($conversation, $message->id, $message->read_at?->toIso8601String()),
+                'failed' => InboxBroadcaster::messageFailed($message, $conversation, null, null),
+                default => null,
+            };
+        } catch (\Throwable) {}
     }
 
     private function sameConnection(): void
