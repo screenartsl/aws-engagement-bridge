@@ -97,6 +97,7 @@ final class CoreTest extends TestCase
         // Disposable synthetic tables, never an application migration command.
         Schema::create($s);
         Schema::createNotifications($s);
+        Schema::addThreadKey($s);
         $db->table('workspaces')->insert(['id' => 10, 'organization_id' => 1]);
         $db->table('channels')->insert(['id' => 20, 'organization_id' => 1, 'workspace_id' => 10, 'ai_agent_id' => 30, 'type' => 'whatsapp', 'status' => 'active', 'managed_provider' => 'aws_social']);
         $db->table('ai_agents')->insert(['id' => 30, 'organization_id' => 1, 'workspace_id' => 10, 'ai_provider_id' => 40, 'vision_provider_id' => 40]);
@@ -476,6 +477,23 @@ final class CoreTest extends TestCase
         $receipt = ['version' => 1, 'bindingId' => 'demo', 'commandId' => $out['command_id'], 'state' => 'accepted', 'providerMessageId' => 'aws.synthetic'];
         $this->outbox->receipt('demo', $receipt); $this->outbox->receipt('demo', $receipt);
         $this->expectExceptionMessage('receipt_conflict'); $this->outbox->receipt('demo', array_merge($receipt, ['state' => 'uncertain']));
+    }
+    private function eventFrom(string $sender, string $id): array
+    {
+        $e = $this->event($id); $e['sender'] = $sender; return $e;
+    }
+    public function testDifferentConversationsRunInParallelAndEachKeepsItsOrder(): void
+    {
+        $this->store->db->table('aws_bridge_bindings')->where('id', 'demo')->update(['allowed_recipients' => '[]']);
+        $this->store->accept('demo', $this->eventFrom('+34600000001', 'wamid.ana1'));
+        $this->now += 1; $this->store->accept('demo', $this->eventFrom('+34600000001', 'wamid.ana2'));
+        $this->now += 1; $this->store->accept('demo', $this->eventFrom('+34600000002', 'wamid.luis1'));
+        $ana1 = $this->store->claim(); $luis = $this->store->claim();
+        self::assertSame('wamid.ana1', $this->store->decode($ana1->payload)['providerMessageId']);
+        self::assertSame('wamid.luis1', $this->store->decode($luis->payload)['providerMessageId'], 'Luis does not wait for Ana');
+        self::assertNull($this->store->claim(), "Ana's second message waits for her first");
+        $this->store->finish($ana1, true);
+        self::assertSame('wamid.ana2', $this->store->decode($this->store->claim()->payload)['providerMessageId']);
     }
     public function testConversationLeaseSerializesBindingAndCanRecoverAfterCrash(): void
     {

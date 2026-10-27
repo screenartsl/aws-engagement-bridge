@@ -73,6 +73,15 @@ final class Schema
         });
     }
 
+    /** 0.5.16: per-conversation ordering key (Store::threadKey), so different conversations are processed in parallel. */
+    public static function addThreadKey(Builder $schema): void
+    {
+        $schema->table('aws_bridge_events', function (Blueprint $t): void {
+            $t->string('thread_key', 64)->nullable();
+            $t->index(['binding_id', 'thread_key', 'state'], 'aws_bridge_events_thread_idx');
+        });
+    }
+
     /** Email/SMS sends: one row per notifyId (operation + kind + recipient). No message text, recipient only as a hash. */
     public static function createNotifications(Builder $schema): void
     {

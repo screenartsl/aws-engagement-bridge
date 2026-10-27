@@ -104,9 +104,21 @@ final class Store
                 if ($limit > 0 && $this->db->table('aws_bridge_events')->where('binding_id', $b->id)->where('kind', 'message')->where('created_epoch', '>=', (int) (floor($this->now() / 86400) * 86400))->count() >= $limit) throw new BridgeException('daily_inbound_limit', 429);
             }
             $this->db->table('aws_bridge_events')->insert(['id' => $event['eventId'], 'binding_id' => $b->id, 'kind' => $event['kind'],
-                'digest' => $digest, 'payload' => $this->encode($event), 'created_epoch' => $this->now(), 'event_timestamp' => $event['timestamp']]);
+                'digest' => $digest, 'payload' => $this->encode($event), 'created_epoch' => $this->now(), 'event_timestamp' => $event['timestamp'],
+                'thread_key' => self::threadKey($b->id, $event)]);
             return ['status' => 'accepted', 'id' => $event['eventId']];
         });
+    }
+
+    /**
+     * Unit of ordering: a customer's messages (one conversation) or the statuses of one sent message. Different
+     * threads are processed in parallel; events of the same thread, one at a time and in order. No personal data.
+     */
+    public static function threadKey(string $bindingId, array $event): string
+    {
+        return hash('sha256', $event['kind'] === 'message'
+            ? $bindingId.'|message|'.($event['sender'] ?? '')
+            : $bindingId.'|status|'.($event['providerMessageId'] ?? ''));
     }
 
     public function claim(): ?object
@@ -116,15 +128,23 @@ final class Store
         foreach ($bindings as $id) {
             $b = $this->binding((string) $id);
             $row = $this->db->transaction(function () use ($b): ?object {
-                $lock = $this->db->table('aws_bridge_bindings')->where('id', $b->id)->lockForUpdate()->first();
-                if ((int) $lock->lease_until > $this->now()) return null;
+                // The binding row lock only serializes this short claim decision; processing runs in parallel across threads.
+                $this->db->table('aws_bridge_bindings')->where('id', $b->id)->lockForUpdate()->first();
                 $this->db->table('aws_bridge_events')->where('binding_id', $b->id)->where('attempts', '>=', 3)->where('lease_until', '<=', $this->now())->whereIn('state', ['pending', 'processing'])->update(['state' => 'failed', 'error_code' => 'attempt_limit']);
-                $event = $this->db->table('aws_bridge_events')->where('binding_id', $b->id)->whereIn('state', ['pending', 'processing'])
-                    ->where('lease_until', '<=', $this->now())->where('attempts', '<', 3)->orderBy('event_timestamp')->orderBy('sequence')->lockForUpdate()->first();
+                // A thread is busy while one of its events is being processed (or waiting under a lease): later events wait, keeping order.
+                $busy = array_flip(array_map(fn ($k) => $k ?? '', $this->db->table('aws_bridge_events')->where('binding_id', $b->id)
+                    ->whereIn('state', ['pending', 'processing'])->where('lease_until', '>', $this->now())->pluck('thread_key')->all()));
+                $event = null;
+                $seen = [];
+                foreach ($this->db->table('aws_bridge_events')->where('binding_id', $b->id)->whereIn('state', ['pending', 'processing'])
+                    ->where('lease_until', '<=', $this->now())->where('attempts', '<', 3)->orderBy('event_timestamp')->orderBy('sequence')->limit(100)->get() as $candidate) {
+                    $thread = (string) ($candidate->thread_key ?? ''); // rows from before 0.5.16 share one thread: same order as before
+                    if (isset($busy[$thread]) || isset($seen[$thread])) { $seen[$thread] = true; continue; }
+                    $event = $candidate; break;
+                }
                 if (!$event) return null;
                 $token = bin2hex(random_bytes(16));
                 $this->db->table('aws_bridge_events')->where('id', $event->id)->update(['state' => 'processing', 'lease_token' => $token, 'lease_until' => $this->now() + 600, 'attempts' => $event->attempts + 1]);
-                $this->db->table('aws_bridge_bindings')->where('id', $b->id)->update(['lease_token' => $token, 'lease_until' => $this->now() + 600]);
                 return $this->db->table('aws_bridge_events')->where('id', $event->id)->first();
             });
             if ($row) return $row;
@@ -157,7 +177,6 @@ final class Store
             $row = $this->ownedEvent($event);
             $this->db->table('aws_bridge_events')->where('id', $row->id)->update(['state' => $success ? 'done' : ($row->attempts >= 3 ? 'failed' : 'pending'),
                 'lease_until' => 0, 'lease_token' => null, 'error_code' => $success ? null : 'turn_failed']);
-            $this->db->table('aws_bridge_bindings')->where('id', $row->binding_id)->where('lease_token', $event->lease_token)->update(['lease_until' => 0, 'lease_token' => null]);
         });
     }
 
