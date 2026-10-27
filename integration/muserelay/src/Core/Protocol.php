@@ -66,10 +66,11 @@ final class Protocol
         if ($size !== null) $out['size'] = $size;
         if ($name !== null) $out['fileName'] = $name;
         if ($url !== null) {
-            $prefix = '/media/'.$b->id.'/'.$eventId.'?';
+            // AWS stores the copy as <eventId>/<mediaId>.<ext> under this binding's prefix.
+            $prefix = '/media/'.$b->id.'/'.$eventId.'/';
             if (!is_string($url) || strlen($url) > 4096 || $size === null || $size > $max
-                || !preg_match('~^https://[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]\.s3\.'.preg_quote($b->region, '~').'\.amazonaws\.com(/.*)$~D', $url, $hit)
-                || !str_starts_with($hit[1], $prefix)) throw new BridgeException('invalid_media_url');
+                || !preg_match('~^https://[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]\.s3\.'.preg_quote($b->region, '~').'\.amazonaws\.com(/[^?]*)\?~', $url, $hit)
+                || !str_starts_with($hit[1], $prefix) || !preg_match('/^[a-zA-Z0-9_.-]{1,160}$/D', substr($hit[1], strlen($prefix)))) throw new BridgeException('invalid_media_url');
             $out['url'] = $url;
         }
         return $out;

@@ -259,7 +259,7 @@ final class CoreTest extends TestCase
     public function testMediaEventCarriesOnlyAPresignedUrlForThisBindingsOwnCopy(): void
     {
         $event = $this->event('wamid.img'); unset($event['text']);
-        $url = 'https://bridge-media.s3.eu-west-1.amazonaws.com/media/demo/'.$event['eventId'].'?X-Amz-Signature=synthetic';
+        $url = 'https://bridge-media.s3.eu-west-1.amazonaws.com/media/demo/'.$event['eventId'].'/m1.jpeg?X-Amz-Signature=synthetic';
         $media = ['id' => 'm1', 'mimeType' => 'image/jpeg', 'size' => 2048, 'url' => $url];
         $this->store->accept('demo', $event + ['messageType' => 'image', 'media' => $media]);
         $row = $this->store->db->table('aws_bridge_events')->first();
@@ -268,6 +268,8 @@ final class CoreTest extends TestCase
             ['url' => 'https://bridge-media.s3.eu-west-1.amazonaws.com/media/other/'.$event['eventId'].'?x'],
             ['url' => 'https://attacker.example/media/demo/'.$event['eventId'].'?x'],
             ['url' => 'https://bridge-media.s3.us-east-1.amazonaws.com/media/demo/'.$event['eventId'].'?x'],
+            ['url' => 'https://bridge-media.s3.eu-west-1.amazonaws.com/media/demo/'.$event['eventId'].'/../x?x'],
+            ['url' => 'https://bridge-media.s3.eu-west-1.amazonaws.com/media/demo/'.$event['eventId'].'?x'],
             ['size' => 6 * 1024 * 1024], ['mimeType' => 'application/zip'], ['id' => '../m1']];
         foreach ($bad as $i => $change) {
             $e = $this->event('wamid.bad'.$i); unset($e['text']);

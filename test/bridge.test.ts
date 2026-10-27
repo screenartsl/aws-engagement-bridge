@@ -94,18 +94,27 @@ test('images, voice notes and PDFs become media events; other types and MIME typ
 });
 test('media is copied to the bucket and Core gets a presigned URL; oversized files are reported, never copied', async () => {
   const calls: any[] = [];
+  const probed: string[] = [];
   const media = (size: number) => new S3Media({ send: async (c: any) => { calls.push(c.input); return { fileSize: size }; } }, 'bridge-media-test',
-    async (bucket, key) => `https://${bucket}.s3.eu-west-1.amazonaws.com/${key}?X-Amz-Signature=test`);
+    async (bucket, key) => `https://${bucket}.s3.eu-west-1.amazonaws.com/${key}?X-Amz-Signature=test`,
+    async (_bucket, key) => { probed.push(key); return key.endsWith('/m1.png'); });
   const store = new MemoryState(); const core = new Core();
   const env = envelope([{ id: 'wamid.img', from: '12025550123', timestamp: '1792860000', type: 'image', image: { id: 'm1', mime_type: 'image/png' } }]);
   await ingest(env, [binding], store, core, 0, media(1024));
   assert.equal(calls[0].metadataOnly, true); assert.equal(calls[1].originationPhoneNumberId, binding.awsPhoneNumberId);
-  assert.deepEqual(calls[1].destinationS3File, { bucketName: 'bridge-media-test', key: `media/demo/${core.events[0]!.eventId}` });
-  assert.equal(core.events[0]!.media!.url, `https://bridge-media-test.s3.eu-west-1.amazonaws.com/media/demo/${core.events[0]!.eventId}?X-Amz-Signature=test`);
+  // AWS uses the key as a prefix and appends <mediaId>.<ext>: the real object is found and presigned.
+  const id = core.events[0]!.eventId;
+  assert.deepEqual(calls[1].destinationS3File, { bucketName: 'bridge-media-test', key: `media/demo/${id}/` });
+  assert.deepEqual(probed, [`media/demo/${id}/m1.png`]);
+  assert.equal(core.events[0]!.media!.url, `https://bridge-media-test.s3.eu-west-1.amazonaws.com/media/demo/${id}/m1.png?X-Amz-Signature=test`);
   calls.length = 0;
   const big = envelope([{ id: 'wamid.big', from: '12025550123', timestamp: '1792860000', type: 'image', image: { id: 'm2', mime_type: 'image/png' } }]);
   await ingest(big, [binding], store, core, 0, media(6 * 1024 * 1024));
   assert.equal(calls.length, 1); assert.equal(core.events[1]!.media!.url, undefined); assert.equal(core.events[1]!.media!.size, 6 * 1024 * 1024);
+  // Copied under a name none of the probes match: delivered without the file, never a broken URL.
+  const odd = envelope([{ id: 'wamid.odd', from: '12025550123', timestamp: '1792860000', type: 'image', image: { id: 'm3', mime_type: 'image/jpeg' } }]);
+  await ingest(odd, [binding], store, core, 0, media(1024));
+  assert.equal(core.events[2]!.media!.url, undefined); assert.equal(probed.slice(-3).join(','), [`jpeg`, `jpg`, ''].map(e => `media/demo/${core.events[2]!.eventId}/m3${e ? '.' + e : ''}`).join(','));
 });
 test('empty allowlist = open number, non-empty list restricts senders', () => {
   assert.equal(normalize(envelope(), [{ ...binding, allowedRecipients: [] }]).length, 1);
