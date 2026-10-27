@@ -88,6 +88,7 @@ final class CoreTest extends TestCase
         $s->create('ai_agents', function (Blueprint $t) {
             $t->integer('id')->primary(); $t->integer('organization_id'); $t->integer('workspace_id'); $t->integer('ai_provider_id');
             $t->integer('fallback_provider_id')->nullable(); $t->integer('fallback2_provider_id')->nullable();
+            $t->integer('vision_provider_id')->nullable(); $t->integer('audio_provider_id')->nullable();
         });
         $s->create('ai_providers', function (Blueprint $t) { $t->integer('id')->primary(); $t->integer('organization_id')->nullable(); $t->string('provider_type'); });
         $s->create('test_conversations', function (Blueprint $t) { $t->increments('id'); $t->integer('workspace_id'); });
@@ -98,7 +99,7 @@ final class CoreTest extends TestCase
         Schema::createNotifications($s);
         $db->table('workspaces')->insert(['id' => 10, 'organization_id' => 1]);
         $db->table('channels')->insert(['id' => 20, 'organization_id' => 1, 'workspace_id' => 10, 'ai_agent_id' => 30, 'type' => 'whatsapp', 'status' => 'active', 'managed_provider' => 'aws_social']);
-        $db->table('ai_agents')->insert(['id' => 30, 'organization_id' => 1, 'workspace_id' => 10, 'ai_provider_id' => 40]);
+        $db->table('ai_agents')->insert(['id' => 30, 'organization_id' => 1, 'workspace_id' => 10, 'ai_provider_id' => 40, 'vision_provider_id' => 40]);
         $db->table('ai_providers')->insert(['id' => 40, 'organization_id' => null, 'provider_type' => 'aws_bedrock']);
         $db->table('aws_bridge_bindings')->insert(['id' => 'demo', 'channel_ref' => 'demo-channel', 'organization_id' => 1, 'workspace_id' => 10, 'channel_id' => 20, 'agent_id' => 30,
             'account_id' => '111111111111', 'region' => 'eu-west-1', 'waba_id' => '123456', 'meta_phone_id' => '789012',
@@ -166,6 +167,18 @@ final class CoreTest extends TestCase
         self::assertSame('accepted', $this->store->accept('demo', $event)['status']);
         $this->store->db->table('aws_bridge_bindings')->update(['aws_phone_arn' => $arn.'/other']);
         $this->expectExceptionMessage('invalid_aws_identity'); $this->store->binding('demo');
+    }
+    public function testAgentWithoutBedrockVisionOrWithAnotherCloudForAudioCannotAnswer(): void
+    {
+        $db = $this->store->db; $db->table('ai_providers')->insert(['id' => 41, 'organization_id' => null, 'provider_type' => 'azure_openai']);
+        foreach ([['vision_provider_id' => null], ['vision_provider_id' => 41], ['audio_provider_id' => 41]] as $change) {
+            $db->table('ai_agents')->where('id', 30)->update(['vision_provider_id' => 40, 'audio_provider_id' => null]);
+            $db->table('ai_agents')->where('id', 30)->update($change);
+            try { $this->store->agentFor($this->store->binding('demo')); self::fail('accepted '.json_encode($change)); }
+            catch (BridgeException $e) { self::assertSame('bedrock_agent_required', $e->reason); }
+        }
+        $db->table('ai_agents')->where('id', 30)->update(['vision_provider_id' => 40, 'audio_provider_id' => null]);
+        self::assertSame(30, (int) $this->store->agentFor($this->store->binding('demo'))->id);
     }
     public function testNonBedrockAgentCannotRunThisDemo(): void
     {

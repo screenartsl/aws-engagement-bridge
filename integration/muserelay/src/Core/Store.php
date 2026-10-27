@@ -58,10 +58,12 @@ final class Store
         $channel = $this->db->table('channels')->where('id', $b->channel_id)->first();
         $agent = $channel ? $this->db->table('ai_agents')->where('id', (int) ($channel->ai_agent_id ?? 0))->first() : null;
         if (!$agent || (int) $agent->organization_id !== (int) $b->organization_id || (int) $agent->workspace_id !== (int) $b->workspace_id) throw new BridgeException('ownership_mismatch', 403);
-        // An explicitly enabled demo agent must actually use Bedrock, including fallbacks.
-        foreach (['ai_provider_id', 'fallback_provider_id', 'fallback2_provider_id'] as $column) {
+        // An explicitly enabled demo agent must actually use Bedrock, including fallbacks and the vision model: a photo
+        // turn puts the vision model first (AgentLLMFactory), and without one the global profile (another cloud) would answer.
+        // An audio model, if set, must be Bedrock too.
+        foreach (['ai_provider_id', 'fallback_provider_id', 'fallback2_provider_id', 'vision_provider_id', 'audio_provider_id'] as $column) {
             $id = (int) ($agent->$column ?? 0);
-            if (!$id && $column !== 'ai_provider_id') continue;
+            if (!$id && !in_array($column, ['ai_provider_id', 'vision_provider_id'], true)) continue;
             $provider = $this->db->table('ai_providers')->where('id', $id)->first();
             if (!$provider || !in_array($provider->provider_type, ['bedrock', 'aws_bedrock'], true)) throw new BridgeException('bedrock_agent_required', 403);
             if (isset($provider->is_active) && !$provider->is_active) throw new BridgeException('provider_inactive', 403);
