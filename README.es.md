@@ -95,7 +95,9 @@ El Bridge está desplegado y probado con un número de WhatsApp real y la organi
 | Respuesta generada por IA a través del Bridge | Pendiente de verificar en vivo |
 | Acción de ticket o calendario con Bedrock | Pendiente de verificar en vivo |
 | Plantillas de WhatsApp listadas y enviadas por AWS | Implementado; envío pendiente de verificar en vivo |
-| Foto, nota de voz y PDF entrantes (`GetWhatsAppMessageMedia`) | Implementado; pendiente de verificar en vivo |
+| Foto entrante (`GetWhatsAppMessageMedia`) guardada y mostrada en la bandeja | Verificado |
+| Nota de voz y PDF entrantes | Implementado; pendiente de verificar en vivo |
+| Archivo enviado desde la bandeja (`PostWhatsAppMessageMedia` + `SendWhatsAppMessage`) | Verificado (imagen entregada) |
 | Email de confirmación enviado por Amazon SES desde MuseRelay | Verificado (entregado en 1 s; SPF, DKIM y DMARC correctos) |
 | Confirmación por SMS con End User Messaging SMS | Desplegado en DryRun; envío real pendiente del registro del remitente en España ([detalles](docs/NOTIFY-SES-SMS.md)) |
 
