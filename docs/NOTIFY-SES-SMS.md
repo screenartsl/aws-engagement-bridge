@@ -5,7 +5,7 @@ Status (2026-10-27):
 | Transport | Status |
 |---|---|
 | Email (SES) | **Verified live.** One confirmation sent from MuseRelay (`aws-bridge:notify`) through `POST /notify` and SESv2 `SendEmail`, from `noreply@muserelay.com` to a verified test recipient. Delivered in 1 s, SPF/DKIM/DMARC pass. Repeating the same operation returned `duplicate` and sent nothing. |
-| SMS | Deployed with `DryRun=true`, sender ID `MUSERELAY` (ES), one allowed test recipient. The account is in the SMS sandbox, and the Spanish sender ID is **not registered** yet (`ES_SENDER_ID_REGISTRATION` is required in Spain), so no real SMS should be sent until AWS approves that registration. |
+| SMS | Deployed with `DryRun=true`, sender ID `MUSERELAY` (ES), one allowed test recipient. The account is in the SMS sandbox, and the Spanish sender ID is **not registered** yet (`ES_SENDER_ID_REGISTRATION` is required in Spain), so no real SMS should be sent until AWS approves that registration. **Parked on 2026-10-27** for the hackathon: production access requested from AWS (case open, spend limit 1 USD), the test destination could not be verified (the code did not arrive), and no real SMS has been delivered. Do not present SMS as an operational channel. |
 
 Both transports stay restricted to the test recipients (`NotifyAllowedRecipients`) and the daily cap of 5. Core's `AWS_BRIDGE_NOTIFY_ENABLED` stays off; the test was run with it set for that single process only.
 
