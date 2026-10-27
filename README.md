@@ -92,7 +92,7 @@ The Bridge has been deployed and tested using a real WhatsApp number and the exi
 | WhatsApp delivered status | Verified |
 | WhatsApp read status | Verified |
 | Invalid signature and duplicate rejection | Verified |
-| AI-generated reply through the Bridge | Pending live verification |
+| AI-generated reply through the Bridge (Claude Haiku 4.5 on Amazon Bedrock, Nova Micro guards) | Verified |
 | Ticket or calendar action through Bedrock | Pending live verification |
 | WhatsApp templates listed and sent through AWS | Implemented; send pending live verification |
 | Inbound photo (`GetWhatsAppMessageMedia`) stored and shown in the inbox | Verified |
@@ -179,7 +179,6 @@ A new customer's independent AWS account onboarding is planned, but is not yet a
 
 ## Roadmap
 
-- Verify AI-generated replies through the AWS WhatsApp transport using Amazon Bedrock.
 - Demonstrate a real customer-service tool action, such as ticket creation.
 - Verify inbound media and, once authorized, email/SMS confirmations end to end.
 - Introduce self-service AWS account onboarding and channel binding for customer-owned AWS accounts.
