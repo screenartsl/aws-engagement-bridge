@@ -28,6 +28,7 @@ final class Controller
             if (!is_array($data)) throw new BridgeException('invalid_payload');
             $this->store->reserveNonce($id, $headers['nonce'], $path);
             $ack = $receipt ? $this->outbox->receipt($id, $data) : $this->store->accept($id, $data);
+            if (!$receipt && $ack['status'] !== 'duplicate') Drainer::kick();
             return new JsonResponse($ack, $ack['status'] === 'duplicate' ? 200 : 202, ['Cache-Control' => 'no-store']);
         } catch (BridgeException $e) { return new JsonResponse(['error' => $e->reason], $e->httpStatus); }
         catch (\InvalidArgumentException) { return new JsonResponse(['error' => 'unauthorized'], 401); }

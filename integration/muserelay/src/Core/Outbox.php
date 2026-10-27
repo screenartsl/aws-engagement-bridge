@@ -20,7 +20,7 @@ final class Outbox
             $media = self::media($media, $b->id);
         }
         $id = $sourceId ? hash('sha256', $b->id.'|reply|'.$sourceId) : bin2hex(random_bytes(32));
-        return $this->store->db->transaction(function () use ($b, $recipient, $text, $sourceId, $userId, $id, $template, $media): array {
+        $result = $this->store->db->transaction(function () use ($b, $recipient, $text, $sourceId, $userId, $id, $template, $media): array {
             $this->store->db->table('aws_bridge_bindings')->where('id', $b->id)->lockForUpdate()->first();
             $old = $this->store->db->table('aws_bridge_outbox')->where('id', $id)->first();
             if ($old) return ['success' => true, 'message_id' => (int) $old->message_id, 'queued' => true, 'duplicate' => true];
@@ -33,6 +33,9 @@ final class Outbox
                 'source_message_id' => $sourceId, 'payload' => $this->store->encode($payload), 'created_epoch' => $this->store->now()]);
             return ['success' => true, 'message_id' => $messageId, 'queued' => true, 'command_id' => $id];
         });
+        // Published right away by the queued drain (the scheduled one is only the safety net).
+        if (empty($result['duplicate'])) Drainer::kick();
+        return $result;
     }
 
     /** Same rules as the AWS side (contracts.ts templateRef): Meta template name, language code, up to 20 body parameters. */
