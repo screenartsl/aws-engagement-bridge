@@ -8,7 +8,7 @@ interface CorePort
     public function turn(object $binding, object $event): void;
     public function authorizeTurn(object $binding, object $event): void;
     /** $template = ['name', 'language', 'parameters'] sends an approved template (allowed outside the 24 h window). */
-    public function outgoing(object $binding, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null): int;
+    public function outgoing(object $binding, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null, ?array $media = null): int;
     public function authorizeOutgoing(object $binding, object $outbox, array $command): void;
     public function receipt(object $binding, object $outbox, array $receipt): void;
     public function status(object $binding, array $event): void;

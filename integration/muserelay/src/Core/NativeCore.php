@@ -106,7 +106,7 @@ final class NativeCore implements CorePort
         }
     }
 
-    public function outgoing(object $b, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null): int
+    public function outgoing(object $b, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null, ?array $media = null): int
     {
         $this->store->requireOperation('send');
         $this->sameConnection();
@@ -126,12 +126,15 @@ final class NativeCore implements CorePort
             $lastInbound = Message::where('channel_id', $channel->id)->where('conversation_id', $conversation->id)->where('direction', 'inbound')->latest('created_at')->first();
             if (!$lastInbound || Carbon::parse($lastInbound->created_at)->getTimestamp() < $this->store->now() - 86400) throw new BridgeException('customer_window_closed', 409);
         }
+        // A file needs the 24 h window like free text (only templates are allowed outside it).
         $payload = $template
             ? ['messaging_product' => 'whatsapp', 'type' => 'template', 'to' => ltrim($recipient, '+'), 'template' => ['name' => $template['name'], 'language' => ['code' => $template['language']]]]
-            : ['messaging_product' => 'whatsapp', 'type' => 'text', 'to' => ltrim($recipient, '+'), 'text' => ['body' => $text]];
+            : ($media
+                ? ['messaging_product' => 'whatsapp', 'type' => $media['type'], 'to' => ltrim($recipient, '+'), $media['type'] => array_filter(['caption' => $media['caption'] ?? null])]
+                : ['messaging_product' => 'whatsapp', 'type' => 'text', 'to' => ltrim($recipient, '+'), 'text' => ['body' => $text]]);
         app(\App\Services\MetaMessagingPolicyService::class)->assertPayloadAllowed($channel, $contact, $payload, $userId);
         if (app(\App\Services\Billing\WhatsAppPlanLimits::class)->blockMessage($channel, $contact, $payload) !== null) throw new BridgeException('plan_limit', 409);
-        $message = Message::create(['conversation_id' => $conversation->id, 'channel_id' => $channel->id, 'direction' => 'outbound', 'message_type' => $template ? 'template' : 'text',
+        $message = Message::create(['conversation_id' => $conversation->id, 'channel_id' => $channel->id, 'direction' => 'outbound', 'message_type' => $template ? 'template' : ($media['type'] ?? 'text'),
             'content' => $text, 'status' => 'pending', 'sender_type' => $userId ? 'agent' : 'bot', 'sender_id' => $userId, 'is_from_bot' => !$userId,
             'metadata' => ['sent_via' => 'aws_engagement_bridge', 'source_message_id' => $sourceId]
                 + ($template ? ['template_name' => $template['name'], 'template_lang' => $template['language'], 'template_params' => $template['parameters']] : [])]);

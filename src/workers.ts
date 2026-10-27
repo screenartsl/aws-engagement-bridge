@@ -43,7 +43,7 @@ export async function deliver(value: unknown, bindings: Binding[], store: StateS
     result = await sender.send(command, binding);
   } catch (error) {
     // Release ONLY failures known to happen before the network call or explicit throttles.
-    if (error instanceof BridgeError && ['daily_limit_reached', 'live_sending_disabled', 'invalid_meta_api_version', 'provider_throttled'].includes(error.code)) {
+    if (error instanceof BridgeError && ['daily_limit_reached', 'live_sending_disabled', 'invalid_meta_api_version', 'provider_throttled', 'media_not_configured'].includes(error.code)) {
       await store.release(key, claim.token);
     }
     throw error;

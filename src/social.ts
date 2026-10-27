@@ -1,32 +1,44 @@
-import { SocialMessagingClient, SendWhatsAppMessageCommand, ListWhatsAppMessageTemplatesCommand, GetWhatsAppMessageTemplateCommand } from '@aws-sdk/client-socialmessaging';
+import { SocialMessagingClient, SendWhatsAppMessageCommand, ListWhatsAppMessageTemplatesCommand, GetWhatsAppMessageTemplateCommand, PostWhatsAppMessageMediaCommand } from '@aws-sdk/client-socialmessaging';
 import { evidence } from './evidence.js';
 import { Binding, BridgeError, OutboundCommand, SendResult, TemplateSummary, outbound } from './contracts.js';
 
 export interface SocialTransport { send(command: any): Promise<any>; }
 export class SocialAdapter {
-  constructor(private readonly client: SocialTransport, private readonly metaApiVersion: string, private readonly liveEnabled = false) {}
+  constructor(private readonly client: SocialTransport, private readonly metaApiVersion: string, private readonly liveEnabled = false,
+    private readonly mediaBucket?: string) {}
 
-  static aws(region: string, metaApiVersion: string, liveEnabled: boolean): SocialAdapter {
+  static aws(region: string, metaApiVersion: string, liveEnabled: boolean, mediaBucket?: string): SocialAdapter {
     // Never automatically retry POST sends: a timeout can mean Meta already accepted it.
-    return new SocialAdapter(new SocialMessagingClient({ region, maxAttempts: 1 }), metaApiVersion, liveEnabled);
+    return new SocialAdapter(new SocialMessagingClient({ region, maxAttempts: 1 }), metaApiVersion, liveEnabled, mediaBucket);
   }
 
   async send(command: OutboundCommand, binding: Binding): Promise<SendResult> {
     outbound(command, [binding]);
     if (!this.liveEnabled) throw new BridgeError('live_sending_disabled');
     if (!/^v\d+\.\d+$/.test(this.metaApiVersion)) throw new BridgeError('invalid_meta_api_version');
+    if (command.media && !this.mediaBucket) throw new BridgeError('media_not_configured');
     // A template opens a conversation outside the 24 h window; Meta has already approved its text.
-    const content = command.template
+    const content = command.media ? undefined : command.template
       ? { type: 'template', template: { name: command.template.name, language: { code: command.template.language },
           ...(command.template.parameters.length ? { components: [{ type: 'body', parameters: command.template.parameters.map(text => ({ type: 'text', text })) }] } : {}) } }
       : { type: 'text', text: { body: command.text, preview_url: false } };
     try {
+      let body: Record<string, unknown> | undefined = content;
+      if (command.media) {
+        // The uploaded file goes from the bucket to WhatsApp (PostWhatsAppMessageMedia); the message then refers to its id.
+        const posted = await this.client.send(new PostWhatsAppMessageMediaCommand({ originationPhoneNumberId: binding.awsPhoneNumberId,
+          sourceS3File: { bucketName: this.mediaBucket!, key: command.media.key } }));
+        if (!posted.mediaId) return { state: 'rejected', errorCode: 'media_not_uploaded' };
+        const m = command.media;
+        body = { type: m.type, [m.type]: { id: posted.mediaId, ...(m.caption ? { caption: m.caption } : {}),
+          ...(m.type === 'document' && m.fileName ? { filename: m.fileName } : {}) } };
+      }
       const result = await this.client.send(new SendWhatsAppMessageCommand({
         originationPhoneNumberId: binding.awsPhoneNumberId,
         metaApiVersion: this.metaApiVersion,
         message: new TextEncoder().encode(JSON.stringify({ messaging_product: 'whatsapp',
           // AWS End User Messaging Social requires E.164 WITH '+' ("Invalid destination phone number" without it).
-          to: command.recipient, ...content,
+          to: command.recipient, ...body,
           // Meta echoes this in every status webhook: the only reliable link between the AWS messageId and the wamid.
           biz_opaque_callback_data: command.commandId })),
       }));

@@ -763,6 +763,13 @@ Resources:
               Ref: HttpApi
             Path: /templates
             Method: POST
+        Media:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /media
+            Method: POST
     Condition: DeployOutboundRuntime
   NotifyFunction:
     Type: AWS::Serverless::Function

@@ -590,6 +590,11 @@ Resources:
             - social-messaging:ListWhatsAppMessageTemplates
             - social-messaging:GetWhatsAppMessageTemplate
             Resource: arn:aws:social-messaging:eu-west-1:365470560685:waba/3fe299c6d9f34872bb25fcf4c0a5c44b
+          - Sid: PresignOutboundMediaUploads
+            Effect: Allow
+            Action:
+            - s3:PutObject
+            Resource: arn:aws:s3:::muserelay-aws-bridge-stage-media-365470560685-eu-west-1/outbound/*
       Tags:
       - Key: Company
         Value: ScreenArt
@@ -646,12 +651,18 @@ Resources:
             - sqs:DeleteMessage
             - sqs:GetQueueAttributes
             Resource: arn:aws:sqs:eu-west-1:365470560685:muserelay-aws-bridge-stage-outbound-queue
+          - Sid: ReadOutboundMediaUploads
+            Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource: arn:aws:s3:::muserelay-aws-bridge-stage-media-365470560685-eu-west-1/outbound/*
           - Fn::If:
             - GrantSocialSend
             - Sid: OnlyDemoPhone
               Effect: Allow
               Action:
               - social-messaging:SendWhatsAppMessage
+              - social-messaging:PostWhatsAppMessageMedia
               Resource: arn:aws:social-messaging:eu-west-1:365470560685:phone-number-id/b1e7f9e53c454f15be065a2e2b5a1f00
             - Ref: AWS::NoValue
       Tags:

@@ -6,7 +6,7 @@ final class Outbox
 {
     public function __construct(private Store $store, private CorePort $core) {}
 
-    public function enqueue(object $binding, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null): array
+    public function enqueue(object $binding, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null, ?array $media = null): array
     {
         $this->store->requireOperation('send');
         $b = $this->store->binding($binding->id, $binding->channel_ref);
@@ -15,16 +15,20 @@ final class Outbox
         if (!preg_match('/^\+[1-9][0-9]{6,14}$/D', $recipient) || ($allowed !== [] && !in_array($recipient, $allowed, true))) throw new BridgeException('recipient_not_allowed', 403);
         if (trim($text) === '' || mb_strlen($text) > 4096) throw new BridgeException('invalid_text');
         if ($template !== null) $template = self::template($template);
+        if ($media !== null) {
+            if ($template !== null) throw new BridgeException('invalid_media');
+            $media = self::media($media, $b->id);
+        }
         $id = $sourceId ? hash('sha256', $b->id.'|reply|'.$sourceId) : bin2hex(random_bytes(32));
-        return $this->store->db->transaction(function () use ($b, $recipient, $text, $sourceId, $userId, $id, $template): array {
+        return $this->store->db->transaction(function () use ($b, $recipient, $text, $sourceId, $userId, $id, $template, $media): array {
             $this->store->db->table('aws_bridge_bindings')->where('id', $b->id)->lockForUpdate()->first();
             $old = $this->store->db->table('aws_bridge_outbox')->where('id', $id)->first();
             if ($old) return ['success' => true, 'message_id' => (int) $old->message_id, 'queued' => true, 'duplicate' => true];
             $limit = (int) $b->daily_outbound_limit; // 0 = no daily cap
             if ($limit > 0 && $this->store->db->table('aws_bridge_outbox')->where('binding_id', $b->id)->where('created_epoch', '>=', (int) (floor($this->store->now() / 86400) * 86400))->count() >= $limit) throw new BridgeException('daily_outbound_limit', 429);
-            $messageId = $this->core->outgoing($b, $recipient, $text, $sourceId, $userId, $template);
+            $messageId = $this->core->outgoing($b, $recipient, $text, $sourceId, $userId, $template, $media);
             $payload = ['version' => 1, 'commandId' => $id, 'bindingId' => $b->id, 'channelRef' => $b->channel_ref, 'recipient' => $recipient, 'text' => $text]
-                + ($template ? ['template' => $template] : []);
+                + ($template ? ['template' => $template] : []) + ($media ? ['media' => $media] : []);
             $this->store->db->table('aws_bridge_outbox')->insert(['id' => $id, 'binding_id' => $b->id, 'message_id' => $messageId,
                 'source_message_id' => $sourceId, 'payload' => $this->store->encode($payload), 'created_epoch' => $this->store->now()]);
             return ['success' => true, 'message_id' => $messageId, 'queued' => true, 'command_id' => $id];
@@ -40,6 +44,25 @@ final class Outbox
             || !is_array($parameters) || !array_is_list($parameters) || count($parameters) > 20) throw new BridgeException('invalid_template');
         foreach ($parameters as $p) if (!is_string($p) || trim($p) === '' || mb_strlen($p) > 1024) throw new BridgeException('invalid_template');
         return ['name' => $name, 'language' => $language, 'parameters' => $parameters];
+    }
+
+    /** Same rules as the AWS side (contracts.ts outboundMedia): a file uploaded through POST /media for this binding. */
+    public static function media(array $m, string $bindingId): array
+    {
+        $type = $m['type'] ?? null; $key = $m['key'] ?? null; $mime = $m['mimeType'] ?? null;
+        if (!is_string($type) || !isset(Egress::OUTBOUND_MEDIA[$type]) || !is_string($mime) || !preg_match(Egress::OUTBOUND_MEDIA[$type][0], $mime)
+            || !is_string($key) || !preg_match('~^outbound/'.preg_quote($bindingId, '~').'/[a-f0-9]{32}/file$~D', $key)) throw new BridgeException('invalid_media');
+        $out = ['type' => $type, 'key' => $key, 'mimeType' => $mime];
+        $name = $m['fileName'] ?? null; $caption = $m['caption'] ?? null;
+        if ($name !== null) {
+            if (!is_string($name) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9._ -]{0,119}$/D', $name)) throw new BridgeException('invalid_media');
+            $out['fileName'] = $name;
+        }
+        if ($caption !== null && $type !== 'audio') {
+            if (!is_string($caption) || trim($caption) === '' || mb_strlen($caption) > 1024) throw new BridgeException('invalid_media');
+            $out['caption'] = $caption;
+        }
+        return $out;
     }
 
     public function receipt(string $authenticatedBinding, array $receipt): array

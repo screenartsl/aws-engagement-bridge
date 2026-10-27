@@ -33,9 +33,10 @@ final class FixtureCore implements CorePort
     public function authorizeTurn(object $b, object $event): void { if ($this->blocked) throw new BridgeException('conversation_paused', 409); }
     public function authorizeOutgoing(object $b, object $outbox, array $command): void { if ($this->blocked) throw new BridgeException('conversation_paused', 409); }
     public ?array $lastTemplate = null;
-    public function outgoing(object $b, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null): int
+    public ?array $lastMedia = null;
+    public function outgoing(object $b, string $recipient, string $text, ?int $sourceId, ?int $userId, ?array $template = null, ?array $media = null): int
     {
-        $this->outgoingCalls++; $this->lastTemplate = $template;
+        $this->outgoingCalls++; $this->lastTemplate = $template; $this->lastMedia = $media;
         return $this->store->db->table('test_messages')->insertGetId(['conversation_id' => 1, 'content' => $this->store->encode(['text' => $text])]);
     }
     public function receipt(object $b, object $outbox, array $receipt): void { $this->receipts[] = $receipt; }
@@ -619,6 +620,42 @@ final class CoreTest extends TestCase
         self::assertSame($sent[0]['notifyId'], $sent[1]['notifyId']);
         $other = (object) ['id' => 6, 'organization_id' => 2, 'workspace_id' => 99, 'phone' => '34600000002', 'email' => 'x@example.com', 'preferred_reminder_channel' => 'sms'];
         self::assertSame('contact_ownership_mismatch', $n->send($channel, $other, 'sms', null, 'T', 'ticket', '7')['error']);
+    }
+    public function testOutboundFileTravelsAsAValidatedMediaReferenceForThisBindingOnly(): void
+    {
+        $key = 'outbound/demo/'.str_repeat('a', 32).'/file';
+        $media = ['type' => 'document', 'key' => $key, 'mimeType' => 'application/pdf', 'fileName' => 'invoice.pdf', 'caption' => 'Your invoice'];
+        $r = $this->outbox->enqueue($this->store->binding('demo'), '+12025550123', 'Your invoice', null, 99, null, $media);
+        self::assertTrue($r['success']); self::assertSame($media, $this->core->lastMedia);
+        $row = $this->store->db->table('aws_bridge_outbox')->where('id', $r['command_id'])->first();
+        self::assertSame($media, $this->store->decode($row->payload)['media']);
+        foreach ([['key' => str_replace('/demo/', '/other/', $key)], ['mimeType' => 'application/zip'], ['type' => 'image'], ['fileName' => '../x'], ['caption' => str_repeat('x', 1025)]] as $bad) {
+            try { $this->outbox->enqueue($this->store->binding('demo'), '+12025550123', 'x', null, 99, null, array_merge($media, $bad)); self::fail('accepted '.json_encode($bad)); }
+            catch (BridgeException $e) { self::assertSame('invalid_media', $e->reason); }
+        }
+        try { $this->outbox->enqueue($this->store->binding('demo'), '+12025550123', 'x', null, 99, ['name' => 'a', 'language' => 'es', 'parameters' => []], $media); self::fail('template + file'); }
+        catch (BridgeException $e) { self::assertSame('invalid_media', $e->reason); }
+    }
+    public function testUploadSlotMustPointAtThisBindingsKeyInAnS3BucketInTheRegion(): void
+    {
+        $secret = $this->secret; $key = 'outbound/demo/'.str_repeat('b', 32).'/file'; $reply = [];
+        $keys = new class($secret) implements KeySource { public function __construct(private string $secret) {} public function get(string $binding, string $direction): string { return $this->secret; } };
+        Illuminate\Support\Facades\Http::preventStrayRequests();
+        Illuminate\Support\Facades\Http::fake(function ($request) use ($secret, &$reply) {
+            if ($request->method() === 'PUT') { self::assertSame('application/pdf', $request->header('Content-Type')[0]); return Illuminate\Support\Facades\Http::response('', 200); }
+            BridgeSignature::verify($secret, 'POST', '/media', $request->body(), [
+                'timestamp' => $request->header('x-bridge-timestamp')[0], 'nonce' => $request->header('x-bridge-nonce')[0], 'signature' => $request->header('x-bridge-signature')[0],
+            ]);
+            return Illuminate\Support\Facades\Http::response($reply, 200);
+        });
+        $p = new Publisher('https://synthetic.execute-api.eu-west-1.amazonaws.com/outbound', $keys);
+        $reply = ['key' => $key, 'url' => 'https://bridge-media.s3.eu-west-1.amazonaws.com/'.$key.'?X-Amz-Signature=t'];
+        $slot = $p->uploadSlot('demo', 'document', 'application/pdf', 10);
+        $p->upload($slot, '%PDF-synthetic', 'application/pdf');
+        foreach (['https://attacker.example/'.$key.'?x', 'https://bridge-media.s3.us-east-1.amazonaws.com/'.$key.'?x', 'https://bridge-media.s3.eu-west-1.amazonaws.com/outbound/demo/other?x'] as $url) {
+            $reply = ['key' => $key, 'url' => $url];
+            try { $p->uploadSlot('demo', 'document', 'application/pdf', 10); self::fail('accepted '.$url); } catch (BridgeException $e) { self::assertSame('media_slot_unavailable', $e->reason); }
+        }
     }
     public function testActualLegacyMetaAndTelnyxConfigurationBranchesRemainIntact(): void
     {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ListWhatsAppMessageTemplatesCommand, SendWhatsAppMessageCommand, SocialMessagingClient } from '@aws-sdk/client-socialmessaging';
+import { ListWhatsAppMessageTemplatesCommand, PostWhatsAppMessageMediaCommand, SendWhatsAppMessageCommand, SocialMessagingClient } from '@aws-sdk/client-socialmessaging';
 import { sign, verify } from '../src/auth.js';
 import { Binding, BridgeError, InboundEvent, OutboundCommand, SendResult, outbound, parseBindings } from '../src/contracts.js';
 import { normalize } from '../src/normalize.js';
@@ -154,6 +154,24 @@ test('adapter invokes actual SDK command with AWS identity and UTF-8 payload', a
     return { messageId: 'aws.synthetic' };
   } }, 'v23.0', true);
   assert.deepEqual(await adapter.send(command, binding), { state: 'accepted', providerMessageId: 'aws.synthetic' }); assert.equal(calls, 1);
+});
+test('an uploaded file goes bucket → PostWhatsAppMessageMedia → SendWhatsAppMessage, with caption and document name', async () => {
+  const key = `outbound/${binding.id}/${'a'.repeat(32)}/file`;
+  const doc: OutboundCommand = { ...command, text: 'invoice.pdf', media: { type: 'document', key, mimeType: 'application/pdf', fileName: 'invoice.pdf', caption: 'Your invoice' } };
+  const calls: any[] = [];
+  const adapter = new SocialAdapter({ send: async c => { calls.push(c); return c instanceof PostWhatsAppMessageMediaCommand ? { mediaId: 'meta-media-1' } : { messageId: 'aws.media' }; } }, 'v23.0', true, 'bridge-media-test');
+  assert.deepEqual(await adapter.send(doc, binding), { state: 'accepted', providerMessageId: 'aws.media' });
+  assert.ok(calls[0] instanceof PostWhatsAppMessageMediaCommand);
+  assert.deepEqual(calls[0].input, { originationPhoneNumberId: binding.awsPhoneNumberId, sourceS3File: { bucketName: 'bridge-media-test', key } });
+  const sent = JSON.parse(new TextDecoder().decode(calls[1].input.message));
+  assert.deepEqual([sent.type, sent.document], ['document', { id: 'meta-media-1', caption: 'Your invoice', filename: 'invoice.pdf' }]);
+  assert.equal(sent.text, undefined);
+  // Without a media bucket nothing is called; another binding's key, a template plus a file or a wrong MIME type are rejected.
+  await assert.rejects(new SocialAdapter({ send: async () => { throw new Error('must not be called'); } }, 'v23.0', true).send(doc, binding), /media_not_configured/);
+  for (const media of [{ ...doc.media!, key: key.replace(binding.id, 'other') }, { ...doc.media!, mimeType: 'application/zip' }, { ...doc.media!, type: 'image' as const }]) {
+    assert.throws(() => outbound({ ...doc, media }, [binding]), /invalid_media/);
+  }
+  assert.throws(() => outbound({ ...doc, template: { name: 'x', language: 'es', parameters: [] } }, [binding]), /invalid_media/);
 });
 test('template command sends a WhatsApp template with body parameters; invalid templates are rejected', async () => {
   const tpl: OutboundCommand = { ...command, template: { name: 'appointment_reminder', language: 'es', parameters: ['Ana', 'lunes'] } };

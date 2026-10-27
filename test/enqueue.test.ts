@@ -62,6 +62,24 @@ test('signed /templates lists templates once, never enqueues, and rejects replay
   assert.equal(result.statusCode, 200); assert.equal(JSON.parse(result.body!).templates[0].name, 'hello_world');
   assert.equal((await enqueueRequest(e, p)).statusCode, 409); assert.deepEqual(listed, ['demo']); assert.equal(p.sent.length, 0);
 });
+function mediaEvent(body: unknown): APIGatewayProxyEventV2 {
+  const raw = JSON.stringify(body); const e = event(raw); const h = sign(secret, 'POST', '/media', raw);
+  e.rawPath = '/media'; e.requestContext.http.path = '/media';
+  e.headers = { 'x-bridge-binding': 'demo', 'x-bridge-timestamp': h.timestamp, 'x-bridge-nonce': h.nonce, 'x-bridge-signature': h.signature };
+  return e;
+}
+test('signed /media returns a one-off upload slot under the binding; type, size and replays are checked', async () => {
+  const p = port(); const slots: string[] = [];
+  p.uploadUrl = async (key, mime) => { slots.push(`${key}|${mime}`); return `https://bucket.s3.eu-west-1.amazonaws.com/${key}?X-Amz-Signature=t`; };
+  const ok = mediaEvent({ version: 1, bindingId: 'demo', type: 'image', mimeType: 'image/png', size: 1024 });
+  const res = await enqueueRequest(ok, p); const body = JSON.parse(res.body!);
+  assert.equal(res.statusCode, 200); assert.match(body.key, /^outbound\/demo\/[a-f0-9]{32}\/file$/); assert.deepEqual(body.headers, { 'content-type': 'image/png' });
+  assert.equal((await enqueueRequest(ok, p)).statusCode, 409);
+  assert.equal((await enqueueRequest(mediaEvent({ version: 1, bindingId: 'demo', type: 'image', mimeType: 'image/png', size: 6 * 1024 * 1024 }), p)).statusCode, 422);
+  assert.equal((await enqueueRequest(mediaEvent({ version: 1, bindingId: 'demo', type: 'document', mimeType: 'application/zip', size: 10 }), p)).statusCode, 422);
+  assert.equal((await enqueueRequest(mediaEvent({ version: 1, bindingId: 'other', type: 'image', mimeType: 'image/png', size: 10 }), p)).statusCode, 403);
+  assert.equal(slots.length, 1); assert.equal(p.sent.length, 0);
+});
 test('/templates rejects a signature made for /outbound and requests for another binding', async () => {
   const p = port(); p.templates = async () => { throw new Error('must not be called'); };
   assert.equal((await enqueueRequest(templatesEvent(undefined, '/outbound'), p)).statusCode, 401);

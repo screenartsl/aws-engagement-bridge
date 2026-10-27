@@ -39,6 +39,26 @@ final class Publisher
         throw new BridgeException('notify_unavailable', 503);
     }
 
+    /** Upload slot for one outbound file (POST /media): a key under this binding and a presigned PUT valid for minutes. */
+    public function uploadSlot(string $binding, string $type, string $mime, int $size): array
+    {
+        $result = $this->post($binding, '/media', ['version' => 1, 'bindingId' => $binding, 'type' => $type, 'mimeType' => $mime, 'size' => $size], 10);
+        $key = $result->json('key'); $url = $result->json('url');
+        if ($result->status() === 422 && is_string($result->json('error'))) throw new BridgeException((string) $result->json('error'), 422);
+        if ($result->status() !== 200 || !is_string($key) || !preg_match('~^outbound/'.preg_quote($binding, '~').'/[a-f0-9]{32}/file$~D', $key) || !is_string($url)) throw new BridgeException('media_slot_unavailable', 503);
+        // The slot may only point at that key in an S3 bucket in the Bridge region.
+        $u = parse_url($url);
+        if (($u['scheme'] ?? '') !== 'https' || !preg_match('/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]\.s3\.eu-west-1\.amazonaws\.com$/D', $u['host'] ?? '')
+            || ($u['path'] ?? '') !== '/'.$key || isset($u['user']) || isset($u['port'])) throw new BridgeException('media_slot_unavailable', 503);
+        return ['key' => $key, 'url' => $url];
+    }
+
+    public function upload(array $slot, string $body, string $mime): void
+    {
+        $result = Http::withBody($body, $mime)->withoutRedirecting()->connectTimeout(5)->timeout(60)->put($slot['url']);
+        if (!$result->successful()) throw new BridgeException('media_upload_failed', 503);
+    }
+
     private function post(string $binding, string $path, array $data, int $timeout): \Illuminate\Http\Client\Response
     {
         $url = parse_url($this->url);

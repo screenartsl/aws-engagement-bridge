@@ -62,6 +62,35 @@ export interface OutboundCommand {
   /** Plain text, or the rendered body of the template (kept for the inbox; not what is sent). */
   text: string;
   template?: TemplateRef;
+  /** A file MuseRelay uploaded to the media bucket (POST /media); `text` is then the inbox label. */
+  media?: OutboundMedia;
+}
+
+export type OutboundMediaType = 'image' | 'audio' | 'video' | 'document';
+export interface OutboundMedia { type: OutboundMediaType; key: string; mimeType: string; fileName?: string; caption?: string; }
+
+/** What WhatsApp accepts per type (Cloud API media limits); documents are capped at 20 MB here. */
+export const OUTBOUND_MEDIA: Record<OutboundMediaType, { mime: RegExp; max: number }> = {
+  image: { mime: /^image\/(jpeg|png)$/, max: 5 * 1024 * 1024 },
+  audio: { mime: /^audio\/(aac|mp4|mpeg|amr|ogg)$/, max: 16 * 1024 * 1024 },
+  video: { mime: /^video\/(mp4|3gpp)$/, max: 16 * 1024 * 1024 },
+  document: { mime: /^(application\/(pdf|msword|vnd\.ms-excel|vnd\.ms-powerpoint|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation))|text\/plain)$/, max: 20 * 1024 * 1024 },
+};
+const FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._ -]{0,119}$/;
+
+export function outboundMedia(value: unknown, bindingId: string): OutboundMedia {
+  const m = record(value);
+  const type = m.type as OutboundMediaType;
+  if (!OUTBOUND_MEDIA[type]) throw new BridgeError('invalid_media');
+  const mimeType = string(m.mimeType, 120);
+  if (!OUTBOUND_MEDIA[type].mime.test(mimeType)) throw new BridgeError('invalid_media');
+  const key = string(m.key, 300);
+  // Only this binding's own uploads (POST /media issues these keys).
+  if (!new RegExp(`^outbound/${bindingId}/[a-f0-9]{32}/file$`).test(key)) throw new BridgeError('invalid_media');
+  const media: OutboundMedia = { type, key, mimeType };
+  if (m.fileName !== undefined) { const f = string(m.fileName, 120); if (!FILE_NAME.test(f)) throw new BridgeError('invalid_media'); media.fileName = f; }
+  if (m.caption !== undefined) { const c = string(m.caption, 1024); if (type !== 'audio') media.caption = c; }
+  return media;
 }
 
 export interface TemplateRef { name: string; language: string; parameters: string[]; }
@@ -143,6 +172,10 @@ export function outbound(value: unknown, bindings: Binding[]): { command: Outbou
   if (!text.trim()) throw new BridgeError('empty_text');
   const command: OutboundCommand = { version: 1, commandId, bindingId, channelRef: binding.channelRef, recipient, text };
   if (c.template !== undefined) command.template = templateRef(c.template);
+  if (c.media !== undefined) {
+    if (command.template) throw new BridgeError('invalid_media');
+    command.media = outboundMedia(c.media, bindingId);
+  }
   return { binding, command };
 }
 

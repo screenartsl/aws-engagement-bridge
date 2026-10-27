@@ -8,6 +8,8 @@ import { CoreClient } from './core-client.js';
 import { DynamoState } from './state.js';
 import { SocialAdapter } from './social.js';
 import { S3Media } from './media.js';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { NotifyAdapter, notifyConfig, notifyRequest } from './notify.js';
 import { ingest, deliver } from './workers.js';
 
@@ -53,14 +55,14 @@ export async function inbound(event: SQSEvent, context?: Context): Promise<SQSBa
 export async function sender(event: SQSEvent, context?: Context): Promise<SQSBatchResponse> {
   if (process.env.BRIDGE_RUNTIME_ENABLED !== 'true' || process.env.BRIDGE_SEND_ENABLED !== 'true' || process.env.BRIDGE_LIVE_SEND !== 'true') return disabledBatch(event);
   const rt = await runtime();
-  const adapter = SocialAdapter.aws(rt.region, env('META_API_VERSION'), process.env.BRIDGE_LIVE_SEND === 'true');
+  const adapter = SocialAdapter.aws(rt.region, env('META_API_VERSION'), process.env.BRIDGE_LIVE_SEND === 'true', process.env.BRIDGE_MEDIA_BUCKET || undefined);
   return batch(event, async body => deliver(JSON.parse(body), rt.bindings, rt.store, rt.core, adapter, Number(env('BRIDGE_DAILY_SEND_LIMIT'))), context);
 }
 
-/** Only POST /outbound and the read-only POST /templates; no registration, permission changes, or management operations. */
+/** Only POST /outbound, the read-only POST /templates and POST /media (upload slot); no registration, permission changes, or management operations. */
 export async function enqueue(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
   try {
-    if (event.requestContext.http.method !== 'POST' || (event.rawPath !== '/outbound' && event.rawPath !== '/templates')) return jsonResponse(404, { error: 'not_found' });
+    if (event.requestContext.http.method !== 'POST' || !['/outbound', '/templates', '/media'].includes(event.rawPath)) return jsonResponse(404, { error: 'not_found' });
     if (!event.headers['x-bridge-binding'] || !event.headers['x-bridge-signature'] || !event.headers['x-bridge-timestamp'] || !event.headers['x-bridge-nonce']) {
       return jsonResponse(401, { error: 'unauthorized' });
     }
@@ -70,7 +72,9 @@ export async function enqueue(event: APIGatewayProxyEventV2): Promise<APIGateway
       nonce: key => rt.store.nonce(key), queue: async command => {
         await new SQSClient({ region: rt.region }).send(new SendMessageCommand({ QueueUrl: env('BRIDGE_OUTBOUND_QUEUE_URL'), MessageBody: JSON.stringify(command) }));
       },
-      templates: binding => SocialAdapter.aws(rt.region, 'v23.0', false).templates(binding) });
+      templates: binding => SocialAdapter.aws(rt.region, 'v23.0', false).templates(binding),
+      ...(process.env.BRIDGE_MEDIA_BUCKET ? { uploadUrl: (key: string, mimeType: string) => getSignedUrl(new S3Client({ region: rt.region }),
+        new PutObjectCommand({ Bucket: process.env.BRIDGE_MEDIA_BUCKET!, Key: key, ContentType: mimeType }), { expiresIn: 300 }) } : {}) });
   } catch {
     return jsonResponse(503, { error: 'temporary_failure' });
   }
