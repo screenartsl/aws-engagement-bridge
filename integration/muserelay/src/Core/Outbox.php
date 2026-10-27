@@ -49,10 +49,18 @@ final class Outbox
     /** Same rules as the AWS side (contracts.ts outboundMedia): a file uploaded through POST /media for this binding. */
     public static function media(array $m, string $bindingId): array
     {
-        $type = $m['type'] ?? null; $key = $m['key'] ?? null; $mime = $m['mimeType'] ?? null;
-        if (!is_string($type) || !isset(Egress::OUTBOUND_MEDIA[$type]) || !is_string($mime) || !preg_match(Egress::OUTBOUND_MEDIA[$type][0], $mime)
-            || !is_string($key) || !preg_match('~^outbound/'.preg_quote($bindingId, '~').'/[a-f0-9]{32}/file$~D', $key)) throw new BridgeException('invalid_media');
-        $out = ['type' => $type, 'key' => $key, 'mimeType' => $mime];
+        $type = $m['type'] ?? null; $key = $m['key'] ?? null; $mime = $m['mimeType'] ?? null; $source = $m['source'] ?? null;
+        if (!is_string($type) || !isset(Egress::OUTBOUND_MEDIA[$type]) || !is_string($mime) || !preg_match(Egress::OUTBOUND_MEDIA[$type][0], $mime)) throw new BridgeException('invalid_media');
+        // Either already uploaded (key) or still a local file of the inbox that the drain uploads before publishing (source).
+        if ($key !== null) {
+            if (!is_string($key) || !preg_match('~^outbound/'.preg_quote($bindingId, '~').'/[a-f0-9]{32}/file$~D', $key)) throw new BridgeException('invalid_media');
+            $out = ['type' => $type, 'key' => $key, 'mimeType' => $mime];
+        } else {
+            $disk = $source['disk'] ?? null; $path = $source['path'] ?? null; $size = $source['size'] ?? null;
+            if (!is_string($disk) || !preg_match('/^[a-z0-9_-]{1,40}$/D', $disk) || !is_string($path) || $path === '' || str_contains($path, '..') || strlen($path) > 500
+                || !is_int($size) || $size < 1 || $size > Egress::OUTBOUND_MEDIA[$type][1]) throw new BridgeException('invalid_media');
+            $out = ['type' => $type, 'mimeType' => $mime, 'source' => ['disk' => $disk, 'path' => $path, 'size' => $size]];
+        }
         $name = $m['fileName'] ?? null; $caption = $m['caption'] ?? null;
         if ($name !== null) {
             if (!is_string($name) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9._ -]{0,119}$/D', $name)) throw new BridgeException('invalid_media');
@@ -85,7 +93,11 @@ final class Outbox
         });
     }
 
-    public function publishOne(callable $publish): bool
+    /**
+     * $upload(bindingId, media) → key: uploads a pending file to the binding's media slot. Runs here, in the drain
+     * (the only process that holds the signing keys), never in the web request.
+     */
+    public function publishOne(callable $publish, ?callable $upload = null): bool
     {
         // No queries at all when disabled; reuse Store's gate before selecting a binding.
         if (!$this->store->operationEnabled('send')) return false;
@@ -109,6 +121,14 @@ final class Outbox
             $binding = $this->store->binding($selected->binding_id);
             $payload = $this->store->decode($selected->payload);
             $this->core->authorizeOutgoing($binding, $selected, $payload);
+            if (isset($payload['media']['source'])) {
+                if (!$upload) throw new BridgeException('media_upload_unavailable', 503);
+                $key = $upload($selected->binding_id, $payload['media']);
+                $media = $payload['media']; unset($media['source']); $media['key'] = $key;
+                $payload['media'] = self::media($media, $selected->binding_id);
+                // Saved before publishing: a retry reuses this upload and the same command (AWS rejects a changed one).
+                $this->store->db->table('aws_bridge_outbox')->where('id', $selected->id)->where('lease_token', $selected->lease_token)->update(['payload' => $this->store->encode($payload)]);
+            }
             $publish($selected->binding_id, $payload);
             $this->store->db->table('aws_bridge_outbox')->where('id', $selected->id)->where('state', 'publishing')->where('lease_token', $selected->lease_token)
                 ->update(['state' => 'queued', 'lease_token' => null, 'lease_until' => 0]);

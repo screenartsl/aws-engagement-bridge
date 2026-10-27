@@ -37,9 +37,9 @@ final class Egress
     }
 
     /**
-     * A file from the inbox: uploaded to this binding's slot in the media bucket (POST /media + presigned PUT), then queued
-     * like any reply; the Sender Lambda hands it to WhatsApp (PostWhatsAppMessageMedia). Needs the 24 h window, like text.
-     * $file = the inbox's stored attachment (disk, path, mime, size, original_name).
+     * A file from the inbox, queued like any reply. The web request never signs: the drain uploads it to the binding's
+     * media slot (POST /media + presigned PUT) and the Sender Lambda hands it to WhatsApp (PostWhatsAppMessageMedia).
+     * Needs the 24 h window, like text. $file = the inbox's stored attachment (disk, path, mime, size, original_name).
      */
     public function sendMedia(object $channel, object $contact, array $file, string $type, string $caption, ?int $userId = null): array
     {
@@ -52,15 +52,39 @@ final class Egress
             if (!isset(self::OUTBOUND_MEDIA[$type]) || !preg_match(self::OUTBOUND_MEDIA[$type][0], $mime)) throw new BridgeException('unsupported_media', 422);
             if ($size < 1 || $size > self::OUTBOUND_MEDIA[$type][1]) throw new BridgeException('media_too_large', 422);
             $recipient = '+'.preg_replace('/\D+/', '', (string) ($contact->phone ?: $contact->external_contact_id));
-            $slot = $this->publisher->uploadSlot($binding->id, $type, $mime, $size);
-            $this->publisher->upload($slot, \Illuminate\Support\Facades\Storage::disk($file['disk'])->get($file['path']), $mime);
             $name = preg_replace('/[^A-Za-z0-9._ -]+/', '_', (string) ($file['original_name'] ?? ''));
             $name = ltrim(mb_substr((string) $name, 0, 120), '._ -');
-            $media = ['type' => $type, 'key' => $slot['key'], 'mimeType' => $mime] + ($name !== '' ? ['fileName' => $name] : [])
+            $media = ['type' => $type, 'mimeType' => $mime, 'source' => ['disk' => (string) $file['disk'], 'path' => (string) $file['path'], 'size' => $size]]
+                + ($name !== '' ? ['fileName' => $name] : [])
                 + (trim($caption) !== '' && $type !== 'audio' ? ['caption' => mb_substr($caption, 0, 1024)] : []);
             return $this->outbox->enqueue($binding, $recipient, trim($caption) !== '' ? $caption : ($name !== '' ? $name : '['.$type.']'), null, $userId, null, $media);
         } catch (BridgeException $e) { return ['success' => false, 'error' => $e->reason]; }
         catch (\Throwable) { return ['success' => false, 'error' => 'bridge_unavailable']; }
+    }
+
+    /** Drain only: upload a queued file and return its key in the media bucket. */
+    public function uploadQueuedMedia(string $bindingId, array $media): string
+    {
+        $slot = $this->publisher->uploadSlot($bindingId, $media['type'], $media['mimeType'], (int) $media['source']['size']);
+        $this->publisher->upload($slot, \Illuminate\Support\Facades\Storage::disk($media['source']['disk'])->get($media['source']['path']), $media['mimeType']);
+        return $slot['key'];
+    }
+
+    /**
+     * Drain only (holds the signing keys): keeps each AWS channel's approved templates in the cache the panel reads
+     * (wa_templates_{channel}), refreshed at most every 5 minutes. The web request then never has to sign.
+     */
+    public function refreshTemplates(): void
+    {
+        try {
+            if (!$this->store->operationEnabled('send')) return;
+            foreach ($this->store->bindingIds() as $id) {
+                if (!\Illuminate\Support\Facades\Cache::add('aws_bridge_templates_refresh_'.$id, 1, 300)) continue;
+                $binding = $this->store->binding((string) $id);
+                $templates = array_map(fn ($t) => $t + ['status' => 'APPROVED'], $this->publisher->templates($binding->id));
+                \Illuminate\Support\Facades\Cache::put('wa_templates_'.$binding->channel_id, $templates, 900);
+            }
+        } catch (\Throwable) { /* the panel keeps the previous list or shows "try again" */ }
     }
 
     /** @return array{templates?: array, error?: string} */

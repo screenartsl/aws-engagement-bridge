@@ -636,6 +636,28 @@ final class CoreTest extends TestCase
         try { $this->outbox->enqueue($this->store->binding('demo'), '+12025550123', 'x', null, 99, ['name' => 'a', 'language' => 'es', 'parameters' => []], $media); self::fail('template + file'); }
         catch (BridgeException $e) { self::assertSame('invalid_media', $e->reason); }
     }
+    public function testQueuedFileIsUploadedByTheDrainOnceAndPublishedWithItsKeyOnly(): void
+    {
+        $media = ['type' => 'image', 'mimeType' => 'image/png', 'source' => ['disk' => 'media_local', 'path' => 'org/1/out/a.png', 'size' => 2048], 'caption' => 'Router'];
+        $r = $this->outbox->enqueue($this->store->binding('demo'), '+12025550123', 'Router', null, 99, null, $media);
+        $uploads = 0; $published = []; $failFirstPublish = true;
+        $upload = function ($binding, $m) use (&$uploads) { $uploads++; self::assertSame(['disk' => 'media_local', 'path' => 'org/1/out/a.png', 'size' => 2048], $m['source']); return 'outbound/demo/'.str_repeat('c', 32).'/file'; };
+        $publish = function ($binding, $command) use (&$published, &$failFirstPublish) {
+            if ($failFirstPublish) { $failFirstPublish = false; throw new RuntimeException('network'); }
+            $published[] = $command;
+        };
+        self::assertTrue($this->outbox->publishOne($publish, $upload));
+        $this->now += 31;
+        self::assertTrue($this->outbox->publishOne($publish, $upload));
+        self::assertSame(1, $uploads, 'a retry reuses the saved upload');
+        self::assertSame(['type' => 'image', 'key' => 'outbound/demo/'.str_repeat('c', 32).'/file', 'mimeType' => 'image/png', 'caption' => 'Router'], $published[0]['media']);
+        self::assertArrayNotHasKey('source', $published[0]['media']);
+        self::assertSame($r['command_id'], $published[0]['commandId']);
+        foreach ([['path' => '../etc/x'], ['disk' => 'Bad Disk'], ['size' => 6 * 1024 * 1024]] as $bad) {
+            try { $this->outbox->enqueue($this->store->binding('demo'), '+12025550123', 'x', null, 99, null, ['source' => array_merge($media['source'], $bad)] + $media); self::fail('accepted '.json_encode($bad)); }
+            catch (BridgeException $e) { self::assertSame('invalid_media', $e->reason); }
+        }
+    }
     public function testUploadSlotMustPointAtThisBindingsKeyInAnS3BucketInTheRegion(): void
     {
         $secret = $this->secret; $key = 'outbound/demo/'.str_repeat('b', 32).'/file'; $reply = [];
