@@ -42,7 +42,8 @@ async function runtime(direction: 'core' | 'outbound' = 'core'): Promise<Runtime
     const key = secrets[id]?.core; if (!key) throw new BridgeError('missing_secret'); return key;
   });
   const value = { bindings, secrets, store, core, region };
-  cached = { until: Date.now() + 60_000, direction, value }; return value;
+  // 5 min: each refresh is a Secrets Manager call on the message path; a rotated key takes effect within 5 min.
+  cached = { until: Date.now() + 300_000, direction, value }; return value;
 }
 
 export async function inbound(event: SQSEvent, context?: Context): Promise<SQSBatchResponse> {

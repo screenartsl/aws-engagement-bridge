@@ -349,7 +349,7 @@ Globals:
       Key:
         Ref: RuntimeArtifactKey
     Timeout: 30
-    MemorySize: 256
+    MemorySize: 1024
     Environment:
       Variables:
         BRIDGE_BINDINGS_JSON:
