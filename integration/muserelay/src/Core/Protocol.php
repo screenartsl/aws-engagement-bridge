@@ -31,6 +31,10 @@ final class Protocol
             // Empty allowed_recipients = open number; a non-empty list restricts senders.
             $allowed = json_decode($b->allowed_recipients, true, 8, JSON_THROW_ON_ERROR);
             if (!is_string($sender) || !preg_match('/^\+[1-9][0-9]{6,14}$/D', $sender) || ($allowed !== [] && !in_array($sender, $allowed, true))) throw new BridgeException('recipient_not_allowed', 403);
+            // Optional WhatsApp profile name (the same contacts[].profile.name that direct Meta channels store).
+            $name = $input['senderName'] ?? null;
+            if ($name !== null && (!is_string($name) || trim($name) === '' || mb_strlen($name) > 256 || preg_match('/[\x00-\x1F\x7F]/', $name))) throw new BridgeException('invalid_sender_name');
+            if ($name !== null) $event['senderName'] = $name;
             $type = $input['messageType'] ?? 'text';
             if ($type === 'text') {
                 if (!is_string($text) || trim($text) === '' || mb_strlen($text) > 4096) throw new BridgeException('invalid_text');

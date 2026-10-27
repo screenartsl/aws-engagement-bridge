@@ -282,6 +282,14 @@ final class CoreTest extends TestCase
         $this->store->accept('demo', $big + ['messageType' => 'image', 'media' => ['id' => 'm2', 'mimeType' => 'image/png', 'size' => 6 * 1024 * 1024]]);
         self::assertSame(2, $this->store->db->table('aws_bridge_events')->count());
     }
+    public function testSenderProfileNameIsOptionalAndValidated(): void
+    {
+        $this->store->accept('demo', $this->event('wamid.named') + ['senderName' => 'Ana Pérez']);
+        self::assertSame('Ana Pérez', $this->store->decode($this->store->db->table('aws_bridge_events')->first()->payload)['senderName']);
+        foreach (["Ana\nPérez", str_repeat('x', 257), '  ', 7] as $i => $bad) {
+            try { $this->store->accept('demo', $this->event('wamid.badname'.$i) + ['senderName' => $bad]); self::fail('accepted '.$i); } catch (BridgeException) {}
+        }
+    }
     public function testWorkerCreatesOneConversationAndDoesNotRerunDuplicateEvents(): void
     {
         $this->store->accept('demo', $this->event()); $this->store->accept('demo', $this->event());

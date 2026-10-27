@@ -28,6 +28,8 @@ export interface InboundEvent {
   providerMessageId: string;
   timestamp: number;
   sender?: string;
+  /** WhatsApp profile name of the sender (contacts[].profile.name), as Meta sends it. Never a profile picture: the API has none. */
+  senderName?: string;
   /** Text body, or the caption of a media message. */
   text?: string;
   /** Message only; absent = text. */

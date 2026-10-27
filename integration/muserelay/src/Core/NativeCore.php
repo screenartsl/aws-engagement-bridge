@@ -23,7 +23,9 @@ final class NativeCore implements CorePort
         $this->store->requireOperation('receive');
         $this->sameConnection();
         $channel = Channel::findOrFail($b->channel_id);
-        $contact = app(ContactManagerService::class)->findOrCreateFromWhatsApp(ltrim($event['sender'], '+'), $channel);
+        // Same contact data shape as the Meta webhook, so the profile name is stored exactly as for direct Meta channels.
+        $profile = isset($event['senderName']) ? ['contacts' => [['wa_id' => ltrim($event['sender'], '+'), 'profile' => ['name' => $event['senderName']]]]] : [];
+        $contact = app(ContactManagerService::class)->findOrCreateFromWhatsApp(ltrim($event['sender'], '+'), $channel, $profile);
         if ((int) $contact->workspace_id !== (int) $b->workspace_id || (int) $contact->organization_id !== (int) $b->organization_id) throw new BridgeException('contact_ownership_mismatch', 403);
         $conversation = Conversation::where('channel_id', $b->channel_id)->where('workspace_id', $b->workspace_id)
             ->where('organization_id', $b->organization_id)->where('contact_id', $contact->id)->where('external_thread_id', ltrim($event['sender'], '+'))->first();

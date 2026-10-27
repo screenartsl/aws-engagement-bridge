@@ -26,6 +26,12 @@ export function normalize(envelope: unknown, bindings: Binding[]): InboundEvent[
     if (!binding) throw new BridgeError('unmapped_identity');
     const resource = { accountId: binding.topicArn.split(':')[4]!, region: binding.region, wabaId: binding.wabaId,
       metaPhoneNumberId: binding.metaPhoneNumberId, awsPhoneNumberArn: binding.awsPhoneNumberId };
+    // Profile names by WhatsApp id, as the Meta webhook carries them (same data MuseRelay keeps for direct Meta channels).
+    const names = new Map<string, string>();
+    for (const c of list(value.contacts)) {
+      const contact = record(c); const name = (contact.profile as { name?: unknown } | undefined)?.name;
+      if (typeof contact.wa_id === 'string' && typeof name === 'string' && name.trim()) names.set(contact.wa_id, name.trim().replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, 256));
+    }
     for (const msgValue of list(value.messages)) {
       const msg = record(msgValue);
       const type = String(msg.type);
@@ -37,7 +43,7 @@ export function normalize(envelope: unknown, bindings: Binding[]): InboundEvent[
       const id = string(msg.id);
       const base: InboundEvent = { version: 1, eventId: stableId(binding.id, 'message', id), bindingId: binding.id,
         channelRef: binding.channelRef, resource, kind: 'message', providerMessageId: id,
-        timestamp: timestamp(msg.timestamp), sender: `+${from}` };
+        timestamp: timestamp(msg.timestamp), sender: `+${from}`, ...(names.has(from) ? { senderName: names.get(from)! } : {}) };
       if (type === 'text') { events.push({ ...base, text: string(record(msg.text).body, 4096) }); continue; }
       const messageType = MEDIA_TYPES[type]!;
       const m = record(msg[type]);

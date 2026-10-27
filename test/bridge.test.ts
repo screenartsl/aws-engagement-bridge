@@ -116,6 +116,15 @@ test('media is copied to the bucket and Core gets a presigned URL; oversized fil
   await ingest(odd, [binding], store, core, 0, media(1024));
   assert.equal(core.events[2]!.media!.url, undefined); assert.equal(probed.slice(-3).join(','), [`jpeg`, `jpg`, ''].map(e => `media/demo/${core.events[2]!.eventId}/m3${e ? '.' + e : ''}`).join(','));
 });
+test('the sender WhatsApp profile name travels with the message, cleaned and bounded; other contacts are ignored', () => {
+  const env = (contacts: unknown) => ({ ...envelope(), Message: JSON.stringify({ whatsAppWebhookEntry: JSON.stringify({ id: binding.wabaId,
+    changes: [{ field: 'messages', value: { metadata: { phone_number_id: binding.metaPhoneNumberId }, contacts,
+      messages: [{ id: 'wamid.n', from: '12025550123', timestamp: '1792860000', type: 'text', text: { body: 'Hi' } }] } }] }) }) });
+  assert.equal(normalize(env([{ wa_id: '12025550123', profile: { name: ' Ana\nPérez ' } }]), [binding])[0]?.senderName, 'Ana Pérez');
+  assert.equal(normalize(env([{ wa_id: '34600000000', profile: { name: 'Someone else' } }]), [binding])[0]?.senderName, undefined);
+  assert.equal(normalize(env(undefined), [binding])[0]?.senderName, undefined);
+  assert.equal(normalize(env([{ wa_id: '12025550123', profile: { name: 'x'.repeat(400) } }]), [binding])[0]?.senderName?.length, 256);
+});
 test('empty allowlist = open number, non-empty list restricts senders', () => {
   assert.equal(normalize(envelope(), [{ ...binding, allowedRecipients: [] }]).length, 1);
   assert.equal(normalize(envelope(), [{ ...binding, allowedRecipients: ['+34600000000'] }]).length, 0);
