@@ -9,6 +9,8 @@ Status (2026-10-27):
 
 Both transports stay restricted to the test recipients (`NotifyAllowedRecipients`) and the daily cap of 5. Core's `AWS_BRIDGE_NOTIFY_ENABLED` stays off; the test was run with it set for that single process only.
 
+**Scope (2026-10-28):** the SES path is proven, but MuseRelay's own ticket and appointment emails (ticket confirmations, team replies, confirmation links) still go through the platform mail service, not SES. The account is still in the SES sandbox. Routing ticket updates through SES, with the existing templates and white-label branding, is planned for after SES production access.
+
 ## What it does
 
 When a business operation is confirmed (an appointment booked by the Bedrock agent, a ticket opened…), MuseRelay can send a confirmation by email or SMS, in addition to the WhatsApp reply. Each transport is independent: WhatsApp keeps its own functions, roles, queue and checks, and none of them were changed.
