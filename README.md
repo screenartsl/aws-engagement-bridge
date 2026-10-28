@@ -183,6 +183,11 @@ A new customer's independent AWS account onboarding is planned, but is not yet a
 - Verify inbound media and, once authorized, email/SMS confirmations end to end.
 - Introduce self-service AWS account onboarding and channel binding for customer-owned AWS accounts.
 
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE). Copyright 2026 Screen Art SL.
+The MuseRelay name and logo are not covered by this license.
+
 ---
 
 **Screen Art S.L. · AWS CDS Partner Hackathon 2026**  
