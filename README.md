@@ -35,6 +35,8 @@ The Bridge runs on AWS infrastructure without requiring MuseRelay's application 
 
 ## Architecture
 
+![Architecture: AWS End User Messaging Social, the Bridge, Amazon Bedrock and the MuseRelay Core](docs/architecture-diagram.png)
+
 ```mermaid
 flowchart TD
     WA["Customer WhatsApp"] --> SOCIAL["AWS End User Messaging Social"]
@@ -93,7 +95,9 @@ The Bridge has been deployed and tested using a real WhatsApp number and the exi
 | WhatsApp read status | Verified |
 | Invalid signature and duplicate rejection | Verified |
 | AI-generated reply through the Bridge (Claude Haiku 4.5 on Amazon Bedrock, Nova Micro guards) | Verified |
-| Ticket or calendar action through Bedrock | Pending live verification |
+| Ticket actions by the AI through the Bridge (ticket created after customer confirmation, information added, status changed; 27 Oct 2026) | Verified |
+| Ticket continued from the web chatbot after a one-time code sent to the ticket's WhatsApp through AWS (28 Oct 2026) | Code delivery and check verified; full re-run pending |
+| Calendar action through Bedrock | Pending live verification |
 | WhatsApp templates listed and sent through AWS | Implemented; send pending live verification |
 | Inbound photo (`GetWhatsAppMessageMedia`) stored and shown in the inbox | Verified |
 | Inbound voice note and PDF | Implemented; pending live verification |
@@ -179,7 +183,8 @@ A new customer's independent AWS account onboarding is planned, but is not yet a
 
 ## Roadmap
 
-- Demonstrate a real customer-service tool action, such as ticket creation.
+- Re-run the full WhatsApp ↔ web chatbot ticket journey live (ticket creation through the Bridge is already verified).
+- Demonstrate a calendar action through the Bridge.
 - Verify inbound media and, once authorized, email/SMS confirmations end to end.
 - Introduce self-service AWS account onboarding and channel binding for customer-owned AWS accounts.
 

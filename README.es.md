@@ -35,6 +35,8 @@ El Bridge funciona sobre infraestructura de AWS sin que los servidores de aplica
 
 ## Arquitectura
 
+![Arquitectura: AWS End User Messaging Social, el Bridge, Amazon Bedrock y el Core de MuseRelay](docs/architecture-diagram.png)
+
 ```mermaid
 flowchart TD
     WA["WhatsApp del cliente"] --> SOCIAL["AWS End User Messaging Social"]
@@ -93,7 +95,9 @@ El Bridge está desplegado y probado con un número de WhatsApp real y la organi
 | Estado «leído» de WhatsApp | Verificado |
 | Rechazo de firmas inválidas y de duplicados | Verificado |
 | Respuesta generada por IA a través del Bridge (Claude Haiku 4.5 en Amazon Bedrock, guardas con Nova Micro) | Verificado |
-| Acción de ticket o calendario con Bedrock | Pendiente de verificar en vivo |
+| Acciones de ticket de la IA por el Bridge (ticket creado tras confirmar el cliente, información añadida, cambio de estado; 27 oct 2026) | Verificado |
+| Ticket continuado desde el chatbot web con un código de un solo uso enviado por AWS al WhatsApp del ticket (28 oct 2026) | Envío y comprobación del código verificados; falta repetir el recorrido completo |
+| Acción de calendario con Bedrock | Pendiente de verificar en vivo |
 | Plantillas de WhatsApp listadas y enviadas por AWS | Implementado; envío pendiente de verificar en vivo |
 | Foto entrante (`GetWhatsAppMessageMedia`) guardada y mostrada en la bandeja | Verificado |
 | Nota de voz y PDF entrantes | Implementado; pendiente de verificar en vivo |
@@ -179,7 +183,8 @@ El alta de clientes con su propia cuenta de AWS está prevista, pero todavía no
 
 ## Hoja de ruta
 
-- Demostrar una acción real de atención al cliente, como la creación de un ticket.
+- Repetir en vivo el recorrido completo del ticket WhatsApp ↔ chatbot web (la creación de tickets por el Bridge ya está verificada).
+- Demostrar una acción de calendario por el Bridge.
 - Verificar en vivo la multimedia entrante y, cuando se autorice, las confirmaciones por email y SMS.
 - Alta en autoservicio de cuentas de AWS propias del cliente y enlace de sus canales.
 
